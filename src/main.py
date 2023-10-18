@@ -121,7 +121,7 @@ if __name__ == "__main__":
     Network.add(Layer(2, "relu", name="Hidden"))
     Network.add(Layer(1, "sigmoid", name="Output"))
 
-    optimizer = Adam(alpha=0.2)
+    optimizer = Adam(learningRate=0.2)
     loss = MSE()
 
     Network.compile(loss, optimizer)
@@ -133,7 +133,7 @@ if __name__ == "__main__":
 
     print("\n\n STARTING TRAINING \n\n")
 
-    losses = Network.train(X, y, 2500)
+    losses = Network.train(X, y, 25000)
 
     print("\n\n TRAINING FINISHED \n\n")
 

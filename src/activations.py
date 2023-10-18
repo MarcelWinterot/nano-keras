@@ -58,8 +58,21 @@ class ELU:
         return np.array([1 if x >= 0 else self.alpha*math.exp(x) for x in X])
 
 
+class softmax:
+    def __init__(self) -> None:
+        pass
+
+    def compute_loss(self, X: np.ndarray) -> np.ndarray:
+        ex = np.exp(X - np.max(X))
+        return ex / ex.sum(axis=0)
+
+    def compute_derivative(self, X: np.ndarray) -> np.ndarray:
+        s = self.compute_loss(X)
+        return np.diag(s) - np.outer(s, s)
+
+
 if __name__ == "__main__":
-    X = np.array([0.20666447])
-    loss = sigmoid()
+    X = np.array([0.20666447, 0.983, 0.1])
+    loss = softmax()
     print(loss.compute_loss(X))
     print(loss.compute_derivative(X))

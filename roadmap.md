@@ -6,30 +6,36 @@
 
 ## Features I want to implement
 
-#### 1. Freely creating and training NNs with the library taking care of configuration
+### 1. Freely creating and training NNs with the library taking care of configuration
 
-#### 2. All activation and loss functions
+### 2. All activation and loss functions
 
-#### 3. A few optimizers to learn how they work
+### 3. A few optimizers to learn how they work
 
-#### 4. Custom layer types, like the ones in keras
+### 4. Custom layer types, like the ones in keras
 
-#### 5. Regularization techniques
+### 5. Regularization techniques
 
-#### 6. Callbacks
+### 6. Callbacks
 
 ## Features I've implemented
 
-#### 1. Freely creating and training NNs with the library taking care of configuration
+### 1. Freely creating and training NNs with the library taking care of configuration
 
-#### 2. A few activation and loss function
+### 2. A few activation and loss function
 
-#### 3. Optimizers: Adam
+### 3. Optimizers: Adam, SGD
 
-#### 4. L1, L2 and L1L2 regulization techniques
+### 4. L1, L2 and L1L2 regulization techniques
 
 ## Features I'm currently working on
 
-#### 1. Fixing the derivatives of loss functions
+### 1. Being able to set batch size
 
-#### 2. SGD optimizer
+#### Right now it updates the weights after every element
+
+### 2. Fixing the derivatives of loss functions
+
+#### Only the MSE works currently and I want each loss function to work
+
+#### It will take a while as I'm currently learning how to calculate derivatives and I want to calculate them myself

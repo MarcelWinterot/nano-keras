@@ -2,8 +2,8 @@ import numpy as np
 
 
 class Adam:
-    def __init__(self, alpha: float = 0.001, beta1: float = 0.9, beta2: float = 0.999, epsilon: float = 1e-7) -> None:
-        self.alpha = alpha
+    def __init__(self, learningRate: float = 0.001, beta1: float = 0.9, beta2: float = 0.999, epsilon: float = 1e-7) -> None:
+        self.learningRate = learningRate
         self.beta1 = beta1
         self.beta2 = beta2
         self.epsilon = epsilon
@@ -57,7 +57,7 @@ class Adam:
         m_hat_w = self.m_w / (1 - beta1T)
         v_hat_w = self.v_w / (1 - beta2T)
 
-        weights += self.alpha * \
+        weights += self.learningRate * \
             m_hat_w[:weights.shape[0], :weights.shape[1]] / \
             (np.sqrt(v_hat_w[:weights.shape[0],
              :weights.shape[1]]) + self.epsilon)
@@ -73,6 +73,17 @@ class Adam:
         m_hat_b = self.m_b / (1 - beta1T)
         v_hat_b = self.v_b / (1 - beta2T)
 
-        biases += self.alpha * m_hat_b / (np.sqrt(v_hat_b) + self.epsilon)
+        biases += self.learningRate * m_hat_b / \
+            (np.sqrt(v_hat_b) + self.epsilon)
 
+        return (weights, biases)
+
+
+class SGD:
+    def __init__(self, learningRate: float = 0.001):
+        self.learningRate = learningRate
+
+    def applyGradients(self, weightGradients: np.ndarray, biasGradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple:
+        weights += self.learningRate * weightGradients
+        biases += self.learningRate * biasGradients
         return (weights, biases)
