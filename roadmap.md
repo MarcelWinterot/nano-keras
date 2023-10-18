@@ -1,0 +1,35 @@
+# Plans for the future
+
+#### fyi I will be calling my program a library even though it won't be one
+
+### The goal of this project is to learn how things work in popular ML libraries. Of course the perfromance won't be too good as it is written in python but the performance isn't my goal, although I will try to make it as efficient as possible.
+
+## Features I want to implement
+
+#### 1. Freely creating and training NNs with the library taking care of configuration
+
+#### 2. All activation and loss functions
+
+#### 3. A few optimizers to learn how they work
+
+#### 4. Custom layer types, like the ones in keras
+
+#### 5. Regularization techniques
+
+#### 6. Callbacks
+
+## Features I've implemented
+
+#### 1. Freely creating and training NNs with the library taking care of configuration
+
+#### 2. A few activation and loss function
+
+#### 3. Optimizers: Adam
+
+#### 4. L1, L2 and L1L2 regulization techniques
+
+## Features I'm currently working on
+
+#### 1. Fixing the derivatives of loss functions
+
+#### 2. SGD optimizer
