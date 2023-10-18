@@ -2,50 +2,64 @@ import numpy as np
 import math
 
 
-def sigmoid(x: np.ndarray) -> np.ndarray:
-    return 1 / (1 + np.exp(-x))
+class sigmoid:
+    def __init__(self) -> None:
+        pass
+
+    def compute_loss(self, X: np.ndarray) -> np.ndarray:
+        return 1 / (1 + np.exp(-X))
+
+    def compute_derivative(self, X: np.ndarray) -> np.ndarray:
+        sX = self.compute_loss(X)
+        return sX * (1 - sX)
 
 
-def tanh(x: np.ndarray) -> np.ndarray:
-    return (np.exp(x) - np.exp(-x)) / (np.exp(x) + np.exp(-x))
+class tanh:
+    def __init__(self) -> None:
+        pass
+
+    def computeLoss(self, X: np.ndarray) -> np.ndarray:
+        return (np.exp(X) - np.exp(-X)) / (np.exp(X) + np.exp(-X))
+
+    def computeDLoss(self, X: np.ndarray) -> np.ndarray:
+        return 1 - self.computeLoss(X) ** 2
 
 
-def ReLU(x: np.ndarray) -> np.ndarray:
-    return np.array([max(0.0, X) for X in x])
+class ReLU:
+    def __init__(self) -> None:
+        pass
+
+    def compute_loss(self, X: np.ndarray) -> np.ndarray:
+        return np.array([max(0.0, x) for x in X])
+
+    def compute_derivative(self, X: np.ndarray) -> np.ndarray:
+        return np.array([0.0 if x < 0 else 1 for x in X])
 
 
-def leakyReLU(x: np.ndarray, a: float = 0.2) -> np.ndarray:
-    return np.array([X if X > 0 else a*X for X in x])
+class LeakyReLU:
+    def __init__(self, alpha: float = 0.2) -> None:
+        self.alpha = alpha
+
+    def compute_loss(self, X: np.ndarray) -> np.ndarray:
+        return np.array([x if x > 0 else self.alpha*x for x in X])
+
+    def compute_derivative(self, X: np.ndarray) -> np.ndarray:
+        return np.array([1 if x >= 0 else self.alpha for x in X])
 
 
-def ELU(x: np.ndarray, a: float = 0.2) -> np.ndarray:
-    return np.array([X if X > 0 else a * (math.exp(X) - 1) for X in x])
+class ELU:
+    def __init__(self, alpha: float = 0.2) -> None:
+        self.alpha = alpha
 
+    def compute_loss(self, X: np.ndarray) -> np.ndarray:
+        return np.array([x if x > 0 else self.alpha * (math.exp(x) - 1) for x in X])
 
-def dSigmoid(x: np.ndarray) -> np.ndarray:
-    return np.array([sigmoid(X) * (1 - sigmoid(X)) for X in x])
-
-
-def dTanh(x: np.ndarray) -> np.ndarray:
-    return 1 - tanh(x) ** 2
-
-
-def dReLU(x: np.ndarray) -> np.ndarray:
-    return np.array([0.0 if X < 0 else 1 for X in x])
-
-
-def dLeakyReLU(x: np.ndarray, a: float = 0.2) -> np.ndarray:
-    return np.array([1 if X >= 0 else a for X in x])
-
-
-def dELU(x: np.ndarray, a: float = 0.2) -> np.ndarray:
-    return np.array([1 if X >= 0 else a*math.exp(X) for X in x])
+    def compute_derivative(self, X: np.ndarray) -> np.ndarray:
+        return np.array([1 if x >= 0 else self.alpha*math.exp(x) for x in X])
 
 
 if __name__ == "__main__":
-    X = np.array([0.17, -0.26, 1])
-    print(dSigmoid(X))
-    print(dTanh(X))
-    print(dReLU(X))
-    print(dLeakyReLU(X))
-    print(dELU(X))
+    X = np.array([0.20666447])
+    loss = sigmoid()
+    print(loss.compute_loss(X))
+    print(loss.compute_derivative(X))

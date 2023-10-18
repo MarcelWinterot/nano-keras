@@ -18,29 +18,31 @@ def printProgress(epoch: int, totalEpochs: int, loss: float) -> None:
 
 class Layer:
     def __init__(self, units: int, activation, regulizer=None, name: str = "Layer") -> None:
-        _activations = {sigmoid: dSigmoid, tanh: dTanh,
-                        ReLU: dReLU, leakyReLU: dLeakyReLU, ELU: dELU}
+        __activations = {'sigmoid': sigmoid(), 'tanh': tanh(
+        ), 'relu': ReLU(), 'leaky_relu': LeakyReLU(), 'elu': ELU()}
         self.units = units
         self.name = name
         self.weights = np.array([])
         self.biases = np.random.randn(units)
-        self.activation = activation
-        self.dActivation = _activations[activation]
+        if type(activation) == str:
+            self.activation = __activations[activation]
+        else:
+            self.activation = activation
         self.regulizer = regulizer
 
     def summary(self) -> None:
         print(
-            f"{self.name}: {self.units} units - activation: {self.activation.__name__}")
+            f"{self.name}: {self.units} units")
 
     def feedForward(self, x: np.ndarray) -> tuple:
         weightedSum = np.dot(x, self.weights) + self.biases
-        output = self.activation(weightedSum)
+        output = self.activation.compute_loss(weightedSum)
         return output, weightedSum
 
     def backpropagate(self, loss: np.ndarray, outputs: np.ndarray, inputs: np.ndarray, optimizer) -> np.ndarray:
         if self.regulizer is not None:
             loss = self.regulizer.computeLoss(loss, self.weights, self.biases)
-        delta = np.average([(loss * self.dActivation(outputs[i]))
+        delta = np.average([(loss * self.activation.compute_derivative(outputs[i]))
                             for i in range(len(outputs))])
         weightsGradients = np.outer(inputs, delta)
         weights, biases = optimizer.applyGradients(weightsGradients, np.array(
@@ -91,13 +93,11 @@ class NN:
         for epoch in range(epochs):
             for i in range(len(X)):
                 yPred, outputs, inputs = self.feedForward(X[i])
-                # TODO - Change the loss calculation to use the derivative of the loss function and not always dMSE. It currently has to be dMSE as any other dF doesn't work
                 loss = self.lossFunction.computeDerivative(y[i], yPred)
                 for i in range(len(self.layers)-1, 0, -1):
                     loss = self.layers[i].backpropagate(
                         loss, outputs[i-1], inputs[i-1], self.optimizer)
             loss = self.evaluate(X, y)
-            # print(loss)
             losses[epoch] = loss
             printProgress(epoch+1, epochs, loss)
         return losses
@@ -117,10 +117,9 @@ class NN:
 if __name__ == "__main__":
     np.random.seed(1337)
     Network = NN()
-    # regulizer = L1()
-    Network.add(Layer(2, sigmoid, None, "Input"))
-    Network.add(Layer(2, ReLU, None, "Hidden"))
-    Network.add(Layer(1, sigmoid, None, "Output"))
+    Network.add(Layer(2, "sigmoid", name="Input"))
+    Network.add(Layer(2, "relu", name="Hidden"))
+    Network.add(Layer(1, "sigmoid", name="Output"))
 
     optimizer = Adam(alpha=0.2)
     loss = MSE()
@@ -128,13 +127,11 @@ if __name__ == "__main__":
     Network.compile(loss, optimizer)
     Network.summary()
 
-    # XOR
+    # AND
     X = np.array([[0, 0], [1, 0], [0, 1], [1, 1]])
-    y = np.array([[1], [0], [0], [1]])
+    y = np.array([[0], [0], [0], [1]])
 
     print("\n\n STARTING TRAINING \n\n")
-
-    print(Network.feedForward(X[0])[0])
 
     losses = Network.train(X, y, 2500)
 
