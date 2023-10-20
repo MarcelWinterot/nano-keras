@@ -32,7 +32,7 @@ class Layer:
 
     def summary(self) -> None:
         print(
-            f"{self.name}: {self.units} units")
+            f"{self.name}: {self.units} units.")
 
     def feedForward(self, x: np.ndarray) -> tuple:
         weightedSum = np.dot(x, self.weights) + self.biases
@@ -42,11 +42,12 @@ class Layer:
     def backpropagate(self, loss: np.ndarray, outputs: np.ndarray, inputs: np.ndarray, optimizer) -> np.ndarray:
         if self.regulizer is not None:
             loss = self.regulizer.computeLoss(loss, self.weights, self.biases)
-        delta = np.average([(loss * self.activation.compute_derivative(outputs[i]))
-                            for i in range(len(outputs))])
+        delta = np.mean(self.activation.compute_derivative(
+            outputs) * loss, axis=0)
         weightsGradients = np.outer(inputs, delta)
-        weights, biases = optimizer.applyGradients(weightsGradients, np.array(
-            [delta], dtype=float), self.weights, self.biases)
+        # print(f"Delta: {delta}, weightsGradients: {weightsGradients}")
+        weights, biases = optimizer.applyGradients(
+            weightsGradients, np.array([delta], dtype=float), self.weights, self.biases)
         self.weights = weights
         self.biases = biases
         loss = np.dot(delta, self.weights.T)
@@ -86,20 +87,48 @@ class NN:
             inputs.append(output)
             output, weightedSum = layer.feedForward(output)
             outputs.append([output, weightedSum])
+
         return output, outputs, inputs
 
-    def train(self, X: np.ndarray, y: np.ndarray, epochs: int) -> np.ndarray:
-        losses = np.ndarray((epochs))
+    def train(self, X: np.ndarray, y: np.ndarray, epochs: int, batchSize: int = 1, verbose: int = 1) -> np.ndarray:
+        """Function to train NNs generated using this library. 
+
+        Args:
+            X (np.ndarray): X dataset
+            y (np.ndarray): y dataset
+            epochs (int): number of iterations a model should do while learning
+            batchSize (int, optional): amount of information a model will predict before calling the backpropagate function. Defaults to 1.
+            verbose (int, optional): controls wheter to display information during training. If set to 0 no information will be provided. Defaults to 1.
+
+        Returns:
+            np.ndarray: losses model had during training
+        """
+        if len(X) != len(y):
+            raise "X and y must have the same size"
+
+        if batchSize > len(X):
+            raise "Batch size must be equal or smaller than X"
+
+        losses = np.zeros(epochs)
         for epoch in range(epochs):
-            for i in range(len(X)):
-                yPred, outputs, inputs = self.feedForward(X[i])
-                loss = self.lossFunction.computeDerivative(y[i], yPred)
-                for i in range(len(self.layers)-1, 0, -1):
-                    loss = self.layers[i].backpropagate(
-                        loss, outputs[i-1], inputs[i-1], self.optimizer)
+            for batch in range(0, len(X), batchSize):
+                yPred, outputs, inputs = self.feedForward(
+                    X[batch:batch+batchSize])
+
+                # print(yPred, outputs, inputs)
+                loss = self.lossFunction.computeDerivative(
+                    y[batch:batch+batchSize], yPred)
+
+                # Backpropagate
+                for i in reversed(range(1, len(self.layers))):
+                    loss = self.layers[i].backpropagate(loss, np.array(
+                        outputs[i-1]), np.array(inputs[i-1]), self.optimizer)
+
             loss = self.evaluate(X, y)
             losses[epoch] = loss
-            printProgress(epoch+1, epochs, loss)
+            if verbose == 1:
+                printProgress(epoch+1, epochs, loss)
+
         return losses
 
     def evaluate(self, X: np.ndarray, y: np.ndarray, showPreds: bool = False) -> float:
@@ -110,15 +139,18 @@ class NN:
             yPreds[i] = result
 
         if showPreds:
-            print(yPreds)
+            print(np.round(yPreds, 4))
         return self.lossFunction.computeLoss(y, yPreds)
 
 
 if __name__ == "__main__":
     np.random.seed(1337)
     Network = NN()
+
+    regulizaer = L1L2(1e-4, 1e-5)
+
     Network.add(Layer(2, "sigmoid", name="Input"))
-    Network.add(Layer(2, "relu", name="Hidden"))
+    Network.add(Layer(2, "leaky_relu", name="Hidden", regulizer=regulizaer))
     Network.add(Layer(1, "sigmoid", name="Output"))
 
     optimizer = Adam(learningRate=0.2)
@@ -133,7 +165,7 @@ if __name__ == "__main__":
 
     print("\n\n STARTING TRAINING \n\n")
 
-    losses = Network.train(X, y, 25000)
+    losses = Network.train(X, y, 2500, 2)
 
     print("\n\n TRAINING FINISHED \n\n")
 

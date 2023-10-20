@@ -30,10 +30,10 @@ class ReLU:
         pass
 
     def compute_loss(self, X: np.ndarray) -> np.ndarray:
-        return np.array([max(0.0, x) for x in X])
+        return np.maximum(0.0, X)
 
     def compute_derivative(self, X: np.ndarray) -> np.ndarray:
-        return np.array([0.0 if x < 0 else 1 for x in X])
+        return np.where(X < 0, 0, 1)
 
 
 class LeakyReLU:
@@ -41,10 +41,12 @@ class LeakyReLU:
         self.alpha = alpha
 
     def compute_loss(self, X: np.ndarray) -> np.ndarray:
-        return np.array([x if x > 0 else self.alpha*x for x in X])
+        # return np.array([x if x > 0 else self.alpha*x for x in X])
+        return np.maximum(0.0, X)
 
     def compute_derivative(self, X: np.ndarray) -> np.ndarray:
-        return np.array([1 if x >= 0 else self.alpha for x in X])
+        # return np.array([1 if x >= 0 else self.alpha for x in X])
+        return np.where(X <= 0, 1, self.alpha)
 
 
 class ELU:
@@ -52,10 +54,12 @@ class ELU:
         self.alpha = alpha
 
     def compute_loss(self, X: np.ndarray) -> np.ndarray:
-        return np.array([x if x > 0 else self.alpha * (math.exp(x) - 1) for x in X])
+        # return np.array([x if x > 0 else self.alpha * (math.exp(x) - 1) for x in X])
+        return np.where(X > 0, X, self.alpha * math.exp(X) - 1)
 
     def compute_derivative(self, X: np.ndarray) -> np.ndarray:
-        return np.array([1 if x >= 0 else self.alpha*math.exp(x) for x in X])
+        # return np.array([1 if x >= 0 else self.alpha*math.exp(x) for x in X])
+        return np.where(X >= 0, 1, self.alpha * np.exp(X))
 
 
 class softmax:

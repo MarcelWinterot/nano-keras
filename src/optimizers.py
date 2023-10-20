@@ -24,8 +24,6 @@ class Adam:
             result = np.pad(arr, ((0, paddingNeeded)), mode='constant')
 
         return result
-
-    def applyGradients(self, weightGradients: np.ndarray, biasGradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple:
         """Function that updates params using provided gradients and Adam algorithm. You can read more about it
         at https://arxiv.org/pdf/1412.6980.pdf
 
@@ -36,6 +34,8 @@ class Adam:
         Returns:
             np.ndarray: Updated params using provided gradients
         """
+
+    def applyGradients(self, weightGradients: np.ndarray, biasGradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple:
         self.t += 1
         beta1T = self.beta1 ** self.t
         beta2T = self.beta2 ** self.t
@@ -46,35 +46,40 @@ class Adam:
             self.m_b = np.zeros_like(biases)
             self.v_b = np.zeros_like(biases)
 
-        targetShape = weights.shape
+        weightGradientsShape = weightGradients.shape
         self.m_w = self.beta1 * \
-            self.__fillArray(self.m_w, targetShape, False)[:weightGradients.size] \
-            + (1 - self.beta1) * weightGradients
+            self.__fillArray(self.m_w, weightGradientsShape,
+                             False)[:weightGradientsShape[0], :weightGradientsShape[1]] + (1 - self.beta1) * weightGradients
         self.v_w = self.beta2 * \
-            self.__fillArray(self.v_w, targetShape, False)[:weightGradients.size] + \
-            (1 - self.beta2) * weightGradients ** 2
+            self.__fillArray(self.v_w, weightGradientsShape,
+                             False)[:weightGradientsShape[0], :weightGradientsShape[1]] + (1 - self.beta2) * weightGradients ** 2
 
         m_hat_w = self.m_w / (1 - beta1T)
         v_hat_w = self.v_w / (1 - beta2T)
 
-        weights += self.learningRate * \
-            m_hat_w[:weights.shape[0], :weights.shape[1]] / \
-            (np.sqrt(v_hat_w[:weights.shape[0],
-             :weights.shape[1]]) + self.epsilon)
+        weightsShape = weights.shape
 
-        targetShape = biases.shape
+        weights += self.learningRate * \
+            m_hat_w[:weightsShape[0], :weightsShape[1]] / \
+            (np.sqrt(v_hat_w[:weightsShape[0],
+                             :weightsShape[1]]) + self.epsilon)
+
+        biasGradients = biasGradients.flatten()
+
+        biasGradientsShape = biasGradients.shape
         self.m_b = self.beta1 * \
-            self.__fillArray(self.m_b, targetShape, True)[
-                :biasGradients.size] + (1 - self.beta1) * biasGradients
+            self.__fillArray(self.m_b, biasGradientsShape,
+                             True)[:biasGradientsShape[0]] + (1 - self.beta1) * biasGradients
         self.v_b = self.beta2 * \
-            self.__fillArray(self.v_b, targetShape, True)[:biasGradients.size] + \
-            (1 - self.beta2) * biasGradients ** 2
+            self.__fillArray(self.v_b, biasGradientsShape,
+                             True)[:biasGradientsShape[0]] + (1 - self.beta2) * biasGradients**2
 
         m_hat_b = self.m_b / (1 - beta1T)
         v_hat_b = self.v_b / (1 - beta2T)
 
-        biases += self.learningRate * m_hat_b / \
-            (np.sqrt(v_hat_b) + self.epsilon)
+        biases += self.learningRate * \
+            np.average(m_hat_b) / \
+            (np.sqrt(np.average(v_hat_b)) + self.epsilon)
 
         return (weights, biases)
 
