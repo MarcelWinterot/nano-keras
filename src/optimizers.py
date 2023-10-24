@@ -1,5 +1,11 @@
 import numpy as np
 
+class Optimizer:
+    def __init__(self) -> None:
+        pass
+
+    def apply_gradients(self) -> None:
+        pass
 
 class Adam:
     def __init__(self, learningRate: float = 0.001, beta1: float = 0.9, beta2: float = 0.999, epsilon: float = 1e-7) -> None:
@@ -13,7 +19,7 @@ class Adam:
         self.v_b = np.array([])
         self.t = 0
 
-    def __fillArray(self, arr: np.ndarray, targetShape: tuple, isBiases: bool) -> np.ndarray:
+    def __fill_array__(self, arr: np.ndarray, targetShape: tuple, isBiases: bool) -> np.ndarray:
         if not isBiases:
             paddingNeeded = (
                 max(0, targetShape[0] - arr.shape[0]), max(0, targetShape[1] - arr.shape[1]))
@@ -24,6 +30,8 @@ class Adam:
             result = np.pad(arr, ((0, paddingNeeded)), mode='constant')
 
         return result
+
+    def apply_gradients(self, weightGradients: np.ndarray, biasGradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple:
         """Function that updates params using provided gradients and Adam algorithm. You can read more about it
         at https://arxiv.org/pdf/1412.6980.pdf
 
@@ -34,8 +42,6 @@ class Adam:
         Returns:
             np.ndarray: Updated params using provided gradients
         """
-
-    def applyGradients(self, weightGradients: np.ndarray, biasGradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple:
         self.t += 1
         beta1T = self.beta1 ** self.t
         beta2T = self.beta2 ** self.t
@@ -46,49 +52,43 @@ class Adam:
             self.m_b = np.zeros_like(biases)
             self.v_b = np.zeros_like(biases)
 
-        weightGradientsShape = weightGradients.shape
+        targetShape = weights.shape
         self.m_w = self.beta1 * \
-            self.__fillArray(self.m_w, weightGradientsShape,
-                             False)[:weightGradientsShape[0], :weightGradientsShape[1]] + (1 - self.beta1) * weightGradients
+            self.__fill_array__(self.m_w, targetShape, False)[:weightGradients.size] \
+            + (1 - self.beta1) * weightGradients
         self.v_w = self.beta2 * \
-            self.__fillArray(self.v_w, weightGradientsShape,
-                             False)[:weightGradientsShape[0], :weightGradientsShape[1]] + (1 - self.beta2) * weightGradients ** 2
+            self.__fill_array__(self.v_w, targetShape, False)[:weightGradients.size] + \
+            (1 - self.beta2) * weightGradients ** 2
 
         m_hat_w = self.m_w / (1 - beta1T)
         v_hat_w = self.v_w / (1 - beta2T)
 
-        weightsShape = weights.shape
-
         weights += self.learningRate * \
-            m_hat_w[:weightsShape[0], :weightsShape[1]] / \
-            (np.sqrt(v_hat_w[:weightsShape[0],
-                             :weightsShape[1]]) + self.epsilon)
+            m_hat_w[:weights.shape[0], :weights.shape[1]] / \
+            (np.sqrt(v_hat_w[:weights.shape[0],
+             :weights.shape[1]]) + self.epsilon)
 
-        biasGradients = biasGradients.flatten()
-
-        biasGradientsShape = biasGradients.shape
+        targetShape = biases.shape
         self.m_b = self.beta1 * \
-            self.__fillArray(self.m_b, biasGradientsShape,
-                             True)[:biasGradientsShape[0]] + (1 - self.beta1) * biasGradients
+            self.__fill_array__(self.m_b, targetShape, True)[
+                :biasGradients.size] + (1 - self.beta1) * biasGradients
         self.v_b = self.beta2 * \
-            self.__fillArray(self.v_b, biasGradientsShape,
-                             True)[:biasGradientsShape[0]] + (1 - self.beta2) * biasGradients**2
+            self.__fill_array__(self.v_b, targetShape, True)[:biasGradients.size] + \
+            (1 - self.beta2) * biasGradients ** 2
 
         m_hat_b = self.m_b / (1 - beta1T)
         v_hat_b = self.v_b / (1 - beta2T)
 
-        biases += self.learningRate * \
-            np.average(m_hat_b) / \
-            (np.sqrt(np.average(v_hat_b)) + self.epsilon)
+        biases += self.learningRate * m_hat_b / \
+            (np.sqrt(v_hat_b) + self.epsilon)
 
         return (weights, biases)
 
+class SGD(Optimizer):
+    def __init__(self, learning_rate: float = 0.001):
+        self.learning_rate = learning_rate
 
-class SGD:
-    def __init__(self, learningRate: float = 0.001):
-        self.learningRate = learningRate
-
-    def applyGradients(self, weightGradients: np.ndarray, biasGradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple:
-        weights += self.learningRate * weightGradients
-        biases += self.learningRate * biasGradients
+    def apply_gradients(self, weight_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple:
+        weights += self.learning_rate * weight_gradients
+        biases += self.learning_rate * bias_gradients
         return (weights, biases)
