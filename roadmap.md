@@ -1,6 +1,4 @@
-# Plans for the future
-
-#### fyi I will be calling my program a library even though it won't be one
+# Plans for v. 1.0
 
 ### The goal of this project is to learn how things work in popular ML libraries. Of course the perfromance won't be too good as it is written in python but the performance isn't my goal, although I will try to make it as efficient as possible.
 
@@ -28,14 +26,24 @@
 
 ### 4. L1, L2 and L1L2 regulization techniques
 
+### 5. Layers: Dense
+
 ## Features I'm currently working on
 
-### 1. Being able to set batch size
+### 1. Adding layer types
 
-#### Right now it updates the weights after every element
+#### I'm planning on adding those layers in v. 1.0: Dense, Convolutional, Pooling, Reshape, Flatten, Dropout
+
+#### If I have time I'll also implement: Concantanete layer, LSTM or GRU
 
 ### 2. Fixing the derivatives of loss functions
 
 #### Only the MSE works currently and I want each loss function to work
 
 #### It will take a while as I'm currently learning how to calculate derivatives and I want to calculate them myself
+
+# Possible plans for v. 2.0
+
+### Either add gpu support using cupy or convert it to mojo/rust/go
+
+### Make the code work in batches
