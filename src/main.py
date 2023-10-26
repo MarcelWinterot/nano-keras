@@ -33,10 +33,13 @@ class NN:
 
     def generate_weights(self) -> None:
         for i in range(1, len(self.layers)):
-            prev_units = self.layers[i-1].units
-            curr_units = self.layers[i].units
-            weights = np.random.randn(prev_units, curr_units)
-            self.layers[i].weights = weights
+            # Kinda primitive but it works, and as the rule says, if something works don't touch it if you don't want to break it
+            if self.layers[i].type not in [Flatten, Reshape]:
+                prev_units = self.layers[i-1].units if self.layers[i -
+                                                                   1].type not in [Flatten, Reshape] else self.layers[i-2].units
+                curr_units = self.layers[i].units
+                weights = np.random.randn(prev_units, curr_units)
+                self.layers[i].weights = weights
 
     def compile(self, loss_function: Loss, optimizer: Optimizer) -> None:
         self.generate_weights()
@@ -81,8 +84,8 @@ if __name__ == "__main__":
     # regulizaer = L1L2(1e-4, 1e-5)
 
     Network.add(Dense(2, "sigmoid"))
+    Network.add(Reshape((1, 2)))
     Network.add(Dense(2, "relu"))
-    Network.add(Dropout(2, "relu", 0.2))
     Network.add(Dense(1, "sigmoid"))
 
     optimizer = Adam(learningRate=0.2)

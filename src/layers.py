@@ -1,6 +1,6 @@
 from activations import *
 from typing import Union
-from activations import np
+from activations import Activation, np
 from optimizers import Optimizer
 from regulizers import Regularizer
 import numpy as np
@@ -22,11 +22,13 @@ class Layer:
         self.activation = __activations__[activation] if type(
             activation) == str else activation
         self.regulizer = regulizer
+        # We set the type to dense as every other layer will need it's special init where we'll set it
+        self.type = Dense
 
     def __repr__(self) -> str:
         return "Base layer class"
 
-    def feed_forward(self, x: np.ndarray) -> tuple:
+    def feed_forward(self, x: np.ndarray) -> np.ndarray:
         self.inputs = x
         weighted_sum = np.dot(x, self.weights) + self.biases
         output = self.activation.compute_loss(weighted_sum)
@@ -53,11 +55,12 @@ class Dropout(Layer):
     def __init__(self, units: int, activation: Union[Activation, str], dropout_rate: float = 0.2, regulizer: Union[Regularizer, None] = None, name: str = "Layer") -> None:
         super().__init__(units, activation, regulizer, name)
         self.dropout_rate = dropout_rate
+        self.type = Dropout
 
     def __repr__(self) -> str:
         return f"Dropout layer: {self.units} units"
 
-    def feed_forward(self, x: np.ndarray, isTraining: bool = True) -> tuple:
+    def feed_forward(self, x: np.ndarray, isTraining: bool = True) -> np.ndarray:
         self.inputs = x
         if isTraining:
             weighted_sum = np.dot(x, self.weights) + self.biases
@@ -78,3 +81,39 @@ class Dropout(Layer):
         self.weights, self.biases = optimizer.apply_gradients(
             weights_gradients, np.array(delta, dtype=float), self.weights, self.biases)
         return np.dot(delta, self.weights.T)
+
+
+class Flatten(Layer):
+    def __init__(self) -> None:
+        self.type = Flatten
+
+    def __repr__(self) -> str:
+        return f"Flatten layer"
+
+    def feed_forward(self, x: np.ndarray) -> np.ndarray:
+        return np.ravel(x)
+
+    def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
+        return loss
+
+
+class Reshape(Layer):
+    def __init__(self, target_shape: tuple) -> None:
+        self.target_shape = target_shape
+        self.type = Reshape
+
+    def __repr__(self) -> str:
+        return f"Reshape layer"
+
+    def feed_forward(self, x: np.ndarray) -> np.ndarray:
+        return np.reshape(x, self.target_shape)
+
+    def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
+        return loss
+
+
+if __name__ == "__main__":
+    data = np.array([[0.1], [0.8], [0.5], [0.3]])
+    print(data.shape)
+    layer = Reshape((1, 4))
+    print(layer.feed_forward(data).shape)

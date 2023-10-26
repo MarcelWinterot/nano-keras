@@ -26,13 +26,13 @@
 
 ### 4. L1, L2 and L1L2 regulization techniques
 
-### 5. Layers: Dense
+### 5. Layers: Dense, Dropout, Flatten, Reshape
 
 ## Features I'm currently working on
 
 ### 1. Adding layer types
 
-#### I'm planning on adding those layers in v. 1.0: Dense, Convolutional, Pooling, Reshape, Flatten, Dropout
+#### Not implemented layers I'm planning to add in v. 1.0: Convolutional, Pooling
 
 #### If I have time I'll also implement: Concantanete layer, LSTM or GRU
 
