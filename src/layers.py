@@ -5,11 +5,6 @@ from optimizers import Optimizer
 from regulizers import Regularizer
 import numpy as np
 
-"""
-TODO 26.10.2023
-Start implementing flatten and reshape layers
-"""
-
 
 class Layer:
     def __init__(self, units: int, activation: Union[Activation, str], regulizer: Union[Regularizer, None] = None, name: str = "Layer") -> None:
@@ -110,6 +105,11 @@ class Reshape(Layer):
 
     def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
         return loss
+
+
+class Convolutional(Layer):
+    def __init__(self):
+        pass
 
 
 if __name__ == "__main__":

@@ -5,6 +5,14 @@ from losses import *
 from optimizers import *
 from regulizers import *
 from layers import *
+from callbacks import *
+
+"""
+TODO 27.10.2023
+1. Finish implementing early stopping
+2. Try to calculate the derivatives of loss functions
+3. Learn how do the final layers left to implement work
+"""
 
 
 def print_progress(epoch: int, totalEpochs: int, loss: float) -> None:
@@ -52,12 +60,14 @@ class NN:
             output = layer.feed_forward(output)
         return output
 
-    def train(self, X: np.ndarray, y: np.ndarray, epochs: int) -> np.ndarray:
+    def train(self, X: np.ndarray, y: np.ndarray, epochs: int, callbacks: Union[EarlyStopping, None]) -> np.ndarray:
         losses = np.ndarray((epochs))
         for epoch in range(epochs):
             for i in range(len(X)):
                 yPred = self.feed_forward(X[i])
                 loss = self.loss_function.compute_derivative(y[i], yPred)
+                if callbacks is not None:
+                    callbacks.monitor(loss)
                 for i in range(len(self.layers)-1, 0, -1):
                     loss = self.layers[i].backpropagate(loss, self.optimizer)
             loss = self.evaluate(X, y)
