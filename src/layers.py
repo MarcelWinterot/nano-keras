@@ -27,25 +27,26 @@ class Layer:
         return "Base layer class"
 
     def feed_forward(self, x: np.ndarray) -> tuple:
+        self.inputs = x
         weighted_sum = np.dot(x, self.weights) + self.biases
         output = self.activation.compute_loss(weighted_sum)
-        return output, weighted_sum
+        self.outputs = np.array([output, weighted_sum])
+        return output
 
 
 class Dense(Layer):
     def __repr__(self) -> str:
         return f"Dense layer: {self.units} units"
 
-    def backpropagate(self, loss: np.ndarray, outputs: np.ndarray, inputs: np.ndarray, optimizer: Optimizer) -> np.ndarray:
-        delta = np.average([
-            loss * self.activation.compute_derivative(outputs[i]) for i in range(len(outputs))])
-        weights_gradients = np.outer(inputs, delta)
-        weights, biases = optimizer.apply_gradients(weights_gradients, np.array(
+    def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
+        if self.regulizer is not None:
+            loss = self.regulizer.compute_loss(loss, self.weights, self.biases)
+        delta = np.average([loss * self.activation.compute_derivative(self.outputs[i])
+                           for i in range(len(self.outputs))])
+        weights_gradients = np.outer(self.inputs, delta)
+        self.weights, self.biases = optimizer.apply_gradients(weights_gradients, np.array(
             [delta], dtype=float), self.weights, self.biases)
-        self.weights = weights
-        self.biases = biases
-        loss = np.dot(delta, self.weights.T)
-        return loss
+        return np.dot(delta, self.weights.T)
 
 
 class Dropout(Layer):
@@ -57,12 +58,14 @@ class Dropout(Layer):
         return f"Dropout layer: {self.units} units"
 
     def feed_forward(self, x: np.ndarray, isTraining: bool = True) -> tuple:
+        self.inputs = x
         if isTraining:
             self.rnd = np.int8(np.random.uniform(
                 0., 1., x.shape) > self.dropout_rate)
-            weighted_sum = np.dot(x, self.weights) * self.rnd + self.biasesr
+            weighted_sum = np.dot(x, self.weights) * self.rnd + self.biases
             output = self.activation.compute_loss(weighted_sum)
-            return weighted_sum, output
+            self.outputs = np.array([output, weighted_sum])
+            return output
 
         return super().feed_forward(x)
 

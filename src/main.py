@@ -45,24 +45,18 @@ class NN:
 
     def feed_forward(self, x: np.ndarray) -> tuple:
         output = x
-        outputs, inputs = [], []
         for layer in self.layers[1:]:
-            inputs.append(output)
-            output, weighted_sum = layer.feed_forward(output)
-            outputs.append([output, weighted_sum])
-        return output, outputs, inputs
-#
+            output = layer.feed_forward(output)
+        return output
 
     def train(self, X: np.ndarray, y: np.ndarray, epochs: int) -> np.ndarray:
         losses = np.ndarray((epochs))
         for epoch in range(epochs):
             for i in range(len(X)):
-                yPred, outputs, inputs = self.feed_forward(X[i])
+                yPred = self.feed_forward(X[i])
                 loss = self.loss_function.compute_derivative(y[i], yPred)
                 for i in range(len(self.layers)-1, 0, -1):
-                    # print(f"outputs: {outputs}")
-                    loss = self.layers[i].backpropagate(
-                        loss, outputs[i-1], inputs[i-1], self.optimizer)
+                    loss = self.layers[i].backpropagate(loss, self.optimizer)
             loss = self.evaluate(X, y)
             losses[epoch] = loss
             print_progress(epoch+1, epochs, loss)
@@ -72,7 +66,7 @@ class NN:
         yPreds = np.ndarray((X.shape[0], self.layers[-1].units))
 
         for i, x in enumerate(X):
-            result, _, _ = self.feed_forward(x)
+            result = self.feed_forward(x)
             yPreds[i] = result
 
         if showPreds:
