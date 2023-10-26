@@ -1,11 +1,13 @@
 import numpy as np
 
+
 class Optimizer:
     def __init__(self) -> None:
         pass
 
     def apply_gradients(self) -> None:
         pass
+
 
 class Adam:
     def __init__(self, learningRate: float = 0.001, beta1: float = 0.9, beta2: float = 0.999, epsilon: float = 1e-7) -> None:
@@ -83,6 +85,7 @@ class Adam:
             (np.sqrt(v_hat_b) + self.epsilon)
 
         return (weights, biases)
+
 
 class SGD(Optimizer):
     def __init__(self, learning_rate: float = 0.001):

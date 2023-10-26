@@ -80,9 +80,10 @@ if __name__ == "__main__":
 
     # regulizaer = L1L2(1e-4, 1e-5)
 
-    Network.add(Dense(2, "sigmoid", name="Input"))
-    Network.add(Dense(2, "relu", name="Hidden"))
-    Network.add(Dense(1, "sigmoid", name="Output"))
+    Network.add(Dense(2, "sigmoid"))
+    Network.add(Dense(2, "relu"))
+    Network.add(Dropout(2, "relu", 0.2))
+    Network.add(Dense(1, "sigmoid"))
 
     optimizer = Adam(learningRate=0.2)
     loss = MSE()

@@ -1,12 +1,12 @@
 from activations import *
 from typing import Union
-from activations import Activation, np
+from activations import np
 from optimizers import Optimizer
 from regulizers import Regularizer
+import numpy as np
 
 """
 TODO 26.10.2023
-Try to convert the feed_forward to have the variables stored in self as it might make the code cleaner
 Start implementing flatten and reshape layers
 """
 
@@ -45,7 +45,7 @@ class Dense(Layer):
                            for i in range(len(self.outputs))])
         weights_gradients = np.outer(self.inputs, delta)
         self.weights, self.biases = optimizer.apply_gradients(weights_gradients, np.array(
-            [delta], dtype=float), self.weights, self.biases)
+            delta, dtype=float), self.weights, self.biases)
         return np.dot(delta, self.weights.T)
 
 
@@ -60,19 +60,21 @@ class Dropout(Layer):
     def feed_forward(self, x: np.ndarray, isTraining: bool = True) -> tuple:
         self.inputs = x
         if isTraining:
-            self.rnd = np.int8(np.random.uniform(
-                0., 1., x.shape) > self.dropout_rate)
-            weighted_sum = np.dot(x, self.weights) * self.rnd + self.biases
+            weighted_sum = np.dot(x, self.weights) + self.biases
+            weighted_sum /= 1 - self.dropout_rate
             output = self.activation.compute_loss(weighted_sum)
             self.outputs = np.array([output, weighted_sum])
             return output
 
         return super().feed_forward(x)
 
-
-if __name__ == "__main__":
-    layer = Dropout(4, "relu", 0.2)
-    layer.weights = np.array([0.2, 1, 1, 1])
-    layer.biases = np.array([1])
-    data = np.array([0.3, 0.6, -0.4, 2])
-    print(layer.feed_forward(data))
+    def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
+        if self.regulizer is not None:
+            loss = self.regulizer.compute_loss(loss, self.weights, self.biases)
+        delta = np.average([loss * self.activation.compute_derivative(self.outputs[i])
+                           for i in range(len(self.outputs))])
+        delta /= 1/(1-self.dropout_rate)  # Scaling the gradient
+        weights_gradients = np.outer(self.inputs, delta)
+        self.weights, self.biases = optimizer.apply_gradients(
+            weights_gradients, np.array(delta, dtype=float), self.weights, self.biases)
+        return np.dot(delta, self.weights.T)
