@@ -36,6 +36,15 @@ class Dense(Layer):
         return f"Dense layer: {self.units} units"
 
     def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
+        """Backpropagation algorithm for the dense layer
+
+        Args:
+            loss (np.ndarray): loss calculated by the activation function derivative or loss calculated by previous layers backpropagation algorithm
+            optimizer (Optimizer): Optimizer to update the model's parameters
+
+        Returns:
+            np.ndarray: new loss
+        """
         if self.regulizer is not None:
             loss = self.regulizer.compute_loss(loss, self.weights, self.biases)
         delta = np.average([loss * self.activation.compute_derivative(self.outputs[i])
@@ -67,6 +76,15 @@ class Dropout(Layer):
         return super().feed_forward(x)
 
     def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
+        """Backpropagation algorithm for the dense layer
+
+        Args:
+            loss (np.ndarray): loss calculated by the activation function derivative or loss calculated by previous layers backpropagation algorithm 
+            optimizer (Optimizer): Optimizer to update the model's parameters
+
+        Returns:
+            np.ndarray: new loss
+        """
         if self.regulizer is not None:
             loss = self.regulizer.compute_loss(loss, self.weights, self.biases)
         delta = np.average([loss * self.activation.compute_derivative(self.outputs[i])

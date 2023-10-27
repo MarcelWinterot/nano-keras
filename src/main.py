@@ -60,17 +60,36 @@ class NN:
             output = layer.feed_forward(output)
         return output
 
-    def train(self, X: np.ndarray, y: np.ndarray, epochs: int, callbacks: Union[EarlyStopping, None]) -> np.ndarray:
+    def backpropagate(self, X: np.ndarray, y: np.ndarray) -> None:
+        """Backpropgate function to make the train function cleaner and better for future expansion
+
+        Args:
+            X (np.ndarray): X dataset
+            y (np.ndarray): y dataset
+        """
+        length_of_x = len(X)
+        for i in range(length_of_x):
+            yPred = self.feed_forward(X[i])
+            loss = self.loss_function.compute_derivative(y[i], yPred)
+            for j in range(len(self.layers)-1, 0, -1):
+                loss = self.layers[j].backpropagate(
+                    loss, self.optimizer)
+
+    def train(self, X: np.ndarray, y: np.ndarray, epochs: int, callbacks: Union[EarlyStopping, None] = None) -> np.ndarray:
         losses = np.ndarray((epochs))
         for epoch in range(epochs):
-            for i in range(len(X)):
-                yPred = self.feed_forward(X[i])
-                loss = self.loss_function.compute_derivative(y[i], yPred)
-                if callbacks is not None:
-                    callbacks.monitor(loss)
-                for i in range(len(self.layers)-1, 0, -1):
-                    loss = self.layers[i].backpropagate(loss, self.optimizer)
+            self.backpropagate(X, y)
             loss = self.evaluate(X, y)
+            result = callbacks.monitor(
+                loss, self.layers) if callbacks is not None else None
+            if result is not None:
+                if callbacks.restore_best_weights:
+                    print(f"Updating the weights")
+                    for i, layer in enumerate(self.layers):
+                        if result[0][i].size > 0:
+                            layer.weights = result[0][i]
+                            layer.biases = result[1][i]
+                break
             losses[epoch] = loss
             print_progress(epoch+1, epochs, loss)
         return losses
@@ -92,9 +111,9 @@ if __name__ == "__main__":
     Network = NN()
 
     # regulizaer = L1L2(1e-4, 1e-5)
+    call = EarlyStopping(200)
 
     Network.add(Dense(2, "sigmoid"))
-    Network.add(Reshape((1, 2)))
     Network.add(Dense(2, "relu"))
     Network.add(Dense(1, "sigmoid"))
 
@@ -106,7 +125,7 @@ if __name__ == "__main__":
 
     # AND
     X = np.array([[0, 0], [1, 0], [0, 1], [1, 1]])
-    y = np.array([[0], [0], [0], [1]])
+    y = np.array([[1], [0], [0], [1]])
 
     print("\n\n STARTING TRAINING \n\n")
 

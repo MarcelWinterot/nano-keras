@@ -20,12 +20,21 @@ class EarlyStopping:
         self.patience = patience
         self.min_delta = min_delta
         self.restore_best_weights = restore_best_weights
-        self.loss = np.inf
-        self.weights = np.array([])
-        self.biases = np.array([])
+        self.loss = float(1e50)
+        self.weights = []
+        self.biases = []
         self.counter = 0
 
-    def monitor(self, loss: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> Union[tuple, None]:
+    def get_models_weights(self, layers: list) -> None:
+        for layer in layers:
+            try:
+                self.weights.append(layer.weights)
+                self.biases.append(layer.biases)
+            except:
+                self.weights.append([])
+                self.biases.append([])
+
+    def monitor(self, loss: np.ndarray, layers: list) -> Union[tuple, None]:
         """
         Plans for the algorithm:
         We will check if the new loss has improved to the currently stored one
@@ -42,12 +51,11 @@ class EarlyStopping:
         """
         if loss - self.loss < self.min_delta:
             self.loss = loss
-            self.weights = weights
-            self.biases = biases
+            self.get_models_weights(layers)
             return None
 
         self.counter += 1
         if self.counter >= self.patience:
             print(
-                f"Finshied the training process. {'Returning the weights and biases' if self.restore_best_weights else ''}")
+                f"\nFinshied the training process. {'Returning the weights and biases' if self.restore_best_weights else ''}")
             return (self.weights, self.biases) if self.restore_best_weights else ()
