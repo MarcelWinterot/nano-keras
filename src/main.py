@@ -53,6 +53,9 @@ class NN:
         """
         self.name = name
         self.layers = []
+        self.loss = 1e50
+        self.accuracy = 0
+        self.__metrics__ = {"loss": self.loss, "accuracy": self.accuracy}
 
     def add(self, layer: Layer):
         """Adds a custom layer to the NN.
@@ -163,15 +166,15 @@ class NN:
         losses = np.ndarray((epochs))
         for epoch in range(epochs):
             self.backpropagate(X, y)
-            loss, accuracy = self.evaluate(X, y)
-            result = callbacks.monitor(
-                loss, self.layers) if callbacks is not None else None
+            self.loss, self.accuracy = self.evaluate(X, y)
+            result = callbacks.watch(
+                self.__metrics__[callbacks.monitor], self.layers) if callbacks is not None else None
 
             if self.__handle_callbacks__(result, callbacks) == 1:
                 break
 
-            losses[epoch] = loss
-            print_progress(epoch+1, epochs, loss, accuracy)
+            losses[epoch] = self.loss
+            print_progress(epoch+1, epochs, self.loss, self.accuracy)
         return losses
 
     def evaluate(self, X: np.ndarray, y: np.ndarray, show_preds: bool = False) -> float:
@@ -237,7 +240,7 @@ if __name__ == "__main__":
     Network = NN()
 
     regulizaer = L1L2(1e-4, 1e-5)
-    call = EarlyStopping(200)
+    call = EarlyStopping(200, "loss")
 
     Network.add(Dense(2, "sigmoid"))
     Network.add(Dense(2, "relu"))
@@ -255,7 +258,7 @@ if __name__ == "__main__":
 
     print("\n\n STARTING TRAINING \n\n")
 
-    losses = Network.train(X, y, 2500)
+    losses = Network.train(X, y, 2500, call)
 
     print("\n\n TRAINING FINISHED \n\n")
 
