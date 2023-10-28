@@ -24,23 +24,21 @@
 
 ### 3. Optimizers: Adam, SGD
 
-### 4. L1, L2 and L1L2 regulization techniques
+### 4. Layers: Dense, Dropout, Flatten, Reshape
 
-### 5. Layers: Dense, Dropout, Flatten, Reshape
+### 5. L1, L2 and L1L2 regulization techniques
+
+### 6. Callbacks - Early stopping
 
 ## Features I'm currently working on
 
-### 1. Early stopping
-
-#### Needed to take a break off thinking so started writing the early stopping class
-
-### 2. Adding layer types
+### 1. Adding layer types
 
 #### Not implemented layers I'm planning to add in v. 1.0: Convolutional, Pooling
 
 #### If I have time I'll also implement: Concantanete layer, LSTM or GRU
 
-### 3. Fixing the derivatives of loss functions
+### 2. Fixing the derivatives of loss functions
 
 #### Only the MSE works currently and I want each loss function to work
 

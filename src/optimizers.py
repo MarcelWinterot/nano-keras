@@ -11,6 +11,14 @@ class Optimizer:
 
 class Adam:
     def __init__(self, learningRate: float = 0.001, beta1: float = 0.9, beta2: float = 0.999, epsilon: float = 1e-7) -> None:
+        """Intializer to the adaptive momentum estimator optimizer.
+
+        Args:
+            learningRate (float, optional): Paramter that specifies how fast the model will learn. Defaults to 0.001.
+            beta1 (float, optional): Paramter that controls the exponential moving average of the first moment of the gradient. Defaults to 0.9.
+            beta2 (float, optional): Paramter that contorls the exponential moving average of the second moment of the gradient. Defaults to 0.999.
+            epsilon (float, optional): Paramter that ensures we don't divide by 0 and adds numerical stability to learning rate. Defaults to 1e-7.
+        """
         self.learningRate = learningRate
         self.beta1 = beta1
         self.beta2 = beta2
@@ -22,6 +30,16 @@ class Adam:
         self.t = 0
 
     def __fill_array__(self, arr: np.ndarray, targetShape: tuple, isBiases: bool) -> np.ndarray:
+        """Support function to fill the m_w, v_w and m_b, v_b arrays if their shapes are smaller than the gradients
+
+        Args:
+            arr (np.ndarray): array to fill
+            targetShape (tuple): what shape should the array have after filling it
+            isBiases (bool): If we expand the m_b and v_b we set it to True as bias gradients are 1D
+
+        Returns:
+            np.ndarray: filled array
+        """
         if not isBiases:
             paddingNeeded = (
                 max(0, targetShape[0] - arr.shape[0]), max(0, targetShape[1] - arr.shape[1]))
@@ -38,11 +56,13 @@ class Adam:
         at https://arxiv.org/pdf/1412.6980.pdf
 
         Args:
-            gradients (np.ndarray): Array of [[weight gradients], [bias gradients]]
-            params (np.ndarray): Array of [[weights], [biases]]
+            weightGradients (np.ndarray): calculated weights gradients
+            biasGradients (np.ndarray): calculated bias gradients
+            weights (np.ndarray): weights of the layer
+            biases (np.ndarray): biases of the layer
 
         Returns:
-            np.ndarray: Updated params using provided gradients
+            tuple: a tuple containing new weights and biases
         """
         self.t += 1
         beta1T = self.beta1 ** self.t
@@ -89,9 +109,25 @@ class Adam:
 
 class SGD(Optimizer):
     def __init__(self, learning_rate: float = 0.001):
+        """Initializer for the stochastic gradient descent optimizer
+
+        Args:
+            learning_rate (float, optional): Parameter that spiecfies how fast the model should learn. Defaults to 0.001.
+        """
         self.learning_rate = learning_rate
 
     def apply_gradients(self, weight_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple:
+        """Function that updates params using provided gradients and SGD algorithm.
+
+        Args:
+            weightGradients (np.ndarray): calculated weights gradients
+            biasGradients (np.ndarray): calculated bias gradients
+            weights (np.ndarray): weights of the layer
+            biases (np.ndarray): biases of the layer
+
+        Returns:
+            tuple: a tuple containing new weights and biases
+        """
         weights += self.learning_rate * weight_gradients
         biases += self.learning_rate * bias_gradients
         return (weights, biases)
