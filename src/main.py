@@ -9,33 +9,39 @@ from callbacks import *
 
 """
 TODO 28.10.2023
-1. Add accuracy, validation loss, validation accuracy to the train function
+1. Add validation loss, validation accuracy to the train function
 2. Try to calculate the derivatives of loss functions
 3. Learn how do the final layers left to implement work
 """
 
 
-def print_progress(epoch: int, totalEpochs: int, loss: float, batch: int = None, totalBatches: int = None) -> None:
+def print_progress(epoch: int, total_epochs: int, loss: float, accuracy: float = None, batch: int = None, total_batches: int = None) -> None:
     """Function that prints out current training progress
 
     Args:
         epoch (int): current epoch
-        totalEpochs (int): total number of epochs
+        total_epochs (int): total number of epochs
         loss (float): loss calculated by NN.evaluate function
+        accuracy (float, optional): accuracy of the model during training. Default to None.
         batch (int, optional): current batch. Will be set if verbose is set to 2 in the NN.train function. Defaults to None.
-        totalBatches (int, optional): total number of batches. Will be set if verbose is set to 2 in the NN.train function. Defaults to None.
+        total_batches (int, optional): total number of batches. Will be set if verbose is set to 2 in the NN.train function. Defaults to None.
     """
-    barLength = 30
+    bar_length = 30
 
-    if batch is not None and totalBatches is not None:
-        progress = int(barLength * batch/totalBatches)
-        progress_bar = f"[{'='*progress}>{'.'*(barLength-progress)}]"
-        print(f"\r{epoch}/{totalEpochs}: {progress_bar} - {batch}/{totalBatches} batch - loss: {loss:.12f}", end='')
-        return
-    progress = int(barLength * epoch / totalEpochs)
-    progress_bar = f"[{'='*progress}>{'.'*(barLength-progress)}]"
-    print(
-        f"\r{epoch}/{totalEpochs} {progress_bar} - loss: {loss:.12f}", end='')
+    if batch is not None and total_batches is not None:
+        progress = int(bar_length * batch / total_batches)
+        progress_bar = f"[{'=' * progress}>{'.' * (bar_length - progress)}]"
+        progress_info = f"{epoch}/{total_epochs}: {progress_bar} - {batch}/{total_batches} batch - loss: {loss:.12f}"
+
+    else:
+        progress = int(bar_length * epoch / total_epochs)
+        progress_bar = f"[{'=' * progress}>{'.' * (bar_length - progress)}]"
+        progress_info = f"{epoch}/{total_epochs} {progress_bar} - loss: {loss:.12f}"
+
+    if accuracy is not None:
+        progress_info += f" - accuracy: {accuracy:.2f}"
+
+    print(f"\r{progress_info}", end='')
 
 
 class NN:
@@ -80,16 +86,18 @@ class NN:
                 weights = np.random.randn(prev_units, curr_units)
                 self.layers[i].weights = weights
 
-    def compile(self, loss_function: Loss, optimizer: Optimizer) -> None:
+    def compile(self, loss_function: Loss, optimizer: Optimizer, metrics: str = "") -> None:
         """Function you should call before starting training the model, as we generate the weights in here, set the loss function and optimizer.
 
         Args:
             loss_function (Loss): Loss function the model should use. You can access them in losses.py
             optimizer (Optimizer): Optimizer the model should use when updating it's params. You should pass the already intialized class not the class itself
+            metrics (str, optional): Paramter that specifies what metrics should the model use. Possible metrics are: accuracy. Defaults to "".
         """
         self.generate_weights()
         self.loss_function = loss_function
         self.optimizer = optimizer
+        self.metrics = metrics
 
     def feed_forward(self, x: np.ndarray) -> np.ndarray:
         """Feed forward for the whole model
@@ -120,7 +128,7 @@ class NN:
                 loss = self.layers[j].backpropagate(
                     loss, self.optimizer)
 
-    def handle_callbacks(self, result, callbacks: Union[EarlyStopping, None]) -> Union[None, np.ndarray]:
+    def __handle_callbacks__(self, result, callbacks: Union[EarlyStopping, None]) -> Union[None, np.ndarray]:
         """Support function to make the code cleaner for handling the callbacks
 
         Args:
@@ -155,15 +163,15 @@ class NN:
         losses = np.ndarray((epochs))
         for epoch in range(epochs):
             self.backpropagate(X, y)
-            loss = self.evaluate(X, y)
+            loss, accuracy = self.evaluate(X, y)
             result = callbacks.monitor(
                 loss, self.layers) if callbacks is not None else None
 
-            if self.handle_callbacks(result, callbacks) == 1:
+            if self.__handle_callbacks__(result, callbacks) == 1:
                 break
 
             losses[epoch] = loss
-            print_progress(epoch+1, epochs, loss)
+            print_progress(epoch+1, epochs, loss, accuracy)
         return losses
 
     def evaluate(self, X: np.ndarray, y: np.ndarray, show_preds: bool = False) -> float:
@@ -175,17 +183,22 @@ class NN:
             show_preds (bool, optional): If set to True the predictions will be printed out. Defaults to False.
 
         Returns:
-            float: the calculated loss
+            tuple: loss, accuracy. Accuracy is None if the metrics in NN.compile() isn't set to accuracy 
         """
         yPreds = np.ndarray((X.shape[0], self.layers[-1].units))
 
         for i, x in enumerate(X):
-            result = self.feed_forward(x)
-            yPreds[i] = result
+            yPreds[i] = self.feed_forward(x)
 
         if show_preds:
             print(yPreds)
-        return self.loss_function.compute_loss(y, yPreds)
+
+        accuracy = None
+        if self.metrics == "accuracy":
+            # The tolerance is set to 0.1 as otherwise we'd get only 0
+            accuracy = np.sum(np.abs(y - yPreds) < 0.1) / y.size
+
+        return self.loss_function.compute_loss(y, yPreds), accuracy
 
     def save(self, file_path: str) -> None:
         """Function to save the models params into a file
@@ -233,7 +246,7 @@ if __name__ == "__main__":
     optimizer = Adam(learningRate=0.2)
     loss = MSE()
 
-    Network.compile(loss, optimizer)
+    Network.compile(loss, optimizer, metrics="accuracy")
     Network.summary()
 
     # AND
@@ -246,7 +259,8 @@ if __name__ == "__main__":
 
     print("\n\n TRAINING FINISHED \n\n")
 
-    Network.evaluate(X, y, show_preds=True)
+    loss, accuracy = Network.evaluate(X, y, show_preds=True)
+    print(f"\n accuracy: {accuracy}\n")
 
     Network.save("./array")
 
