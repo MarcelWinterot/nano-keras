@@ -51,6 +51,15 @@ class EarlyStopping:
         Returns:
             Union[tuple, None]: Either the weights and biases in a tuple if the training has finished or nothing if the training continues
         """
+        # Handling None type
+        if metric is None:
+            if self.monitor.find("accuracy") != -1:
+                metric = 0
+            elif self.monitor.find("loss") != -1:
+                metric = 1e50
+            else:
+                raise "self.monitor must be either accuracy, val_accuracy, loss or val_loss"
+
         if (metric - self.metric < self.min_delta and self.monitor == "loss") or (self.metric > metric and self.monitor == "accuracy"):
             self.metric = metric
             self.get_models_weights(layers)

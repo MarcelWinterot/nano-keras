@@ -9,13 +9,12 @@ from callbacks import *
 
 """
 TODO 28.10.2023
-1. Add validation loss, validation accuracy to the train function
-2. Try to calculate the derivatives of loss functions
-3. Learn how do the final layers left to implement work
+1. Try to calculate the derivatives of loss functions
+2. Learn how do the final layers left to implement work
 """
 
 
-def print_progress(epoch: int, total_epochs: int, loss: float, accuracy: float = None, batch: int = None, total_batches: int = None) -> None:
+def print_progress(epoch: int, total_epochs: int, loss: float, accuracy: float = None, batch: int = None, total_batches: int = None, val_loss: float = None, val_accuracy: float = None) -> None:
     """Function that prints out current training progress
 
     Args:
@@ -31,15 +30,18 @@ def print_progress(epoch: int, total_epochs: int, loss: float, accuracy: float =
     if batch is not None and total_batches is not None:
         progress = int(bar_length * batch / total_batches)
         progress_bar = f"[{'=' * progress}>{'.' * (bar_length - progress)}]"
-        progress_info = f"{epoch}/{total_epochs}: {progress_bar} - {batch}/{total_batches} batch - loss: {loss:.12f}"
+        progress_info = f"{epoch}/{total_epochs}: {progress_bar} - batch {batch}/{total_batches} - loss: {loss:.8f}"
 
     else:
         progress = int(bar_length * epoch / total_epochs)
         progress_bar = f"[{'=' * progress}>{'.' * (bar_length - progress)}]"
-        progress_info = f"{epoch}/{total_epochs} {progress_bar} - loss: {loss:.12f}"
+        progress_info = f"{epoch}/{total_epochs} {progress_bar} - loss: {loss:.8f}"
 
     if accuracy is not None:
         progress_info += f" - accuracy: {accuracy:.2f}"
+
+    if val_loss is not None:
+        progress_info += f" - val_loss: {val_loss:.8f} - val_accuracy: {val_accuracy:.2f}"
 
     print(f"\r{progress_info}", end='')
 
@@ -55,7 +57,10 @@ class NN:
         self.layers = []
         self.loss = 1e50
         self.accuracy = 0
-        self.__metrics__ = {"loss": self.loss, "accuracy": self.accuracy}
+        self.val_loss = None
+        self.val_accuracy = None
+        self.__metrics__ = {"loss": self.loss, "accuracy": self.accuracy,
+                            "val_loss": self.val_loss, "val_accuracy": self.val_accuracy}
 
     def add(self, layer: Layer):
         """Adds a custom layer to the NN.
@@ -116,7 +121,7 @@ class NN:
             output = layer.feed_forward(output)
         return output
 
-    def backpropagate(self, X: np.ndarray, y: np.ndarray) -> None:
+    def backpropagate(self, X: np.ndarray, y: np.ndarray, verbose: int = 2, epoch: int = 1, total_epochs: int = 100) -> None:
         """Backpropgate function to make the train function cleaner and better for future expansion
 
         Args:
@@ -130,6 +135,10 @@ class NN:
             for j in range(len(self.layers)-1, 0, -1):
                 loss = self.layers[j].backpropagate(
                     loss, self.optimizer)
+            if verbose == 2:
+                loss, accuracy = self.evaluate(X, y)
+                print_progress(epoch, total_epochs, loss,
+                               accuracy, i, length_of_x, self.val_loss, self.val_accuracy)
 
     def __handle_callbacks__(self, result, callbacks: Union[EarlyStopping, None]) -> Union[None, np.ndarray]:
         """Support function to make the code cleaner for handling the callbacks
@@ -149,7 +158,7 @@ class NN:
             return 1
         return 0
 
-    def train(self, X: np.ndarray, y: np.ndarray, epochs: int, callbacks: Union[EarlyStopping, None] = None, verbose: int = 1) -> np.ndarray:
+    def train(self, X: np.ndarray, y: np.ndarray, epochs: int, callbacks: Union[EarlyStopping, None] = None, verbose: int = 1, validation_data: tuple[np.ndarray, np.ndarray] = None) -> Union[np.ndarray, tuple]:
         """Function to train the model. Remember to call the NN.compile() before calling this function as it won't work. \n
         Currently the code updates the weights after each parameter instead of working in batches but I will add that in the future
 
@@ -159,14 +168,22 @@ class NN:
             epochs (int): number of iterations a model should do during training
             callbacks (Union[EarlyStopping, None], optional): One of the callbacks implemented in callbacks.py although currently there's only early stopping in there. Defaults to None.
             verbose (int, optional): Parameter to control what the model prints out during training. 0 - nothing, 1 - only epoch/epochs, 2 - all the useful information. Defaults to 1.
+            validation_data (tuple, optional): Validation data a model should use to check the validation loss and accuracy. It should be a tuple of X and y. Default to None.
 
         Returns:
-            np.ndarray: all the losses model's had when training.
+            Union[np.ndarray, tuple]: Either the losses model's had during training or both the losses and val_losses if validation_data is set.
         """
         losses = np.ndarray((epochs))
+        val_losses = np.ndarray((epochs))
         for epoch in range(epochs):
-            self.backpropagate(X, y)
+            self.backpropagate(X, y, verbose, epoch, epochs)
             self.loss, self.accuracy = self.evaluate(X, y)
+
+            if validation_data is not None:
+                self.val_loss, self.val_accuracy = self.evaluate(
+                    validation_data[0], validation_data[1])
+                val_losses[epoch] = self.val_loss
+
             result = callbacks.watch(
                 self.__metrics__[callbacks.monitor], self.layers) if callbacks is not None else None
 
@@ -174,7 +191,11 @@ class NN:
                 break
 
             losses[epoch] = self.loss
-            print_progress(epoch+1, epochs, self.loss, self.accuracy)
+            if verbose == 1:
+                print_progress(epoch+1, epochs, self.loss, self.accuracy,
+                               val_loss=self.val_loss, val_accuracy=self.val_accuracy)
+        if validation_data is not None:
+            return losses, val_losses
         return losses
 
     def evaluate(self, X: np.ndarray, y: np.ndarray, show_preds: bool = False) -> float:
@@ -210,14 +231,20 @@ class NN:
             file_path (str): File path where to save the model. Don't put the file extension as it is alredy handled by numpy.
             For example if you want to save the model at './saved_model' put that as the file_path, and numpy will add the extension
         """
+        # array_to_save = [[layer.weights, layer.biases]
+        #                  for layer in self.layers]
         array_to_save = []
         for layer in self.layers:
-            array_to_save.append([layer.weights, layer.biases])
+            try:
+                array_to_save.append([layer.weights, layer.biases])
+            except:
+                array_to_save.append([])
+
+        array_to_save = np.array(array_to_save, dtype=object)
 
         np.save(file_path, array_to_save)
 
         print(f"Saved model at: {file_path}.npy")
-        print(f"Saved array:\n{array_to_save}")
         return
 
     def load(self, file_path: str) -> None:
@@ -229,6 +256,8 @@ class NN:
         """
         array = np.load(file_path, allow_pickle=True)
         for i in range(len(array)):
+            if len(array[i]) == 0:
+                continue
             self.layers[i].weights = array[i][0]
             self.layers[i].biases = array[i][1]
 
@@ -237,20 +266,21 @@ class NN:
 
 if __name__ == "__main__":
     np.random.seed(1337)
-    Network = NN()
+    model = NN()
 
     regulizaer = L1L2(1e-4, 1e-5)
-    call = EarlyStopping(200, "loss")
+    call = EarlyStopping(200, "val_accuracy")
 
-    Network.add(Dense(2, "sigmoid"))
-    Network.add(Dense(2, "relu"))
-    Network.add(Dense(1, "sigmoid"))
+    model.add(Dense(2, "sigmoid"))
+    model.add(Flatten())
+    model.add(Dense(2, "relu"))
+    model.add(Dense(1, "sigmoid"))
 
     optimizer = Adam(learningRate=0.2)
     loss = MSE()
 
-    Network.compile(loss, optimizer, metrics="accuracy")
-    Network.summary()
+    model.compile(loss, optimizer, metrics="accuracy")
+    model.summary()
 
     # AND
     X = np.array([[0, 0], [1, 0], [0, 1], [1, 1]])
@@ -258,14 +288,15 @@ if __name__ == "__main__":
 
     print("\n\n STARTING TRAINING \n\n")
 
-    losses = Network.train(X, y, 2500, call)
+    losses, val_losses = model.train(
+        X, y, 2500, validation_data=(X, y))
+    # losses = model.train(X, y, 2500)
 
     print("\n\n TRAINING FINISHED \n\n")
 
-    loss, accuracy = Network.evaluate(X, y, show_preds=True)
-    print(f"\n accuracy: {accuracy}\n")
+    loss, accuracy = model.evaluate(X, y, show_preds=True)
 
-    Network.save("./array")
+    model.save("./array")
 
     plt.plot(range(1, len(losses) + 1), losses)
     plt.xlabel("Epochs")

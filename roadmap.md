@@ -46,6 +46,6 @@
 
 # Possible plans for v. 2.0
 
-### Either add gpu support using cupy or convert it to mojo/rust/go
+### Rewrite the library in Rust
 
 ### Make the code work in batches
