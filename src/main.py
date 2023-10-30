@@ -30,7 +30,7 @@ def print_progress(epoch: int, total_epochs: int, loss: float, accuracy: float =
     if batch is not None and total_batches is not None:
         progress = int(bar_length * batch / total_batches)
         progress_bar = f"[{'=' * progress}>{'.' * (bar_length - progress)}]"
-        progress_info = f"{epoch}/{total_epochs}: {progress_bar} - batch {batch}/{total_batches} - loss: {loss:.8f}"
+        progress_info = f"{epoch}/{total_epochs}: {progress_bar} - batch: {batch}/{total_batches} - loss: {loss:.8f}"
 
     else:
         progress = int(bar_length * epoch / total_epochs)
@@ -59,8 +59,8 @@ class NN:
         self.accuracy = 0
         self.val_loss = None
         self.val_accuracy = None
-        self.__metrics__ = {"loss": self.loss, "accuracy": self.accuracy,
-                            "val_loss": self.val_loss, "val_accuracy": self.val_accuracy}
+        # self.__metrics__ = {"loss": self.loss, "accuracy": self.accuracy,
+        #                     "val_loss": self.val_loss, "val_accuracy": self.val_accuracy}
 
     def add(self, layer: Layer):
         """Adds a custom layer to the NN.
@@ -94,14 +94,16 @@ class NN:
                 weights = np.random.randn(prev_units, curr_units)
                 self.layers[i].weights = weights
 
-    def compile(self, loss_function: Loss, optimizer: Optimizer, metrics: str = "") -> None:
+    def compile(self, loss_function: Union[Loss, str], optimizer: Optimizer, metrics: str = "") -> None:
         """Function you should call before starting training the model, as we generate the weights in here, set the loss function and optimizer.
 
         Args:
-            loss_function (Loss): Loss function the model should use. You can access them in losses.py
-            optimizer (Optimizer): Optimizer the model should use when updating it's params. You should pass the already intialized class not the class itself
+            loss_function (Union[Loss, str]): Loss function the model should use. You can either pass the name of it as a str or intialized class.
+            optimizer (Optimizer): Optimizer the model should use when updating it's params. You should pass the already intialized class not the class itself.
             metrics (str, optional): Paramter that specifies what metrics should the model use. Possible metrics are: accuracy. Defaults to "".
         """
+        self.__loss_functions__ = {
+            "mae": MAE(), "mse": MSE(), "bce": BCE(), "cce": CCE(), "hinge": Hinge(), "huber": Huber()}
         self.generate_weights()
         self.loss_function = loss_function
         self.optimizer = optimizer
@@ -137,8 +139,8 @@ class NN:
                     loss, self.optimizer)
             if verbose == 2:
                 loss, accuracy = self.evaluate(X, y)
-                print_progress(epoch, total_epochs, loss,
-                               accuracy, i, length_of_x, self.val_loss, self.val_accuracy)
+                print_progress(epoch+1, total_epochs, loss,
+                               accuracy, i+1, length_of_x, self.val_loss, self.val_accuracy)
 
     def __handle_callbacks__(self, result, callbacks: Union[EarlyStopping, None]) -> Union[None, np.ndarray]:
         """Support function to make the code cleaner for handling the callbacks
@@ -183,9 +185,14 @@ class NN:
                 self.val_loss, self.val_accuracy = self.evaluate(
                     validation_data[0], validation_data[1])
                 val_losses[epoch] = self.val_loss
+                self.metrics_ = {"loss": self.loss, "accuracy": self.accuracy,
+                                 "val_loss": self.val_loss, "val_accuracy": self.val_accuracy}
+            else:
+                self.metrics_ = {"loss": self.loss,
+                                 "accuracy": self.accuracy, }
 
             result = callbacks.watch(
-                self.__metrics__[callbacks.monitor], self.layers) if callbacks is not None else None
+                self.metrics_[callbacks.monitor], self.layers) if callbacks is not None else None
 
             if self.__handle_callbacks__(result, callbacks) == 1:
                 break
@@ -219,8 +226,7 @@ class NN:
 
         accuracy = None
         if self.metrics == "accuracy":
-            # The tolerance is set to 0.1 as otherwise we'd get only 0
-            accuracy = np.sum(np.abs(y - yPreds) < 0.1) / y.size
+            accuracy = np.average(np.abs(y - yPreds) < 0.25)
 
         return self.loss_function.compute_loss(y, yPreds), accuracy
 

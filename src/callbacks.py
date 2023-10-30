@@ -60,13 +60,11 @@ class EarlyStopping:
             else:
                 raise "self.monitor must be either accuracy, val_accuracy, loss or val_loss"
 
-        if (metric - self.metric < self.min_delta and self.monitor == "loss") or (self.metric > metric and self.monitor == "accuracy"):
+        if (metric - self.metric < self.min_delta and (self.monitor == "loss" or self.monitor == "val_loss")) or (self.metric > metric and (self.monitor == "accuracy" or self.monitor == "val_accuracy")):
             self.metric = metric
             self.get_models_weights(layers)
             return None
 
         self.counter += 1
         if self.counter >= self.patience:
-            print(
-                f"\nFinshied the training process. {'Returning the weights and biases' if self.restore_best_weights else ''}")
             return (self.weights, self.biases) if self.restore_best_weights else ()
