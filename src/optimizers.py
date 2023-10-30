@@ -9,7 +9,7 @@ class Optimizer:
         pass
 
 
-class Adam:
+class Adam(Optimizer):
     def __init__(self, learningRate: float = 0.001, beta1: float = 0.9, beta2: float = 0.999, epsilon: float = 1e-7) -> None:
         """Intializer to the adaptive momentum estimator optimizer.
 
@@ -29,24 +29,25 @@ class Adam:
         self.v_b = np.array([])
         self.t = 0
 
-    def __fill_array__(self, arr: np.ndarray, targetShape: tuple, isBiases: bool) -> np.ndarray:
+    def fill_array_(self, arr: np.ndarray, targetShape: tuple, isBiases: bool = False) -> np.ndarray:
         """Support function to fill the m_w, v_w and m_b, v_b arrays if their shapes are smaller than the gradients
 
         Args:
             arr (np.ndarray): array to fill
             targetShape (tuple): what shape should the array have after filling it
-            isBiases (bool): If we expand the m_b and v_b we set it to True as bias gradients are 1D
+            isBiases (bool, optional): If we expand the m_b and v_b we set it to True as bias gradients are 1D. Defaults to False.
 
         Returns:
             np.ndarray: filled array
         """
+        arr_shape = arr.shape
         if not isBiases:
             paddingNeeded = (
-                max(0, targetShape[0] - arr.shape[0]), max(0, targetShape[1] - arr.shape[1]))
+                max(0, targetShape[0] - arr_shape[0]), max(0, targetShape[1] - arr_shape[1]))
             result = np.pad(
                 arr, ((0, paddingNeeded[0]), (0, paddingNeeded[1])), mode='constant')
         else:
-            paddingNeeded = max(0, targetShape[0] - arr.shape[0])
+            paddingNeeded = max(0, targetShape[0] - arr_shape[0])
             result = np.pad(arr, ((0, paddingNeeded)), mode='constant')
 
         return result
@@ -76,26 +77,26 @@ class Adam:
 
         targetShape = weights.shape
         self.m_w = self.beta1 * \
-            self.__fill_array__(self.m_w, targetShape, False)[:weightGradients.size] \
+            self.fill_array_(self.m_w, targetShape)[:weightGradients.size] \
             + (1 - self.beta1) * weightGradients
         self.v_w = self.beta2 * \
-            self.__fill_array__(self.v_w, targetShape, False)[:weightGradients.size] + \
+            self.fill_array_(self.v_w, targetShape)[:weightGradients.size] + \
             (1 - self.beta2) * weightGradients ** 2
 
         m_hat_w = self.m_w / (1 - beta1T)
         v_hat_w = self.v_w / (1 - beta2T)
 
         weights += self.learningRate * \
-            m_hat_w[:weights.shape[0], :weights.shape[1]] / \
-            (np.sqrt(v_hat_w[:weights.shape[0],
-             :weights.shape[1]]) + self.epsilon)
+            m_hat_w[:targetShape[0], :targetShape[1]] / \
+            (np.sqrt(v_hat_w[:targetShape[0],
+             :targetShape[1]]) + self.epsilon)
 
         targetShape = biases.shape
         self.m_b = self.beta1 * \
-            self.__fill_array__(self.m_b, targetShape, True)[
+            self.fill_array_(self.m_b, targetShape, True)[
                 :biasGradients.size] + (1 - self.beta1) * biasGradients
         self.v_b = self.beta2 * \
-            self.__fill_array__(self.v_b, targetShape, True)[:biasGradients.size] + \
+            self.fill_array_(self.v_b, targetShape, True)[:biasGradients.size] + \
             (1 - self.beta2) * biasGradients ** 2
 
         m_hat_b = self.m_b / (1 - beta1T)

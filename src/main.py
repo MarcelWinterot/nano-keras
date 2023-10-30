@@ -10,11 +10,15 @@ from callbacks import *
 """
 TODO 30.10.2023
 1. Try to spot and fix any bugs left
+2. Create custom exceptions
+
+TODO 31.10.2023
+1. Implement these optimizers: RMSprop, Adagrad. If I have time I'll also implenent Adadelta
 """
 
 """
 Functions to check:
-1. Each and every function that isn't in main.py
+1. All functions in layers.py and losses.py
 """
 
 

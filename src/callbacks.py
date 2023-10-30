@@ -3,12 +3,6 @@ from typing import Union
 
 
 class EarlyStopping:
-    """
-    For now it will be quite primitive watching over only the metric of the model, as that's
-    the only variable I've currently implemented. In the future it will have most of the keras
-    implementation functions
-    """
-
     def __init__(self, patience: int, monitor: str = "metric", min_delta: float = 0.0001, restore_best_weights: bool = False) -> None:
         """Early stopping implementation using just python and numpy
 
@@ -51,7 +45,6 @@ class EarlyStopping:
         Returns:
             Union[tuple, None]: Either the weights and biases in a tuple if the training has finished or nothing if the training continues
         """
-        # Handling None type
         if metric is None:
             if self.monitor.find("accuracy") != -1:
                 metric = 0
