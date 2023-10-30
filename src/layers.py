@@ -7,14 +7,22 @@ import numpy as np
 
 
 class Layer:
-    def __init__(self, units: int, activation: Union[Activation, str], regulizer: Union[Regularizer, None] = None, name: str = "Layer") -> None:
-        __activations__ = {'sigmoid': Sigmoid(), 'tanh': Tanh(
+    def __init__(self, units: int, activation: Union[Activation, str] = None, regulizer: Regularizer = None, name: str = "Layer") -> None:
+        """Intializer for the layer class. 
+
+        Args:
+            units (int): Number of neurons the layer should have
+            activation (Union[Activation, str], optional): Activation function the model should use. You can find them all in the activations.py. Defaults to None, but you should only set it to None if it's the input layer. As otherwise it'd throw an error.
+            regulizer (Regularizer, optional): Regulizer the model should use. You can find them all in the regulizers.py file. You must pass the already intialized class. Defaults to None.
+            name (str, optional): Name of the layer. Helpful for debugging. Defaults to "Layer".
+        """
+        activations_ = {'sigmoid': Sigmoid(), 'tanh': Tanh(
         ), 'relu': ReLU(), 'leaky_relu': LeakyReLU(), 'elu': ELU()}
         self.units = units
         self.name = name
         self.weights = np.array([])
         self.biases = np.random.randn(units)
-        self.activation = __activations__[activation] if type(
+        self.activation = activations_[activation] if type(
             activation) == str else activation
         self.regulizer = regulizer
         # We set the type to dense as every other layer will need it's special init where we'll set it
@@ -64,6 +72,7 @@ class Dropout(Layer):
     def __repr__(self) -> str:
         return f"Dropout layer: {self.units} units"
 
+    # TODO Try fixing the dropout, as I don't know if there's a bug here or I was just using wrong architecture
     def feed_forward(self, x: np.ndarray, isTraining: bool = True) -> np.ndarray:
         self.inputs = x
         if isTraining:

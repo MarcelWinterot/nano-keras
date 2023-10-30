@@ -12,6 +12,11 @@ TODO 30.10.2023
 1. Try to spot and fix any bugs left
 """
 
+"""
+Functions to check:
+1. Each and every function that isn't in main.py
+"""
+
 
 def print_progress(epoch: int, total_epochs: int, loss: float, accuracy: float = None, batch: int = None, total_batches: int = None, val_loss: float = None, val_accuracy: float = None) -> None:
     """Function that prints out current training progress
@@ -58,8 +63,7 @@ class NN:
         self.accuracy = 0
         self.val_loss = None
         self.val_accuracy = None
-        # self.__metrics__ = {"loss": self.loss, "accuracy": self.accuracy,
-        #                     "val_loss": self.val_loss, "val_accuracy": self.val_accuracy}
+        self.layers_without_units = [Flatten, Reshape]
 
     def add(self, layer: Layer):
         """Adds a custom layer to the NN.
@@ -84,30 +88,34 @@ class NN:
         """Support function used in the compile function to generate model's weights.
         """
         for i in range(1, len(self.layers)):
-            if self.layers[i].type not in [Flatten, Reshape]:
+            if self.layers[i].type not in self.layers_without_units:
                 previous_units = None
                 for layer in self.layers[:i]:
-                    if layer.type not in [Flatten, Reshape]:
+                    if layer.type not in self.layers_without_units:
                         previous_units = layer.units
+
                 if previous_units is None:
                     raise f"No weights found for layer: {self.layers[i].name}. Try changinng the networks architecture and try again. If you think it's an error, post an issue on github"
                 current_units = self.layers[i].units
                 weights = np.random.randn(previous_units, current_units)
                 self.layers[i].weights = weights
 
-    def compile(self, loss_function: Union[Loss, str], optimizer: Optimizer, metrics: str = "") -> None:
+    def compile(self, loss_function: Union[Loss, str] = "mse", optimizer: Union[Optimizer, str] = "adam", metrics: str = "") -> None:
         """Function you should call before starting training the model, as we generate the weights in here, set the loss function and optimizer.
 
         Args:
-            loss_function (Union[Loss, str]): Loss function the model should use. You can either pass the name of it as a str or intialized class.
-            optimizer (Optimizer): Optimizer the model should use when updating it's params. You should pass the already intialized class not the class itself.
+            loss_function (Union[Loss, str]): Loss function the model should use. You can pass either the name of it as a str or intialized class. Defaults to "mse".
+            optimizer (Union[Optimizer, str]): Optimizer the model should use when updating it's params. You can pass either the name of it as a str or initalized class. Defaults to "adam"
             metrics (str, optional): Paramter that specifies what metrics should the model use. Possible metrics are: accuracy. Defaults to "".
         """
-        self.__loss_functions__ = {
+        loss_functions_ = {
             "mae": MAE(), "mse": MSE(), "bce": BCE(), "cce": CCE(), "hinge": Hinge(), "huber": Huber()}
+        optimizers_ = {"adam": Adam(), "sgd": SGD()}
         self.generate_weights()
-        self.loss_function = loss_function
-        self.optimizer = optimizer
+        self.loss_function = loss_functions_[loss_function] if type(
+            loss_function) == str else loss_function
+        self.optimizer = optimizers_[optimizer] if type(
+            optimizer) == str else optimizer
         self.metrics = metrics
 
     def feed_forward(self, x: np.ndarray) -> np.ndarray:
@@ -120,6 +128,7 @@ class NN:
             np.ndarray: output of the model 
         """
         output = x
+        # We skip the first layer as it's the input layer
         for layer in self.layers[1:]:
             output = layer.feed_forward(output)
         return output
@@ -135,15 +144,15 @@ class NN:
         for i in range(length_of_x):
             yPred = self.feed_forward(X[i])
             loss = self.loss_function.compute_derivative(y[i], yPred)
-            for j in range(len(self.layers)-1, 0, -1):
-                loss = self.layers[j].backpropagate(
-                    loss, self.optimizer)
+            # We skip over the input layer, as it doesn't have any parameters to update
+            for layer in self.layers[-1:0:-1]:
+                loss = layer.backpropagate(loss, self.optimizer)
             if verbose == 2:
                 loss, accuracy = self.evaluate(X, y)
                 print_progress(epoch+1, total_epochs, loss,
                                accuracy, i+1, length_of_x, self.val_loss, self.val_accuracy)
 
-    def __handle_callbacks__(self, result, callbacks: Union[EarlyStopping, None]) -> Union[None, np.ndarray]:
+    def handle_callbacks_(self, result, callbacks: Union[EarlyStopping, None]) -> Union[None, np.ndarray]:
         """Support function to make the code cleaner for handling the callbacks
 
         Args:
@@ -185,7 +194,9 @@ class NN:
             if validation_data is not None:
                 self.val_loss, self.val_accuracy = self.evaluate(
                     validation_data[0], validation_data[1])
+
                 val_losses[epoch] = self.val_loss
+
                 self.metrics_ = {"loss": self.loss, "accuracy": self.accuracy,
                                  "val_loss": self.val_loss, "val_accuracy": self.val_accuracy}
             else:
@@ -195,7 +206,7 @@ class NN:
             result = callbacks.watch(
                 self.metrics_[callbacks.monitor], self.layers) if callbacks is not None else None
 
-            if self.__handle_callbacks__(result, callbacks) == 1:
+            if self.handle_callbacks_(result, callbacks) == 1:
                 break
 
             losses[epoch] = self.loss
@@ -206,13 +217,14 @@ class NN:
             return losses, val_losses
         return losses
 
-    def evaluate(self, X: np.ndarray, y: np.ndarray, show_preds: bool = False) -> float:
+    def evaluate(self, X: np.ndarray, y: np.ndarray, show_preds: bool = False, min_accuracy_error: float = 0.3) -> float:
         """Model's evaluate function, which returns the loss calculated by the models loss function.
 
         Args:
             X (np.ndarray): X dataset
             y (np.ndarray): y dataset
             show_preds (bool, optional): If set to True the predictions will be printed out. Defaults to False.
+            min_accuracy_error (float, optional): Sets the difference between yTrue and yPred in order for it to be counted as a correct prediction. Defaults to 0.3.
 
         Returns:
             tuple: loss, accuracy. Accuracy is None if the metrics in NN.compile() isn't set to accuracy 
@@ -227,7 +239,7 @@ class NN:
 
         accuracy = None
         if self.metrics == "accuracy":
-            accuracy = np.average(np.abs(y - yPreds) < 0.25)
+            accuracy = np.average(np.abs(y - yPreds) < min_accuracy_error)
 
         return self.loss_function.compute_loss(y, yPreds), accuracy
 
@@ -242,10 +254,10 @@ class NN:
         #                  for layer in self.layers]
         array_to_save = []
         for layer in self.layers:
-            try:
-                array_to_save.append([layer.weights, layer.biases])
-            except:
+            if layer.type in self.layers_without_units:
                 array_to_save.append([])
+                continue
+            array_to_save.append([layer.weights, layer.biases])
 
         array_to_save = np.array(array_to_save, dtype=object)
 
@@ -264,6 +276,7 @@ class NN:
         array = np.load(file_path, allow_pickle=True)
         for i in range(len(array)):
             if len(array[i]) == 0:
+                # We've encountered a layer without params so we continue
                 continue
             self.layers[i].weights = array[i][0]
             self.layers[i].biases = array[i][1]
@@ -278,13 +291,12 @@ if __name__ == "__main__":
     regulizaer = L1L2(1e-4, 1e-5)
     call = EarlyStopping(200, "val_accuracy")
 
-    model.add(Dense(2, "sigmoid"))
-    model.add(Flatten())
-    model.add(Dense(2, "relu"))
-    model.add(Dense(1, "sigmoid"))
+    model.add(Dense(2, "sigmoid", name="input"))
+    model.add(Dense(2, "relu", name="hidden"))
+    model.add(Dense(1, "sigmoid", name="output"))
 
-    optimizer = Adam(learningRate=0.2)
-    loss = MSE()
+    optimizer = Adam(0.2)
+    loss = "mse"
 
     model.compile(loss, optimizer, metrics="accuracy")
     model.summary()
@@ -293,7 +305,7 @@ if __name__ == "__main__":
     X = np.array([[0, 0], [1, 0], [0, 1], [1, 1]])
     y = np.array([[1], [0], [0], [1]])
 
-    print("\n\n STARTING TRAINING \n\n")
+    # print("\n\n STARTING TRAINING \n\n")
 
     losses, val_losses = model.train(
         X, y, 2500, validation_data=(X, y))
