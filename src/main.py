@@ -18,7 +18,7 @@ TODO 31.10.2023
 
 """
 Functions to check:
-1. All functions in layers.py and losses.py
+1. All functions in losses.py
 """
 
 
@@ -295,8 +295,8 @@ if __name__ == "__main__":
     regulizaer = L1L2(1e-4, 1e-5)
     call = EarlyStopping(200, "val_accuracy")
 
-    model.add(Dense(2, "sigmoid", name="input"))
-    model.add(Dense(2, "relu", name="hidden"))
+    model.add(Dense(2, name="input"))
+    model.add(Dropout(2, "relu", name="hidden"))
     model.add(Dense(1, "sigmoid", name="output"))
 
     optimizer = Adam(0.2)

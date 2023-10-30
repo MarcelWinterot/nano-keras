@@ -72,7 +72,6 @@ class Dropout(Layer):
     def __repr__(self) -> str:
         return f"Dropout layer: {self.units} units"
 
-    # TODO Try fixing the dropout, as I don't know if there's a bug here or I was just using wrong architecture
     def feed_forward(self, x: np.ndarray, isTraining: bool = True) -> np.ndarray:
         self.inputs = x
         if isTraining:
