@@ -1,5 +1,4 @@
 from optimizers import Adam
-from callbacks import EarlyStopping
 from layers import Dense
 from losses import *
 from main import NN
@@ -46,7 +45,6 @@ y_test = np.array([[y] for y in y_test])
 
 model = NN()
 model.add(Dense(5, "relu"))
-# model.add(Dense(12, "relu"))
 model.add(Dense(25, "relu"))
 model.add(Dense(10, "relu"))
 model.add(Dense(5, "relu"))

@@ -8,9 +8,8 @@ from layers import *
 from callbacks import *
 
 """
-TODO 28.10.2023
-1. Try to calculate the derivatives of loss functions
-2. Learn how do the final layers left to implement work
+TODO 30.10.2023
+1. Try to spot and fix any bugs left
 """
 
 
@@ -84,14 +83,16 @@ class NN:
     def generate_weights(self) -> None:
         """Support function used in the compile function to generate model's weights.
         """
-        # TODO Make the code cleaner and throw errors when we have more than 2 layers without weights next to each other.
         for i in range(1, len(self.layers)):
-            # Kinda primitive but it works, and as the rule says, if something works don't touch it if you don't want to break it
             if self.layers[i].type not in [Flatten, Reshape]:
-                prev_units = self.layers[i-1].units if self.layers[i -
-                                                                   1].type not in [Flatten, Reshape] else self.layers[i-2].units
-                curr_units = self.layers[i].units
-                weights = np.random.randn(prev_units, curr_units)
+                previous_units = None
+                for layer in self.layers[:i]:
+                    if layer.type not in [Flatten, Reshape]:
+                        previous_units = layer.units
+                if previous_units is None:
+                    raise f"No weights found for layer: {self.layers[i].name}. Try changinng the networks architecture and try again. If you think it's an error, post an issue on github"
+                current_units = self.layers[i].units
+                weights = np.random.randn(previous_units, current_units)
                 self.layers[i].weights = weights
 
     def compile(self, loss_function: Union[Loss, str], optimizer: Optimizer, metrics: str = "") -> None:

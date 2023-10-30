@@ -82,20 +82,3 @@ class Huber(Loss):
         absolute_error = np.abs(yTrue - yPred)
         return np.where(absolute_error <= self.delta,
                         yPred - yTrue, self.delta * np.sign(yPred - yTrue))
-
-
-if __name__ == "__main__":
-    from keras.losses import CategoricalCrossentropy
-    from keras.backend import categorical_crossentropy
-    yTrue = np.array([1., 1., 1.]).reshape(-1, 1)
-    yPred = np.array([1., 1., 0.,]).reshape(-1, 1)
-
-    loss = CCE()
-    cce = CategoricalCrossentropy()
-
-    print(f"My compute_loss: {loss.compute_loss(yTrue, yPred)}")
-    print(f"Keras compute loss: {cce(yTrue, yPred)}")
-    print(
-        f"My compute_derivative: {loss.compute_derivative(yTrue, yPred)}")
-    print(
-        f"keras.losses.binary_crossentropy: {categorical_crossentropy(yTrue, yPred)}")
