@@ -1,18 +1,16 @@
 import numpy as np
 
-# TODO Clean up the Adam optimizer apply_gradients function
-
 
 class Optimizer:
     def __init__(self) -> None:
         pass
 
-    def fill_array_(self, arr: np.ndarray, targetShape: tuple, isBiases: bool = False) -> np.ndarray:
+    def fill_array_(self, arr: np.ndarray, target_shape: tuple, isBiases: bool = False) -> np.ndarray:
         """Support function to fill the m_w, v_w and m_b, v_b arrays if their shapes are smaller than the gradients
 
         Args:
             arr (np.ndarray): array to fill
-            targetShape (tuple): what shape should the array have after filling it
+            target_shape (tuple): what shape should the array have after filling it
             isBiases (bool, optional): If we expand the m_b and v_b we set it to True as bias gradients are 1D. Defaults to False.
 
         Returns:
@@ -21,11 +19,11 @@ class Optimizer:
         arr_shape = arr.shape
         if not isBiases:
             paddingNeeded = (
-                max(0, targetShape[0] - arr_shape[0]), max(0, targetShape[1] - arr_shape[1]))
+                max(0, target_shape[0] - arr_shape[0]), max(0, target_shape[1] - arr_shape[1]))
             result = np.pad(
                 arr, ((0, paddingNeeded[0]), (0, paddingNeeded[1])), mode='constant')
         else:
-            paddingNeeded = max(0, targetShape[0] - arr_shape[0])
+            paddingNeeded = max(0, target_shape[0] - arr_shape[0])
             result = np.pad(arr, ((0, paddingNeeded)), mode='constant')
 
         return result
@@ -104,29 +102,37 @@ class Adam(Optimizer):
             self.v_b = np.zeros_like(biases)
 
         # Updating weights
-        targetShape = weights.shape
-        self.m_w = self.beta1 * \
-            self.fill_array_(self.m_w, targetShape)[:weightGradients.size] \
-            + (1 - self.beta1) * weightGradients
-        self.v_w = self.beta2 * \
-            self.fill_array_(self.v_w, targetShape)[:weightGradients.size] + \
+        target_shape = weights.shape
+
+        # Adjusting shapes before calculations
+        self.m_w = self.fill_array_(self.m_w, target_shape)[
+            :weightGradients.size]
+        self.v_w = self.fill_array_(self.v_w, target_shape)[
+            :weightGradients.size]
+
+        self.m_w = self.beta1 * self.m_w + (1 - self.beta1) * weightGradients
+        self.v_w = self.beta2 * self.v_w + \
             (1 - self.beta2) * weightGradients ** 2
 
         m_hat_w = self.m_w / (1 - beta1T)
         v_hat_w = self.v_w / (1 - beta2T)
 
         weights += self.learningRate * \
-            m_hat_w[:targetShape[0], :targetShape[1]] / \
-            (np.sqrt(v_hat_w[:targetShape[0],
-             :targetShape[1]]) + self.epsilon)
+            m_hat_w[:target_shape[0], :target_shape[1]] / \
+            (np.sqrt(v_hat_w[:target_shape[0],
+             :target_shape[1]]) + self.epsilon)
 
         # Updating biases
-        targetShape = biases.shape
-        self.m_b = self.beta1 * \
-            self.fill_array_(self.m_b, targetShape, True)[
-                :biasGradients.size] + (1 - self.beta1) * biasGradients
-        self.v_b = self.beta2 * \
-            self.fill_array_(self.v_b, targetShape, True)[:biasGradients.size] + \
+        target_shape = biases.shape
+
+        # Adjusting shapes before calculations
+        self.m_b = self.fill_array_(self.m_b, target_shape, True)[
+            :biasGradients.size]
+        self.v_b = self.fill_array_(self.v_b, target_shape, True)[
+            :biasGradients.size]
+
+        self.m_b = self.beta1 * self.m_b + (1 - self.beta1) * biasGradients
+        self.v_b = self.beta2 * self.v_b + \
             (1 - self.beta2) * biasGradients ** 2
 
         m_hat_b = self.m_b / (1 - beta1T)
@@ -138,8 +144,6 @@ class Adam(Optimizer):
         return (weights, biases)
 
 
-# Currently working on: Adadelta
-
 class Adagrad(Optimizer):
     def __init__(self, learning_rate: float = 0.001) -> None:
         """Intializer for the Adagrad(Adaptive Gradient Descent) optimizer.
@@ -149,8 +153,8 @@ class Adagrad(Optimizer):
         """
         self.learning_rate = learning_rate
         self.e = 1e-7
-        self.weights_accumulator = None
-        self.bias_accumulator = None
+        self.v_w = None
+        self.v_b = None
 
     def apply_gradients(self, weights_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Function that updates models weights and biases using the Adagrad algorithm. 
@@ -164,39 +168,36 @@ class Adagrad(Optimizer):
         Returns:
             tuple[np.ndarray, np.ndarray]: Updated weights and biases. First element are the weights and second are the biases.
         """
-        if self.weights_accumulator is None:
-            self.weights_accumulator = np.zeros_like(weights)
-        if self.bias_accumulator is None:
-            self.bias_accumulator = np.zeros_like(biases)
+        if self.v_w is None:
+            self.v_w = np.zeros_like(weights)
+            self.v_b = np.zeros_like(biases)
 
-        try:
-            self.weights_accumulator += weights_gradients ** 2
-        except:
-            targetShape = weights_gradients.shape
-            self.weights_accumulator = self.fill_array_(self.weights_accumulator, targetShape)[
-                :targetShape[0], :targetShape[1]]
-            self.weights_accumulator += weights_gradients ** 2
+        # Adjusting the shape before calculation
+        target_shape = weights.shape
+        self.v_w = self.fill_array_(self.v_w, target_shape)[
+            :target_shape[0], :target_shape[1]]
 
-        self.bias_accumulator += bias_gradients ** 2
+        self.v_w += weights_gradients ** 2
+        self.v_b += bias_gradients ** 2
 
         weights += (self.learning_rate /
-                    (np.sqrt(self.weights_accumulator) + self.e)) * weights_gradients
+                    (np.sqrt(self.v_w) + self.e)) * weights_gradients
         biases += (self.learning_rate /
-                   (np.sqrt(self.bias_accumulator) + self.e)) * bias_gradients
+                   (np.sqrt(self.v_b) + self.e)) * bias_gradients
 
         return (weights, biases)
 
 
 class RMSProp(Optimizer):
-    def __init__(self, learning_rate: float = 0.001, beta: float = 0.9) -> None:
+    def __init__(self, learning_rate: float = 0.001, rho: float = 0.9) -> None:
         """Initalizer for the RMSProp(Root Mean Square Propagation) algorithm.
 
         Args:
             learning_rate (float, optional): Paramter that specifies how fast the model will learn. Defaults to 0.001.
-            beta (float, optional): Paramter that controls the exponential moving average . Defaults to 0.9. TODO Finish this init description
+            rho (float, optional): Paramter that controls the exponential moving average of the squared gradients. Defaults to 0.9.
         """
         self.learning_rate = learning_rate
-        self.beta = beta
+        self.rho = rho
         self.e = 1e-7
         self.v_w = None
         self.v_b = None
@@ -214,16 +215,17 @@ class RMSProp(Optimizer):
             tuple[np.ndarray, np.ndarray]: Updated weights and biases. First element are the weights and second are the biases.
         """
         if self.v_w is None:
-            self.v_w = np.zeros_like(weights_gradients)
-            self.v_b = np.zeros_like(bias_gradients)
+            self.v_w = np.zeros_like(weights)
+            self.v_b = np.zeros_like(biases)
 
-        target_shape = weights_gradients.shape
+        target_shape = weights.shape
 
-        self.v_w = self.beta * \
-            self.fill_array_(self.v_w, target_shape)[:target_shape[0], :target_shape[1]] + \
-            (1 - self.beta) * weights_gradients**2
+        # Adjusting the shapes before calculation
+        self.v_w = self.fill_array_(self.v_w, target_shape)[
+            :target_shape[0], :target_shape[1]]
 
-        self.v_b = self.beta * self.v_b + (1 - self.beta) * bias_gradients**2
+        self.v_w = self.rho * self.v_w + (1 - self.rho) * weights_gradients**2
+        self.v_b = self.rho * self.v_b + (1 - self.rho) * bias_gradients**2
 
         weights += self.learning_rate * \
             (weights_gradients/(np.sqrt(self.v_w) + self.e))
@@ -235,12 +237,17 @@ class RMSProp(Optimizer):
 
 class Adadelta(Optimizer):
     def __init__(self, rho: float = 0.9) -> None:
+        """Initalizer for the Adadelta(Adaptive delta) algorithm.
+
+        Args:
+            rho (float, optional): Parameter that controls an exponential moving average. Defaults to 0.9.
+        """
         self.e = 1e-7
         self.rho = rho
-        self.weights_accumulator = None
-        self.bias_accumulator = None
-        self.weights_update_accumulator = None
-        self.bias_update_accumulator = None
+        self.v_w = None
+        self.v_b = None
+        self.v_w_a = None
+        self.v_b_a = None
 
     def apply_gradients(self, weights_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Function that updates models weights and biases using the Adadelta algorithm. 
@@ -254,40 +261,36 @@ class Adadelta(Optimizer):
         Returns:
             tuple[np.ndarray, np.ndarray]: Updated weights and biases. First element are the weights and second are the biases.
         """
-        if self.weights_accumulator is None:
-            self.weights_accumulator = np.zeros_like(weights)
-            self.weights_update_accumulator = np.zeros_like(weights)
-            self.bias_accumulator = np.zeros_like(biases)
-            self.bias_update_accumulator = np.zeros_like(biases)
+        if self.v_w is None:
+            self.v_w = np.zeros_like(weights)
+            self.v_w_a = np.zeros_like(weights)
+            self.v_b = np.zeros_like(biases)
+            self.v_b_a = np.zeros_like(biases)
 
         target_shape = weights_gradients.shape
 
-        self.weights_accumulator = self.fill_array_(self.weights_accumulator, target_shape)[
+        # Adjusting the shapes before calculation
+        self.v_w = self.fill_array_(self.v_w, target_shape)[
             :target_shape[0], :target_shape[1]]
-        self.weights_accumulator = self.rho * self.weights_accumulator + \
-            (1 - self.rho) * weights_gradients**2
+        self.v_w_a = self.fill_array_(self.v_w_a, target_shape)[
+            :target_shape[0], :target_shape[1]]
 
-        self.bias_accumulator = self.rho * self.bias_accumulator + \
-            (1 - self.rho) + bias_gradients**2
-
-        self.weights_update_accumulator = self.fill_array_(
-            self.weights_update_accumulator, target_shape)[:target_shape[0], :target_shape[1]]
+        self.v_w = self.rho * self.v_w + \
+            (1 - self.rho) * weights_gradients ** 2
+        self.v_b = self.rho * self.v_b + (1 - self.rho) + bias_gradients**2
 
         # It should be -np.sqrt() but I've found that it works better without the minus probably because I'm calculating the gradient incorrectly
-        weights_update = np.sqrt(self.weights_update_accumulator + self.e) / \
-            np.sqrt(self.weights_accumulator + self.e) * weights_gradients
-
-        bias_update = np.sqrt(self.bias_update_accumulator + self.e) / \
-            np.sqrt(self.bias_accumulator + self.e) * bias_gradients
+        weights_update = np.sqrt(self.v_w_a + self.e) / \
+            np.sqrt(self.v_w + self.e) * weights_gradients
+        bias_update = np.sqrt(self.v_b_a + self.e) / \
+            np.sqrt(self.v_b + self.e) * bias_gradients
 
         weights += weights_update
         biases += bias_update
 
-        self.weights_update_accumulator = self.rho * \
-            self.weights_update_accumulator + \
+        self.v_w_a = self.rho * self.v_w_a + \
             (1 - self.rho) * weights_update ** 2
-        self.bias_update_accumulator = self.rho * \
-            self.bias_update_accumulator + (1 - self.rho) * bias_update ** 2
+        self.v_b_a = self.rho * self.v_b_a + (1 - self.rho) * bias_update ** 2
 
         return (weights, biases)
 
@@ -295,3 +298,18 @@ class Adadelta(Optimizer):
 class NAdam(Optimizer):
     def __init__(self) -> None:
         super().__init__()
+
+    def apply_gradients(self, weights_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Function that updates models weights and biases using the Adadelta algorithm. 
+
+        Args:
+            weights_gradients (np.ndarray): Weight gradients you've calculated
+            bias_gradients (np.ndarray): Bias gradients you've calculated
+            weights (np.ndarray): Model or layers weights you want to update
+            biases (np.ndarray): Model or layers biases you want to update
+
+        Returns:
+            tuple[np.ndarray, np.ndarray]: Updated weights and biases. First element are the weights and second are the biases.
+        """
+
+        return (weights, biases)

@@ -20,9 +20,11 @@
 
 ### 1. Freely creating and training NNs with the library taking care of configuration
 
-### 2. A few activation and loss function
+### 2. Acitavitons: Sigmoid, Tanh, ReLU, Leaky ReLU, ELU, Softmax
 
-### 3. Optimizers: Adam, SGD, Adagrad, RMSprop
+### 2.1. Loss functions: MAE, MSE, Binary Crossentropy, Categorical Crossentropy, Hinge, Huber. Although only MSE currently works
+
+### 3. Optimizers: Adam, SGD, Adagrad, RMSprop, Adadelta
 
 ### 4. Layers: Dense, Dropout, Flatten, Reshape
 
@@ -32,9 +34,7 @@
 
 ## Features I'm currently working on
 
-### 1. Adding a few optimizers
-
-#### I'm planning on adding: Adadelta, Nadam
+### 1. Adding NAdam optimizer
 
 ### 2. Adding layer types
 
@@ -50,6 +50,6 @@
 
 # Possible plans for v. 2.0
 
-### Rewrite the library in Rust
+### Rewrite the library in a more efficient language like C++/Rust
 
 ### Make the code work in batches

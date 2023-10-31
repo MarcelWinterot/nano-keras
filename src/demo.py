@@ -1,9 +1,3 @@
-"""
-NOTE that you may run it a couple times to get good result as the weights and biases are generated
-using np.random.randn() so each run they are different. And because of that 1 time you may get val_accuracy of 0.7
-and other time it may be 0.4.
-"""
-
 from optimizers import *
 from layers import Dense
 from losses import *
@@ -49,6 +43,8 @@ y_test = np.array(y_test)
 y_train = np.array([[y] for y in y_train])
 y_test = np.array([[y] for y in y_test])
 
+np.random.seed(1337)
+
 model = NN()
 model.add(Dense(5, "relu"))
 model.add(Dense(25, "relu"))
@@ -56,7 +52,7 @@ model.add(Dense(10, "relu"))
 model.add(Dense(5, "relu"))
 model.add(Dense(1, "sigmoid"))
 
-optimizer = Adadelta()
+optimizer = Adagrad()
 loss = MSE()
 
 model.compile(loss, optimizer, metrics="accuracy")

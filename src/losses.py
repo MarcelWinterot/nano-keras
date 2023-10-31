@@ -56,7 +56,6 @@ class CCE(Loss):
         return -np.sum(yTrue * ln(yPred + self.e))
 
     def compute_derivative(self, yTrue: np.ndarray, yPred: np.ndarray) -> np.ndarray:
-        # return -yTrue / (yPred + self.e)
         yPred = np.sum(yPred, keepdims=True)
         yPred = np.clip(yPred, self.e, 1.0-self.e)
         return np.sum(yTrue * ln(yPred))

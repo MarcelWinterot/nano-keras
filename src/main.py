@@ -9,8 +9,8 @@ from callbacks import *
 
 """
 TODO 31.10.2023
-1. Implement these optimizers: RMSprop, Adagrad and Adadelta optimizers. If I have time I'll also implement NAdam
-2. If I have implemented all the optimizers I will implement custom exceptions for handling invalid user input
+1. Implement NAdam optimizer
+2. If I have implemented all the optimizers I will implement custom exceptions for handling invalid user input.
 
 TODO Overall:
 1. Implement Convolutional and Max Pooling layers. Both 1D and 2D. I don't really care about 3D as I have never worked with them.
@@ -308,7 +308,7 @@ if __name__ == "__main__":
     print("\n\n STARTING TRAINING \n\n")
 
     losses, val_losses = model.train(
-        X, y, 25000, validation_data=(X, y), verbose=1)
+        X, y, 2500, validation_data=(X, y), verbose=1)
     # losses = model.train(X, y, 2500)
 
     print("\n\n TRAINING FINISHED \n\n")
