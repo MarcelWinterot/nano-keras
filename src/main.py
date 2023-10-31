@@ -8,17 +8,13 @@ from layers import *
 from callbacks import *
 
 """
-TODO 30.10.2023
-1. Try to spot and fix any bugs left
-2. Create custom exceptions
-
 TODO 31.10.2023
-1. Implement these optimizers: RMSprop, Adagrad. If I have time I'll also implenent Adadelta
-"""
+1. Implement these optimizers: RMSprop, Adagrad and Adadelta optimizers. If I have time I'll also implement NAdam
+2. If I have implemented all the optimizers I will implement custom exceptions for handling invalid user input
 
-"""
-Functions to check:
-1. All functions in losses.py
+TODO Overall:
+1. Implement Convolutional and Max Pooling layers. Both 1D and 2D. I don't really care about 3D as I have never worked with them.
+2. Fix the loss functions.
 """
 
 
@@ -299,7 +295,7 @@ if __name__ == "__main__":
     model.add(Dropout(2, "relu", name="hidden"))
     model.add(Dense(1, "sigmoid", name="output"))
 
-    optimizer = Adam(0.2)
+    optimizer = Adagrad(0.2)
     loss = "mse"
 
     model.compile(loss, optimizer, metrics="accuracy")
@@ -309,7 +305,7 @@ if __name__ == "__main__":
     X = np.array([[0, 0], [1, 0], [0, 1], [1, 1]])
     y = np.array([[1], [0], [0], [1]])
 
-    # print("\n\n STARTING TRAINING \n\n")
+    print("\n\n STARTING TRAINING \n\n")
 
     losses, val_losses = model.train(
         X, y, 2500, validation_data=(X, y))

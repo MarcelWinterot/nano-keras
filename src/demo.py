@@ -1,4 +1,4 @@
-from optimizers import Adam
+from optimizers import *
 from layers import Dense
 from losses import *
 from main import NN
@@ -50,7 +50,7 @@ model.add(Dense(10, "relu"))
 model.add(Dense(5, "relu"))
 model.add(Dense(1, "sigmoid"))
 
-optimizer = Adam()
+optimizer = Adagrad()
 loss = MSE()
 
 model.compile(loss, optimizer, metrics="accuracy")
