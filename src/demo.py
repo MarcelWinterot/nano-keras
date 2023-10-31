@@ -56,7 +56,7 @@ model.add(Dense(10, "relu"))
 model.add(Dense(5, "relu"))
 model.add(Dense(1, "sigmoid"))
 
-optimizer = RMSProp()
+optimizer = Adadelta()
 loss = MSE()
 
 model.compile(loss, optimizer, metrics="accuracy")

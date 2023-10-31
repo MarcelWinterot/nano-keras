@@ -36,7 +36,7 @@ class Optimizer:
 
 class SGD(Optimizer):
     def __init__(self, learning_rate: float = 0.001):
-        """Initializer for the stochastic gradient descent optimizer
+        """Initializer for the SGD(Stochastic Gradient Descent) optimizer
 
         Args:
             learning_rate (float, optional): Parameter that spiecfies how fast the model should learn. Defaults to 0.001.
@@ -62,7 +62,7 @@ class SGD(Optimizer):
 
 class Adam(Optimizer):
     def __init__(self, learningRate: float = 0.001, beta1: float = 0.9, beta2: float = 0.999, epsilon: float = 1e-7) -> None:
-        """Intializer to the adaptive momentum estimator optimizer.
+        """Intializer to the Adam(Adaptive Moment Estimator) optimizer.
 
         Args:
             learningRate (float, optional): Paramter that specifies how fast the model will learn. Defaults to 0.001.
@@ -142,13 +142,18 @@ class Adam(Optimizer):
 
 class Adagrad(Optimizer):
     def __init__(self, learning_rate: float = 0.001) -> None:
+        """Intializer for the Adagrad(Adaptive Gradient Descent) optimizer.
+
+        Args:
+            learning_rate (float, optional): Paramater that specifies how fast the model will learn. Defaults to 0.001.
+        """
         self.learning_rate = learning_rate
         self.e = 1e-7
         self.weights_accumulator = None
         self.bias_accumulator = None
 
     def apply_gradients(self, weights_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """Function to update models weights and biases using the Adagrad algorithm. 
+        """Function that updates models weights and biases using the Adagrad algorithm. 
 
         Args:
             weights_gradients (np.ndarray): Weight gradients you've calculated
@@ -184,6 +189,12 @@ class Adagrad(Optimizer):
 
 class RMSProp(Optimizer):
     def __init__(self, learning_rate: float = 0.001, beta: float = 0.9) -> None:
+        """Initalizer for the RMSProp(Root Mean Square Propagation) algorithm.
+
+        Args:
+            learning_rate (float, optional): Paramter that specifies how fast the model will learn. Defaults to 0.001.
+            beta (float, optional): Paramter that controls the exponential moving average . Defaults to 0.9. TODO Finish this init description
+        """
         self.learning_rate = learning_rate
         self.beta = beta
         self.e = 1e-7
@@ -191,7 +202,7 @@ class RMSProp(Optimizer):
         self.v_b = None
 
     def apply_gradients(self, weights_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """Function to update models weights and biases using the RMSprop algorithm. 
+        """Function that updates models weights and biases using the RMSprop algorithm. 
 
         Args:
             weights_gradients (np.ndarray): Weight gradients you've calculated
@@ -206,8 +217,6 @@ class RMSProp(Optimizer):
             self.v_w = np.zeros_like(weights_gradients)
             self.v_b = np.zeros_like(bias_gradients)
 
-        # self.v_w = self.beta * self.v_w + \
-        #     (1 - self.beta) * weights_gradients**2
         target_shape = weights_gradients.shape
 
         self.v_w = self.beta * \
@@ -225,8 +234,62 @@ class RMSProp(Optimizer):
 
 
 class Adadelta(Optimizer):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, rho: float = 0.9) -> None:
+        self.e = 1e-7
+        self.rho = rho
+        self.weights_accumulator = None
+        self.bias_accumulator = None
+        self.weights_update_accumulator = None
+        self.bias_update_accumulator = None
+
+    def apply_gradients(self, weights_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Function that updates models weights and biases using the Adadelta algorithm. 
+
+        Args:
+            weights_gradients (np.ndarray): Weight gradients you've calculated
+            bias_gradients (np.ndarray): Bias gradients you've calculated
+            weights (np.ndarray): Model or layers weights you want to update
+            biases (np.ndarray): Model or layers biases you want to update
+
+        Returns:
+            tuple[np.ndarray, np.ndarray]: Updated weights and biases. First element are the weights and second are the biases.
+        """
+        if self.weights_accumulator is None:
+            self.weights_accumulator = np.zeros_like(weights)
+            self.weights_update_accumulator = np.zeros_like(weights)
+            self.bias_accumulator = np.zeros_like(biases)
+            self.bias_update_accumulator = np.zeros_like(biases)
+
+        target_shape = weights_gradients.shape
+
+        self.weights_accumulator = self.fill_array_(self.weights_accumulator, target_shape)[
+            :target_shape[0], :target_shape[1]]
+        self.weights_accumulator = self.rho * self.weights_accumulator + \
+            (1 - self.rho) * weights_gradients**2
+
+        self.bias_accumulator = self.rho * self.bias_accumulator + \
+            (1 - self.rho) + bias_gradients**2
+
+        self.weights_update_accumulator = self.fill_array_(
+            self.weights_update_accumulator, target_shape)[:target_shape[0], :target_shape[1]]
+
+        # It should be -np.sqrt() but I've found that it works better without the minus probably because I'm calculating the gradient incorrectly
+        weights_update = np.sqrt(self.weights_update_accumulator + self.e) / \
+            np.sqrt(self.weights_accumulator + self.e) * weights_gradients
+
+        bias_update = np.sqrt(self.bias_update_accumulator + self.e) / \
+            np.sqrt(self.bias_accumulator + self.e) * bias_gradients
+
+        weights += weights_update
+        biases += bias_update
+
+        self.weights_update_accumulator = self.rho * \
+            self.weights_update_accumulator + \
+            (1 - self.rho) * weights_update ** 2
+        self.bias_update_accumulator = self.rho * \
+            self.bias_update_accumulator + (1 - self.rho) * bias_update ** 2
+
+        return (weights, biases)
 
 
 class NAdam(Optimizer):

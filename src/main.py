@@ -295,7 +295,7 @@ if __name__ == "__main__":
     model.add(Dropout(2, "relu", name="hidden"))
     model.add(Dense(1, "sigmoid", name="output"))
 
-    optimizer = Adagrad(0.2)
+    optimizer = Adam(0.2)
     loss = "mse"
 
     model.compile(loss, optimizer, metrics="accuracy")
@@ -308,7 +308,7 @@ if __name__ == "__main__":
     print("\n\n STARTING TRAINING \n\n")
 
     losses, val_losses = model.train(
-        X, y, 2500, validation_data=(X, y))
+        X, y, 25000, validation_data=(X, y), verbose=1)
     # losses = model.train(X, y, 2500)
 
     print("\n\n TRAINING FINISHED \n\n")
