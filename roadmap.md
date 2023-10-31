@@ -24,7 +24,7 @@
 
 ### 2.1. Loss functions: MAE, MSE, Binary Crossentropy, Categorical Crossentropy, Hinge, Huber. Although only MSE currently works
 
-### 3. Optimizers: Adam, SGD, Adagrad, RMSprop, Adadelta
+### 3. Optimizers: Adam, SGD, Adagrad, RMSprop, Adadelta, NAdam
 
 ### 4. Layers: Dense, Dropout, Flatten, Reshape
 
@@ -34,15 +34,13 @@
 
 ## Features I'm currently working on
 
-### 1. Adding NAdam optimizer
-
-### 2. Adding layer types
+### 1. Adding layer types
 
 #### Not implemented layers I'm planning to add in v. 1.0: Convolutional, Pooling
 
 #### If I have time I'll also implement: Concantanete layer, LSTM or GRU
 
-### 3. Fixing the derivatives of loss functions
+### 2. Fixing the derivatives of loss functions
 
 #### Only the MSE works currently and I want each loss function to work
 

@@ -9,8 +9,7 @@ from callbacks import *
 
 """
 TODO 31.10.2023
-1. Implement NAdam optimizer
-2. If I have implemented all the optimizers I will implement custom exceptions for handling invalid user input.
+1. Custom exceptions for handling invalid user input
 
 TODO Overall:
 1. Implement Convolutional and Max Pooling layers. Both 1D and 2D. I don't really care about 3D as I have never worked with them.
