@@ -22,7 +22,7 @@
 
 ### 2. A few activation and loss function
 
-### 3. Optimizers: Adam, SGD
+### 3. Optimizers: Adam, SGD, Adagrad, RMSprop
 
 ### 4. Layers: Dense, Dropout, Flatten, Reshape
 
@@ -34,7 +34,7 @@
 
 ### 1. Adding a few optimizers
 
-#### I'm planning on adding: RMSprop, Adagrad, Adadelta, Nadam
+#### I'm planning on adding: Adadelta, Nadam
 
 ### 2. Adding layer types
 

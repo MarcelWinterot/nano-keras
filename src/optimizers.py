@@ -30,7 +30,7 @@ class Optimizer:
 
         return result
 
-    def apply_gradients(self) -> None:
+    def apply_gradients(self, weights_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         pass
 
 
@@ -182,16 +182,53 @@ class Adagrad(Optimizer):
         return (weights, biases)
 
 
+class RMSProp(Optimizer):
+    def __init__(self, learning_rate: float = 0.001, beta: float = 0.9) -> None:
+        self.learning_rate = learning_rate
+        self.beta = beta
+        self.e = 1e-7
+        self.v_w = None
+        self.v_b = None
+
+    def apply_gradients(self, weights_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Function to update models weights and biases using the RMSprop algorithm. 
+
+        Args:
+            weights_gradients (np.ndarray): Weight gradients you've calculated
+            bias_gradients (np.ndarray): Bias gradients you've calculated
+            weights (np.ndarray): Model or layers weights you want to update
+            biases (np.ndarray): Model or layers biases you want to update
+
+        Returns:
+            tuple[np.ndarray, np.ndarray]: Updated weights and biases. First element are the weights and second are the biases.
+        """
+        if self.v_w is None:
+            self.v_w = np.zeros_like(weights_gradients)
+            self.v_b = np.zeros_like(bias_gradients)
+
+        # self.v_w = self.beta * self.v_w + \
+        #     (1 - self.beta) * weights_gradients**2
+        target_shape = weights_gradients.shape
+
+        self.v_w = self.beta * \
+            self.fill_array_(self.v_w, target_shape)[:target_shape[0], :target_shape[1]] + \
+            (1 - self.beta) * weights_gradients**2
+
+        self.v_b = self.beta * self.v_b + (1 - self.beta) * bias_gradients**2
+
+        weights += self.learning_rate * \
+            (weights_gradients/(np.sqrt(self.v_w) + self.e))
+        biases += self.learning_rate * \
+            (bias_gradients / (np.sqrt(self.v_b) + self.e))
+
+        return (weights, biases)
+
+
 class Adadelta(Optimizer):
     def __init__(self) -> None:
         super().__init__()
 
 
 class NAdam(Optimizer):
-    def __init__(self) -> None:
-        super().__init__()
-
-
-class RMSProp(Optimizer):
     def __init__(self) -> None:
         super().__init__()
