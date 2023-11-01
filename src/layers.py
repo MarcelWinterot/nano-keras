@@ -118,7 +118,7 @@ class Flatten(Layer):
         return np.ravel(x)
 
     def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
-        return loss
+        return loss  # We don't have any parameters to update so we just return the loss
 
 
 class Reshape(Layer):
@@ -133,7 +133,7 @@ class Reshape(Layer):
         return np.reshape(x, self.target_shape)
 
     def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
-        return loss
+        return loss  # We don't have any parameters to update so we just return the loss
 
 
 class MaxPooling1D(Layer):
@@ -177,6 +177,9 @@ class MaxPooling1D(Layer):
             currentIndex += 1
 
         return output
+
+    def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
+        return loss  # We don't have any parameters to update so we just return the loss
 
 
 class MaxPooling2D(Layer):
@@ -228,6 +231,9 @@ class MaxPooling2D(Layer):
                 output[i, j] = np.max(x[i_start:i_end, j_start:j_end])
 
         return output
+
+    def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
+        return loss  # We don't have any parameters to update so we just return the loss
 
 
 if __name__ == "__main__":
