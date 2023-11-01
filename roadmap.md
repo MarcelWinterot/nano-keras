@@ -6,7 +6,7 @@
 
 ### 1. Freely creating and training NNs with the library taking care of configuration
 
-### 2. All activation and loss functions
+### 2. A few activation and loss functions
 
 ### 3. A few optimizers to learn how they work
 
@@ -26,7 +26,7 @@
 
 ### 3. Optimizers: Adam, SGD, Adagrad, RMSprop, Adadelta, NAdam
 
-### 4. Layers: Dense, Dropout, Flatten, Reshape
+### 4. Layers: Dense, Dropout, Flatten, Reshape, MaxPooling1D, MaxPooling2D
 
 ### 5. L1, L2 and L1L2 regulization techniques
 
@@ -36,7 +36,7 @@
 
 ### 1. Adding layer types
 
-#### Not implemented layers I'm planning to add in v. 1.0: Convolutional, Pooling
+#### Not implemented layers I'm planning to add in v. 1.0: Convolutional
 
 #### If I have time I'll also implement: Concantanete layer, LSTM or GRU
 
@@ -51,3 +51,5 @@
 ### Rewrite the library in a more efficient language like C++/Rust
 
 ### Make the code work in batches
+
+### Add more of everything

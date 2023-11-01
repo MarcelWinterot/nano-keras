@@ -8,12 +8,14 @@ from layers import *
 from callbacks import *
 
 """
-TODO 31.10.2023
-1. Custom exceptions for handling invalid user input
+TODO 1.11.2023:
+1. Implement Convolutional layers
+2. Add output shape to each layer and calculate the weights based of that
 
 TODO Overall:
-1. Implement Convolutional and Max Pooling layers. Both 1D and 2D. I don't really care about 3D as I have never worked with them.
-2. Fix the loss functions.
+1. Implement Conv1D and Conv2D layers
+2. Add output shape to each layer and calculate the weights based of that, as currently it works poorly
+3. Fix the loss functions.
 """
 
 
@@ -94,7 +96,8 @@ class NN:
                         previous_units = layer.units
 
                 if previous_units is None:
-                    raise f"No weights found for layer: {self.layers[i].name}. Try changinng the networks architecture and try again. If you think it's an error, post an issue on github"
+                    raise Exception(
+                        f"No weights found for layer: {self.layers[i].name}. Try changinng the networks architecture and try again. If you think it's an error, post an issue on github")
                 current_units = self.layers[i].units
                 weights = np.random.randn(previous_units, current_units)
                 self.layers[i].weights = weights
@@ -129,7 +132,7 @@ class NN:
         output = x
         # We skip the first layer as it's the input layer
         for layer in self.layers[1:]:
-            output = layer.feed_forward(output)
+            output = layer(output)
         return output
 
     def backpropagate(self, X: np.ndarray, y: np.ndarray, verbose: int = 2, epoch: int = 1, total_epochs: int = 100) -> None:
@@ -290,7 +293,8 @@ if __name__ == "__main__":
     regulizaer = L1L2(1e-4, 1e-5)
     call = EarlyStopping(200, "val_accuracy")
 
-    model.add(Dense(2, name="input"))
+    # model.add(Dense(2, name="input"))
+    model.add(Flatten())
     model.add(Dropout(2, "relu", name="hidden"))
     model.add(Dense(1, "sigmoid", name="output"))
 
