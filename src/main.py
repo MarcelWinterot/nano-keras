@@ -9,8 +9,9 @@ from callbacks import *
 
 """
 TODO 1.11.2023:
-1. Implement Convolutional layers
+1. Add backpropagation to Conv1D layer
 2. Add output shape to each layer and calculate the weights based of that
+3. Implement Conv1D layer
 
 TODO Overall:
 1. Implement Conv1D and Conv2D layers
@@ -110,13 +111,13 @@ class NN:
             optimizer (Union[Optimizer, str]): Optimizer the model should use when updating it's params. You can pass either the name of it as a str or initalized class. Defaults to "adam"
             metrics (str, optional): Paramter that specifies what metrics should the model use. Possible metrics are: accuracy. Defaults to "".
         """
-        loss_functions_ = {
+        _loss_functions = {
             "mae": MAE(), "mse": MSE(), "bce": BCE(), "cce": CCE(), "hinge": Hinge(), "huber": Huber()}
-        optimizers_ = {"adam": Adam(), "sgd": SGD()}
+        _optimizers = {"adam": Adam(), "sgd": SGD()}
         self.generate_weights()
-        self.loss_function = loss_functions_[loss_function] if type(
+        self.loss_function = _loss_functions[loss_function] if type(
             loss_function) == str else loss_function
-        self.optimizer = optimizers_[optimizer] if type(
+        self.optimizer = _optimizers[optimizer] if type(
             optimizer) == str else optimizer
         self.metrics = metrics
 
@@ -154,7 +155,7 @@ class NN:
                 print_progress(epoch+1, total_epochs, loss,
                                accuracy, i+1, length_of_x, self.val_loss, self.val_accuracy)
 
-    def handle_callbacks_(self, result, callbacks: Union[EarlyStopping, None]) -> Union[None, np.ndarray]:
+    def _handle_callbacks(self, result, callbacks: Union[EarlyStopping, None]) -> Union[None, np.ndarray]:
         """Support function to make the code cleaner for handling the callbacks
 
         Args:
@@ -199,16 +200,16 @@ class NN:
 
                 val_losses[epoch] = self.val_loss
 
-                self.metrics_ = {"loss": self.loss, "accuracy": self.accuracy,
+                self._metrics = {"loss": self.loss, "accuracy": self.accuracy,
                                  "val_loss": self.val_loss, "val_accuracy": self.val_accuracy}
             else:
-                self.metrics_ = {"loss": self.loss,
+                self._metrics = {"loss": self.loss,
                                  "accuracy": self.accuracy, }
 
             result = callbacks.watch(
-                self.metrics_[callbacks.monitor], self.layers) if callbacks is not None else None
+                self._metrics[callbacks.monitor], self.layers) if callbacks is not None else None
 
-            if self.handle_callbacks_(result, callbacks) == 1:
+            if self._handle_callbacks(result, callbacks) == 1:
                 break
 
             losses[epoch] = self.loss
@@ -293,8 +294,7 @@ if __name__ == "__main__":
     regulizaer = L1L2(1e-4, 1e-5)
     call = EarlyStopping(200, "val_accuracy")
 
-    # model.add(Dense(2, name="input"))
-    model.add(Flatten())
+    model.add(Dense(2, name="input"))
     model.add(Dropout(2, "relu", name="hidden"))
     model.add(Dense(1, "sigmoid", name="output"))
 

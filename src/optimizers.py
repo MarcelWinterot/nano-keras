@@ -5,7 +5,7 @@ class Optimizer:
     def __init__(self) -> None:
         pass
 
-    def fill_array_(self, arr: np.ndarray, target_shape: tuple) -> np.ndarray:
+    def _fill_array(self, arr: np.ndarray, target_shape: tuple) -> np.ndarray:
         """Support function to fill the m_w, v_w and m_b, v_b arrays if their shapes are smaller than the gradients
 
         Args:
@@ -98,9 +98,9 @@ class Adam(Optimizer):
         target_shape = weights.shape
 
         # Adjusting shapes before calculations
-        self.m_w = self.fill_array_(self.m_w, target_shape)[
+        self.m_w = self._fill_array(self.m_w, target_shape)[
             :weightGradients.size]
-        self.v_w = self.fill_array_(self.v_w, target_shape)[
+        self.v_w = self._fill_array(self.v_w, target_shape)[
             :weightGradients.size]
 
         self.m_w = self.beta1 * self.m_w + (1 - self.beta1) * weightGradients
@@ -157,7 +157,7 @@ class Adagrad(Optimizer):
 
         # Adjusting the shape before calculation
         target_shape = weights.shape
-        self.v_w = self.fill_array_(self.v_w, target_shape)[
+        self.v_w = self._fill_array(self.v_w, target_shape)[
             :target_shape[0], :target_shape[1]]
 
         self.v_w += weights_gradients ** 2
@@ -204,7 +204,7 @@ class RMSProp(Optimizer):
         target_shape = weights.shape
 
         # Adjusting the shapes before calculation
-        self.v_w = self.fill_array_(self.v_w, target_shape)[
+        self.v_w = self._fill_array(self.v_w, target_shape)[
             :target_shape[0], :target_shape[1]]
 
         self.v_w = self.rho * self.v_w + (1 - self.rho) * weights_gradients**2
@@ -253,9 +253,9 @@ class Adadelta(Optimizer):
         target_shape = weights.shape
 
         # Adjusting the shapes before calculation
-        self.v_w = self.fill_array_(self.v_w, target_shape)[
+        self.v_w = self._fill_array(self.v_w, target_shape)[
             :target_shape[0], :target_shape[1]]
-        self.v_w_a = self.fill_array_(self.v_w_a, target_shape)[
+        self.v_w_a = self._fill_array(self.v_w_a, target_shape)[
             :target_shape[0], :target_shape[1]]
 
         self.v_w = self.rho * self.v_w + \
@@ -320,9 +320,9 @@ class NAdam(Optimizer):
 
         # Adjusting the shapes before calculations
         target_shape = weights.shape
-        self.m_w = self.fill_array_(self.m_w, target_shape)[
+        self.m_w = self._fill_array(self.m_w, target_shape)[
             :target_shape[0], :target_shape[1]]
-        self.v_w = self.fill_array_(self.v_w, target_shape)[
+        self.v_w = self._fill_array(self.v_w, target_shape)[
             :target_shape[0], :target_shape[1]]
 
         # Calculations

@@ -1,12 +1,12 @@
 from activations import *
 from typing import Union
-from activations import Activation, np
 from optimizers import Optimizer
 from regulizers import Regularizer
 import numpy as np
 import math
 
 # Currently working on: Conv1D
+# TODO Clean up the activation functions for each layer
 
 
 class Layer:
@@ -19,13 +19,13 @@ class Layer:
             regulizer (Regularizer, optional): Regulizer the model should use. You can find them all in the regulizers.py file. You must pass the already intialized class. Defaults to None.
             name (str, optional): Name of the layer. Helpful for debugging. Defaults to "Layer".
         """
-        activations_ = {'sigmoid': Sigmoid(), 'tanh': Tanh(
+        _activations = {'sigmoid': Sigmoid(), 'tanh': Tanh(
         ), 'relu': ReLU(), 'leaky_relu': LeakyReLU(), 'elu': ELU()}
         self.units = units
         self.name = name
         self.weights = np.array([])
         self.biases = np.random.randn(units)
-        self.activation = activations_[activation] if type(
+        self.activation = _activations[activation] if type(
             activation) == str else activation
         self.regulizer = regulizer
         # We set the type to dense as every other layer will need it's special init where we'll set it
@@ -58,8 +58,8 @@ class Dense(Layer):
         """
         if self.regulizer is not None:
             loss = self.regulizer.compute_loss(loss, self.weights, self.biases)
-        delta = np.average([loss * self.activation.compute_derivative(self.outputs[i])
-                           for i in range(len(self.outputs))])
+        delta = np.average(
+            loss * self.activation.compute_derivative(self.outputs))
         weights_gradients = np.outer(self.inputs, delta)
         self.weights, self.biases = optimizer.apply_gradients(weights_gradients, np.array(
             delta, dtype=float), self.weights, self.biases)
@@ -98,8 +98,8 @@ class Dropout(Layer):
         """
         if self.regulizer is not None:
             loss = self.regulizer.compute_loss(loss, self.weights, self.biases)
-        delta = np.average([loss * self.activation.compute_derivative(self.outputs[i])
-                           for i in range(len(self.outputs))])
+        delta = np.average(
+            loss * self.activation.compute_derivative(self.outputs))
         delta /= 1/(1-self.dropout_rate)  # Scaling the gradient
         weights_gradients = np.outer(self.inputs, delta)
         self.weights, self.biases = optimizer.apply_gradients(
@@ -149,7 +149,7 @@ class MaxPooling1D(Layer):
         self.type = MaxPooling1D
 
     def __repr__(self) -> str:
-        return f"Max Pooling 1D layer"
+        return f"MaxPooling1D layer"
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
         """Call function for the MaxPooling1D layer. It reduces the size of an array by how much the pool_size and strides is set to.
@@ -195,7 +195,7 @@ class MaxPooling2D(Layer):
         self.type = MaxPooling2D
 
     def __repr__(self) -> str:
-        return f"Max Pooling 2D Layer"
+        return f"MaxPooling2D Layer"
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
         """Call function for the MaxPooling1D layer. It reduces the size of an array by how much the pool_size and strides is set to.
@@ -236,11 +236,44 @@ class MaxPooling2D(Layer):
         return loss  # We don't have any parameters to update so we just return the loss
 
 
+class Conv1D(Layer):
+    def __init__(self, filters: int, pool_size: int, strides: int = None, activation: Union[Activation, str] = None) -> None:
+        _activations = {'sigmoid': Sigmoid(), 'tanh': Tanh(
+        ), 'relu': ReLU(), 'leaky_relu': LeakyReLU(), 'elu': ELU()}
+        self.number_of_filters = filters
+        self.pool_size = pool_size
+        self.strides = pool_size if strides is None else strides
+        self.activation = _activations[activation] if type(
+            activation) == str else activation
+
+        self.filters = np.random.randn(self.number_of_filters, self.pool_size)
+
+    def __repr__(self) -> str:
+        return f"Conv1D Layer"
+
+    def __call__(self, x: np.ndarray) -> np.ndarray:
+        self.inputs = x
+
+        weighted_sum = np.zeros(
+            (x.size // self.strides, self.number_of_filters))
+
+        for i in range(0, x.size, self.strides):
+            if i + self.pool_size > x.size:
+                break  # Reached the end of the input
+
+            for j, filter in enumerate(self.filters):
+                weighted_sum[i //
+                             self.strides, j] = np.sum(x[i:i+self.pool_size] * filter)
+
+        # Applying activation function
+        output = self.activation.compute_loss(weighted_sum)
+        self.outputs = np.array([output, weighted_sum])
+
+        return output
+
+
 if __name__ == "__main__":
-    x = np.random.rand(25)
-    print(x)
-    pool_size = 2
-    strides = 1
-    layer = MaxPooling1D(pool_size, strides)
-    print(layer(x))
-    print(len(layer(x)))
+    x = np.random.rand(12)
+    layer = Conv1D(2, 3, activation=LeakyReLU())
+    output = layer(x)
+    print(f"Output: {output}")

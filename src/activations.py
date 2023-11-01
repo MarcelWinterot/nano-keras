@@ -42,7 +42,7 @@ class LeakyReLU(Activation):
         self.alpha = alpha
 
     def compute_loss(self, X: np.ndarray) -> np.ndarray:
-        return np.maximum(0.0, X)
+        return np.maximum(self.alpha*X, X)
 
     def compute_derivative(self, X: np.ndarray) -> np.ndarray:
         return np.where(X <= 0, 1, self.alpha)
