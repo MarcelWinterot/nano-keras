@@ -100,12 +100,12 @@ class NN:
                     sys.exit()
                 self.layers[i].weights = weights
 
-    def compile(self, loss_function: Union[Loss, str] = "mse", optimizer: Union[Optimizer, str] = "adam", metrics: str = "") -> None:
+    def compile(self, loss_function: Loss | str = "mse", optimizer: Optimizer | str = "adam", metrics: str = "") -> None:
         """Function you should call before starting training the model, as we generate the weights in here, set the loss function and optimizer.
 
         Args:
-            loss_function (Union[Loss, str]): Loss function the model should use. You can pass either the name of it as a str or intialized class. Defaults to "mse".
-            optimizer (Union[Optimizer, str]): Optimizer the model should use when updating it's params. You can pass either the name of it as a str or initalized class. Defaults to "adam"
+            loss_function (Loss | str): Loss function the model should use. You can pass either the name of it as a str or intialized class. Defaults to "mse".
+            optimizer (Optimizer | str): Optimizer the model should use when updating it's params. You can pass either the name of it as a str or initalized class. Defaults to "adam"
             metrics (str, optional): Paramter that specifies what metrics should the model use. Possible metrics are: accuracy. Defaults to "".
         """
         _loss_functions = {
@@ -153,14 +153,14 @@ class NN:
                 print_progress(epoch+1, total_epochs, loss,
                                accuracy, i+1, length_of_x, self.val_loss, self.val_accuracy)
 
-    def _handle_callbacks(self, result, callbacks: Union[EarlyStopping, None]) -> Union[None, np.ndarray]:
+    def _handle_callbacks(self, result, callbacks: EarlyStopping | None) -> None | np.ndarray:
         """Support function to make the code cleaner for handling the callbacks
 
         Args:
-            callbacks (Union[EarlyStopping, None]): Callbacks used by the model. If it isn't set it's None
+            callbacks (EarlyStopping | None): Callbacks used by the model. If it isn't set it's None
 
         Returns:
-            Union[None, np.ndarray]: Either None if the training continues
+            None |np.ndarray: Either None if the training continues
         """
         if result is not None:
             if callbacks.restore_best_weights:
@@ -171,7 +171,7 @@ class NN:
             return 1
         return 0
 
-    def train(self, X: np.ndarray, y: np.ndarray, epochs: int, callbacks: Union[EarlyStopping, None] = None, verbose: int = 1, validation_data: tuple[np.ndarray, np.ndarray] = None) -> Union[np.ndarray, tuple]:
+    def train(self, X: np.ndarray, y: np.ndarray, epochs: int, callbacks: EarlyStopping | None = None, verbose: int = 1, validation_data: tuple[np.ndarray, np.ndarray] = None) -> np.ndarray | tuple:
         """Function to train the model. Remember to call the NN.compile() before calling this function as it won't work. \n
         Currently the code updates the weights after each parameter instead of working in batches but I will add that in the future
 
@@ -179,12 +179,12 @@ class NN:
             X (np.ndarray): X dataset
             y (np.ndarray): y dataset
             epochs (int): number of iterations a model should do during training
-            callbacks (Union[EarlyStopping, None], optional): One of the callbacks implemented in callbacks.py although currently there's only early stopping in there. Defaults to None.
+            callbacks (EarlyStopping | None, optional): One of the callbacks implemented in callbacks.py although currently there's only early stopping in there. Defaults to None.
             verbose (int, optional): Parameter to control what the model prints out during training. 0 - nothing, 1 - only epoch/epochs, 2 - all the useful information. Defaults to 1.
             validation_data (tuple, optional): Validation data a model should use to check the validation loss and accuracy. It should be a tuple of X and y. Default to None.
 
         Returns:
-            Union[np.ndarray, tuple]: Either the losses model's had during training or both the losses and val_losses if validation_data is set.
+            np.ndarray | tuple: Either the losses model's had during training or both the losses and val_losses if validation_data is set.
         """
         losses = np.ndarray((epochs))
         val_losses = np.ndarray((epochs))

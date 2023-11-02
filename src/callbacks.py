@@ -1,5 +1,4 @@
 import numpy as np
-from typing import Union
 
 
 class EarlyStopping:
@@ -30,7 +29,7 @@ class EarlyStopping:
                 self.weights.append([])
                 self.biases.append([])
 
-    def watch(self, metric: np.ndarray, layers: list) -> Union[tuple, None]:
+    def watch(self, metric: np.ndarray, layers: list) -> tuple | None:
         """
         Plans for the algorithm:
         We will check if the new metric has improved to the currently stored one
@@ -43,7 +42,7 @@ class EarlyStopping:
             biases (np.ndarray): Our models biases
 
         Returns:
-            Union[tuple, None]: Either the weights and biases in a tuple if the training has finished or nothing if the training continues
+            tuple | None: Either the weights and biases in a tuple if the training has finished or nothing if the training continues
         """
         if metric is None:
             if self.monitor.find("accuracy") != -1:

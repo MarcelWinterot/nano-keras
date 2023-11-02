@@ -1,27 +1,25 @@
 from activations import *
-from typing import Union
-from activations import Activation
 from optimizers import Optimizer
 from regulizers import Regularizer
 import numpy as np
 import math
 
-# Currently working on: Conv1D
+# Currently working on: Conv2D feed forward
 # TODO Clean up the activation functions for each layer
 
 
 class Layer:
-    def __init__(self, units: int, activation: Union[Activation, str] = None, regulizer: Regularizer = None, name: str = "Layer") -> None:
+    def __init__(self, units: int, activation: Activation | str = None, regulizer: Regularizer = None, name: str = "Layer") -> None:
         """Intializer for the layer class. 
 
         Args:
             units (int): Number of neurons the layer should have
-            activation (Union[Activation, str], optional): Activation function the model should use. You can find them all in the activations.py. Defaults to None, but you should only set it to None if it's the input layer. As otherwise it'd throw an error.
+            activation (Activation | str, optional): Activation function the model should use. You can find them all in the activations.py. Defaults to None, but you should only set it to None if it's the input layer. As otherwise it'd throw an error.
             regulizer (Regularizer, optional): Regulizer the model should use. You can find them all in the regulizers.py file. You must pass the already intialized class. Defaults to None.
             name (str, optional): Name of the layer. Helpful for debugging. Defaults to "Layer".
         """
         _activations = {'sigmoid': Sigmoid(), 'tanh': Tanh(
-        ), 'relu': ReLU(), 'leaky_relu': LeakyReLU(), 'elu': ELU()}
+        ), 'relu': ReLU(), 'leaky_relu': LeakyReLU(), 'elu': ELU(), "softmax": Softmax()}
         self.units = units
         self.name = name
         self.weights = np.array([])
@@ -85,7 +83,7 @@ class Dense(Layer):
 
 
 class Dropout(Layer):
-    def __init__(self, units: int, activation: Union[Activation, str], dropout_rate: float = 0.2, regulizer: Union[Regularizer, None] = None, name: str = "Layer") -> None:
+    def __init__(self, units: int, activation: Activation | str, dropout_rate: float = 0.2, regulizer: Regularizer | None = None, name: str = "Layer") -> None:
         super().__init__(units, activation, regulizer, name)
         self.dropout_rate = dropout_rate
         self.type = Dropout
@@ -317,7 +315,7 @@ class MaxPooling2D(Layer):
 
 
 class Conv1D(Layer):
-    def __init__(self, filters: int, pool_size: int, strides: int = None, activation: Union[Activation, str] = None) -> None:
+    def __init__(self, filters: int, pool_size: int, strides: int = None, activation: Activation | str = None) -> None:
         _activations = {'sigmoid': Sigmoid(), 'tanh': Tanh(
         ), 'relu': ReLU(), 'leaky_relu': LeakyReLU(), 'elu': ELU()}
         self.number_of_filters = filters
