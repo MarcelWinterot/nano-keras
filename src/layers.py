@@ -1,11 +1,12 @@
 from activations import *
+from activations import np
 from optimizers import Optimizer
 from regulizers import Regularizer
 import numpy as np
 import math
 
-# Currently working on: Conv2D feed forward
-# TODO Clean up the activation functions for each layer
+ACTIVATIONS = {'sigmoid': Sigmoid(), 'tanh': Tanh(), 'relu': ReLU(
+), 'leaky_relu': LeakyReLU(), 'elu': ELU(), "softmax": Softmax()}
 
 
 class Layer:
@@ -18,13 +19,11 @@ class Layer:
             regulizer (Regularizer, optional): Regulizer the model should use. You can find them all in the regulizers.py file. You must pass the already intialized class. Defaults to None.
             name (str, optional): Name of the layer. Helpful for debugging. Defaults to "Layer".
         """
-        _activations = {'sigmoid': Sigmoid(), 'tanh': Tanh(
-        ), 'relu': ReLU(), 'leaky_relu': LeakyReLU(), 'elu': ELU(), "softmax": Softmax()}
         self.units = units
         self.name = name
         self.weights = np.array([])
         self.biases = np.random.randn(units)
-        self.activation = _activations[activation] if type(
+        self.activation = ACTIVATIONS[activation] if type(
             activation) == str else activation
         self.regulizer = regulizer
 
@@ -40,6 +39,18 @@ class Layer:
         output = self.activation.compute_loss(weighted_sum)
         self.outputs = np.array([output, weighted_sum])
         return output
+
+    def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
+        """Backpropagation algorithm base implementation for all the layers that don't have any parameters to update
+
+        Args:
+            loss (np.ndarray): Loss calculated by loss.compute_derivative()
+            optimizer (Optimizer): Optimizer to use when updating layers parameters 
+
+        Returns:
+            np.ndarray: New loss
+        """
+        return loss
 
 
 class Dense(Layer):
@@ -60,7 +71,7 @@ class Dense(Layer):
         return self.units
 
     def __repr__(self) -> str:
-        return f"Dense layer: {self.units} units"
+        return f"{self.name} (Dense){' ' * (28 - len(self.name) - 7)}{(None, self.units)}{' ' * (26 - len(f'(None, {self.units})'))}{len(self.weights)}\n"
 
     def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
         """Backpropagation algorithm for the dense layer
@@ -101,7 +112,7 @@ class Dropout(Layer):
         return self.units
 
     def __repr__(self) -> str:
-        return f"Dropout layer: {self.units} units"
+        return f"{self.name} (Dropout){' ' * (28 - len(self.name) - 9)}{(None, self.units)}{' ' * (26 - len(f'(None, {self.units})'))}{len(self.weights)}\n"
 
     def __call__(self, x: np.ndarray, isTraining: bool = True) -> np.ndarray:
         self.inputs = x
@@ -136,8 +147,9 @@ class Dropout(Layer):
 
 
 class Flatten(Layer):
-    def __init__(self) -> None:
+    def __init__(self, name: str = "Flatten") -> None:
         self.type = Flatten
+        self.name = name
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
         """Function to generate the output shape of a layer
@@ -151,22 +163,21 @@ class Flatten(Layer):
         """
         input_shape = layers[current_layer_index -
                              1].output_shape(layers, current_layer_index-1)
-        return (np.prod(np.array(input_shape)))
+        self.output_shape_value = (np.prod(np.array(input_shape)))
+        return self.output_shape_value
 
     def __repr__(self) -> str:
-        return f"Flatten layer"
+        return f"{self.name} (Flatten){' ' * (28 - len(self.name) - 9)}{(None, self.output_shape_value)}{' ' * (26-len(f'(None, {self.output_shape_value})'))}0\n"
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
         return np.ravel(x)
 
-    def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
-        return loss  # We don't have any parameters to update so we just return the loss
-
 
 class Reshape(Layer):
-    def __init__(self, target_shape: tuple) -> None:
+    def __init__(self, target_shape: tuple, name: str = "Reshape") -> None:
         self.target_shape = target_shape
         self.type = Reshape
+        self.name = name
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
         """Function to generate the output shape of a layer
@@ -181,13 +192,10 @@ class Reshape(Layer):
         return self.target_shape
 
     def __repr__(self) -> str:
-        return f"Reshape layer"
+        return f"{self.name} (Reshape){' ' * (28 - len(self.name) - 9)}{(None, self.target_shape)}{' ' * (26-len(f'(None, {self.target_shape})'))}0\n"
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
         return np.reshape(x, self.target_shape)
-
-    def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
-        return loss  # We don't have any parameters to update so we just return the loss
 
 
 class MaxPooling1D(Layer):
@@ -246,9 +254,6 @@ class MaxPooling1D(Layer):
             currentIndex += 1
 
         return output
-
-    def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
-        return loss  # We don't have any parameters to update so we just return the loss
 
 
 class MaxPooling2D(Layer):
@@ -310,18 +315,13 @@ class MaxPooling2D(Layer):
 
         return output
 
-    def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
-        return loss  # We don't have any parameters to update so we just return the loss
-
 
 class Conv1D(Layer):
     def __init__(self, filters: int, pool_size: int, strides: int = None, activation: Activation | str = None) -> None:
-        _activations = {'sigmoid': Sigmoid(), 'tanh': Tanh(
-        ), 'relu': ReLU(), 'leaky_relu': LeakyReLU(), 'elu': ELU()}
         self.number_of_filters = filters
         self.pool_size = pool_size
         self.strides = pool_size if strides is None else strides
-        self.activation = _activations[activation] if type(
+        self.activation = ACTIVATIONS[activation] if type(
             activation) == str else activation
 
         self.filters = np.random.randn(self.number_of_filters, self.pool_size)
@@ -354,17 +354,6 @@ class Conv1D(Layer):
 
         return output
 
-
-"""
-Output shape testing
-Dense - Working
-Dropout - Working
-Flatten - Working
-Reshape - Working
-MaxPooling1D - Working
-MaxPooling2D - Working
-Conv1D - Working
-"""
 
 if __name__ == "__main__":
     x = np.random.randn(2, 5)

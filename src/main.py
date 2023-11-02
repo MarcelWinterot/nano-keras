@@ -9,12 +9,12 @@ from layers import *
 from callbacks import *
 
 """
-TODO 2.11.2023:
-1. Add backpropagation to Conv1D layer
+TODO Today:
+1. Change the NN.summary() to act the same way as keras.model.Model.summary()
 
 TODO Overall:
-1. Finish Conv1D layer
-2. Conv2D layers
+1. Change the Conv1D to work with (sequence_length, input_features) input shape. Right now it uses 1D arrays
+2. Implement Conv2D. It should work with (height, width, input_feautres) input shape.
 3. Fix the loss functions.
 """
 
@@ -74,16 +74,18 @@ class NN:
         """
         self.layers.append(layer)
 
-    def summary(self, line_length: int = 50) -> None:
+    def summary(self, line_length: int = 65) -> None:
         """Prints out the NN's information.
 
         Args:
             line_length (int, optional): Sets how long the string will be. Defaults to 50.
         """
-        print(f"{self.name}:\n{'='*line_length}")
+        print(f"Model: {self.name}\n{'_'*line_length}")
+        print(
+            f"Layer (type)                Output Shape              Param #\n{'='*line_length}")
         for layer in self.layers:
             print(layer)
-        print('='*line_length)
+        print(f"{'='*line_length}\n{'_'*line_length}")
 
     def generate_weights(self) -> None:
         """Support function used in the compile function to generate model's weights.
@@ -289,12 +291,10 @@ if __name__ == "__main__":
     np.random.seed(1337)
     model = NN()
 
-    regulizaer = L1L2(1e-4, 1e-5)
-    call = EarlyStopping(200, "val_accuracy")
-
     model.add(Dense(2, name="input"))
-    model.add(Reshape((1, 2)))
     model.add(Dropout(2, "relu", name="hidden"))
+    model.add(Reshape((2, 1)))
+    model.add(Flatten())
     model.add(Dense(1, "sigmoid", name="output"))
 
     optimizer = Adam(0.2)
@@ -311,7 +311,6 @@ if __name__ == "__main__":
 
     losses, val_losses = model.train(
         X, y, 2500, validation_data=(X, y), verbose=1)
-    # losses = model.train(X, y, 2500)
 
     print("\n\n TRAINING FINISHED \n\n")
 
