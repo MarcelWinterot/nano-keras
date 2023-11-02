@@ -1,5 +1,6 @@
 from activations import *
 from typing import Union
+from activations import Activation
 from optimizers import Optimizer
 from regulizers import Regularizer
 import numpy as np
@@ -28,8 +29,9 @@ class Layer:
         self.activation = _activations[activation] if type(
             activation) == str else activation
         self.regulizer = regulizer
-        # We set the type to dense as every other layer will need it's special init where we'll set it
-        self.type = Dense
+
+    def output_shape(self, layers: list, current_layer_index: int) -> tuple:
+        return
 
     def __repr__(self) -> str:
         return "Base layer class"
@@ -43,6 +45,22 @@ class Layer:
 
 
 class Dense(Layer):
+    def __init__(self, units: int, activation: Activation | str = None, regulizer: Regularizer = None, name: str = "Layer") -> None:
+        super().__init__(units, activation, regulizer, name)
+        self.type = Dense
+
+    def output_shape(self, layers: list, current_layer_index: int) -> tuple:
+        """Function to generate the output shape of a layer
+
+        Args:
+            layers (list): All layers in a network
+            current_layer_index (int): Index of the current layer
+
+        Returns:
+            tuple: output shape
+        """
+        return self.units
+
     def __repr__(self) -> str:
         return f"Dense layer: {self.units} units"
 
@@ -58,8 +76,8 @@ class Dense(Layer):
         """
         if self.regulizer is not None:
             loss = self.regulizer.compute_loss(loss, self.weights, self.biases)
-        delta = np.average(
-            loss * self.activation.compute_derivative(self.outputs))
+        delta = np.average([
+            loss * self.activation.compute_derivative(self.outputs[i]) for i in range(len(self.outputs))])
         weights_gradients = np.outer(self.inputs, delta)
         self.weights, self.biases = optimizer.apply_gradients(weights_gradients, np.array(
             delta, dtype=float), self.weights, self.biases)
@@ -71,6 +89,18 @@ class Dropout(Layer):
         super().__init__(units, activation, regulizer, name)
         self.dropout_rate = dropout_rate
         self.type = Dropout
+
+    def output_shape(self, layers: list, current_layer_index: int) -> tuple:
+        """Function to generate the output shape of a layer
+
+        Args:
+            layers (list): All layers in a network
+            current_layer_index (int): Index of the current layer
+
+        Returns:
+            tuple: output shape
+        """
+        return self.units
 
     def __repr__(self) -> str:
         return f"Dropout layer: {self.units} units"
@@ -98,8 +128,8 @@ class Dropout(Layer):
         """
         if self.regulizer is not None:
             loss = self.regulizer.compute_loss(loss, self.weights, self.biases)
-        delta = np.average(
-            loss * self.activation.compute_derivative(self.outputs))
+        delta = np.average([
+            loss * self.activation.compute_derivative(self.outputs[i]) for i in range(len(self.outputs))])
         delta /= 1/(1-self.dropout_rate)  # Scaling the gradient
         weights_gradients = np.outer(self.inputs, delta)
         self.weights, self.biases = optimizer.apply_gradients(
@@ -110,6 +140,20 @@ class Dropout(Layer):
 class Flatten(Layer):
     def __init__(self) -> None:
         self.type = Flatten
+
+    def output_shape(self, layers: list, current_layer_index: int) -> tuple:
+        """Function to generate the output shape of a layer
+
+        Args:
+            layers (list): All layers in a network
+            current_layer_index (int): Index of the current layer
+
+        Returns:
+            tuple: output shape
+        """
+        input_shape = layers[current_layer_index -
+                             1].output_shape(layers, current_layer_index-1)
+        return (np.prod(np.array(input_shape)))
 
     def __repr__(self) -> str:
         return f"Flatten layer"
@@ -125,6 +169,18 @@ class Reshape(Layer):
     def __init__(self, target_shape: tuple) -> None:
         self.target_shape = target_shape
         self.type = Reshape
+
+    def output_shape(self, layers: list, current_layer_index: int) -> tuple:
+        """Function to generate the output shape of a layer
+
+        Args:
+            layers (list): All layers in a network
+            current_layer_index (int): Index of the current layer
+
+        Returns:
+            tuple: output shape
+        """
+        return self.target_shape
 
     def __repr__(self) -> str:
         return f"Reshape layer"
@@ -147,6 +203,21 @@ class MaxPooling1D(Layer):
         self.pool_size = pool_size
         self.strides = pool_size if strides is None else strides
         self.type = MaxPooling1D
+
+    def output_shape(self, layers: list, current_layer_index: int) -> tuple:
+        """Function to generate the output shape of a layer
+
+        Args:
+            layers (list): All layers in a network
+            current_layer_index (int): Index of the current layer
+
+        Returns:
+            tuple: output shape
+        """
+        # output_shape = (input_shape - pool_size + 1) / strides)
+        input_shape = layers[current_layer_index -
+                             1].output_shape(layers, current_layer_index-1)
+        return math.ceil((input_shape - self.pool_size + 1) / self.strides)
 
     def __repr__(self) -> str:
         return f"MaxPooling1D layer"
@@ -193,6 +264,15 @@ class MaxPooling2D(Layer):
         self.pool_size = pool_size
         self.strides = pool_size if strides is None else strides
         self.type = MaxPooling2D
+
+    def output_shape(self, layers: list, current_layer_index: int) -> tuple:
+        input_shape = layers[current_layer_index -
+                             1].output_shape(layers, current_layer_index-1)
+        # math.floor((input_shape - pool_size) / strides) + 1
+        # return math.floor((input_shape - self.pool_size) / self.strides) + 1
+        output_shape = [math.floor(
+            (input_shape[i] - self.pool_size[i]) / self.strides[i]) + 1 for i in range(2)]
+        return tuple(output_shape)
 
     def __repr__(self) -> str:
         return f"MaxPooling2D Layer"
@@ -248,6 +328,11 @@ class Conv1D(Layer):
 
         self.filters = np.random.randn(self.number_of_filters, self.pool_size)
 
+    def output_shape(self, layers: list, current_layer_index: int) -> tuple:
+        input_shape = layers[current_layer_index -
+                             1].output_shape(layers, current_layer_index-1)
+        return (input_shape // self.strides, self.number_of_filters)
+
     def __repr__(self) -> str:
         return f"Conv1D Layer"
 
@@ -272,8 +357,25 @@ class Conv1D(Layer):
         return output
 
 
+"""
+Output shape testing
+Dense - Working
+Dropout - Working
+Flatten - Working
+Reshape - Working
+MaxPooling1D - Working
+MaxPooling2D - Working
+Conv1D - Working
+"""
+
 if __name__ == "__main__":
-    x = np.random.rand(12)
-    layer = Conv1D(2, 3, activation=LeakyReLU())
-    output = layer(x)
-    print(f"Output: {output}")
+    x = np.random.randn(2, 5)
+    firstLayer = Dropout(32, ReLU())
+    secondLayer = Reshape((2, 5))
+    thirdLayer = MaxPooling2D((2, 2))
+
+    layers = [firstLayer, secondLayer, thirdLayer]
+    print(f"First layers output shape: {firstLayer.output_shape(layers, 0)}")
+    print(f"Second layer output shape: {secondLayer.output_shape(layers, 1)}")
+    print(f"Third layer output shape: {thirdLayer.output_shape(layers, 2)}")
+    print(f"Real third layer output shape: {thirdLayer(x).shape}")

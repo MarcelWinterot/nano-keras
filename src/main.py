@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from activations import *
@@ -8,14 +9,12 @@ from layers import *
 from callbacks import *
 
 """
-TODO 1.11.2023:
+TODO 2.11.2023:
 1. Add backpropagation to Conv1D layer
-2. Add output shape to each layer and calculate the weights based of that
-3. Implement Conv1D layer
 
 TODO Overall:
-1. Implement Conv1D and Conv2D layers
-2. Add output shape to each layer and calculate the weights based of that, as currently it works poorly
+1. Finish Conv1D layer
+2. Conv2D layers
 3. Fix the loss functions.
 """
 
@@ -91,16 +90,14 @@ class NN:
         """
         for i in range(1, len(self.layers)):
             if self.layers[i].type not in self.layers_without_units:
-                previous_units = None
-                for layer in self.layers[:i]:
-                    if layer.type not in self.layers_without_units:
-                        previous_units = layer.units
-
-                if previous_units is None:
-                    raise Exception(
-                        f"No weights found for layer: {self.layers[i].name}. Try changinng the networks architecture and try again. If you think it's an error, post an issue on github")
-                current_units = self.layers[i].units
-                weights = np.random.randn(previous_units, current_units)
+                previousUnits = self.layers[i-1].output_shape(self.layers, i-1)
+                try:
+                    weights = np.random.randn(
+                        previousUnits, self.layers[i].units)
+                except Exception as e:
+                    print(
+                        f"Exception encountered when creating weights: {e}\nChange your achitecture and try again. If you think it's an error post an issue on github")
+                    sys.exit()
                 self.layers[i].weights = weights
 
     def compile(self, loss_function: Union[Loss, str] = "mse", optimizer: Union[Optimizer, str] = "adam", metrics: str = "") -> None:
@@ -113,7 +110,8 @@ class NN:
         """
         _loss_functions = {
             "mae": MAE(), "mse": MSE(), "bce": BCE(), "cce": CCE(), "hinge": Hinge(), "huber": Huber()}
-        _optimizers = {"adam": Adam(), "sgd": SGD()}
+        _optimizers = {"adam": Adam(), "sgd": SGD(), "adagrad": Adagrad(
+        ), "adadelta": Adadelta(), "rmsprop": RMSProp(), "nadam": NAdam()}
         self.generate_weights()
         self.loss_function = _loss_functions[loss_function] if type(
             loss_function) == str else loss_function
@@ -295,6 +293,7 @@ if __name__ == "__main__":
     call = EarlyStopping(200, "val_accuracy")
 
     model.add(Dense(2, name="input"))
+    model.add(Reshape((1, 2)))
     model.add(Dropout(2, "relu", name="hidden"))
     model.add(Dense(1, "sigmoid", name="output"))
 
