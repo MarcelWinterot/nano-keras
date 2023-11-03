@@ -64,7 +64,9 @@ class NN:
         self.accuracy = 0
         self.val_loss = None
         self.val_accuracy = None
-        self.layers_without_units = [Flatten, Reshape]
+        self.layers_without_units = [
+            Flatten, Reshape, MaxPooling1D, MaxPooling2D, Conv1D]
+        self.trainable_layers = [Dense, Dropout, Conv1D]
 
     def add(self, layer: Layer):
         """Adds a custom layer to the NN.
@@ -83,9 +85,17 @@ class NN:
         print(f"Model: {self.name}\n{'_'*line_length}")
         print(
             f"Layer (type)                Output Shape              Param #\n{'='*line_length}")
+        params = []
+        totalParams = 0
         for layer in self.layers:
             print(layer)
-        print(f"{'='*line_length}\n{'_'*line_length}")
+            if layer.type in self.trainable_layers:
+                totalParams += layer.weights.size + layer.biases.size
+                params.append([layer.weights, layer.biases])
+        print(f"{'='*line_length}")
+        print(
+            f"Total params: {totalParams} ({sys.getsizeof(params)} Bytes)")
+        print(f"{'_'*line_length}")
 
     def generate_weights(self) -> None:
         """Support function used in the compile function to generate model's weights.
@@ -293,8 +303,6 @@ if __name__ == "__main__":
 
     model.add(Dense(2, name="input"))
     model.add(Dropout(2, "relu", name="hidden"))
-    model.add(Reshape((2, 1)))
-    model.add(Flatten())
     model.add(Dense(1, "sigmoid", name="output"))
 
     optimizer = Adam(0.2)

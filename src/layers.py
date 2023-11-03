@@ -71,7 +71,7 @@ class Dense(Layer):
         return self.units
 
     def __repr__(self) -> str:
-        return f"{self.name} (Dense){' ' * (28 - len(self.name) - 7)}{(None, self.units)}{' ' * (26 - len(f'(None, {self.units})'))}{len(self.weights)}\n"
+        return f"{self.name} (Dense){' ' * (28 - len(self.name) - 7)}{(None, self.units)}{' ' * (26 - len(f'(None, {self.units})'))}{self.weights.size + self.biases.size}\n"
 
     def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
         """Backpropagation algorithm for the dense layer
@@ -112,7 +112,7 @@ class Dropout(Layer):
         return self.units
 
     def __repr__(self) -> str:
-        return f"{self.name} (Dropout){' ' * (28 - len(self.name) - 9)}{(None, self.units)}{' ' * (26 - len(f'(None, {self.units})'))}{len(self.weights)}\n"
+        return f"{self.name} (Dropout){' ' * (28 - len(self.name) - 9)}{(None, self.units)}{' ' * (26 - len(f'(None, {self.units})'))}{self.weights.size + self.biases.size}\n"
 
     def __call__(self, x: np.ndarray, isTraining: bool = True) -> np.ndarray:
         self.inputs = x
@@ -192,14 +192,15 @@ class Reshape(Layer):
         return self.target_shape
 
     def __repr__(self) -> str:
-        return f"{self.name} (Reshape){' ' * (28 - len(self.name) - 9)}{(None, self.target_shape)}{' ' * (26-len(f'(None, {self.target_shape})'))}0\n"
+        formatted_output = f'(None, {", ".join(map(str, self.target_shape))})'
+        return f"{self.name} (Reshape){' ' * (28 - len(self.name) - 9)}{formatted_output}{' ' * (26-len(formatted_output))}0\n"
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
         return np.reshape(x, self.target_shape)
 
 
 class MaxPooling1D(Layer):
-    def __init__(self, pool_size: int = 2, strides: int = None) -> None:
+    def __init__(self, pool_size: int = 2, strides: int = None, name: str = "MaxPool1D") -> None:
         """Intializer for the MaxPooling1D layer
 
         Args:
@@ -208,6 +209,7 @@ class MaxPooling1D(Layer):
         """
         self.pool_size = pool_size
         self.strides = pool_size if strides is None else strides
+        self.name = name
         self.type = MaxPooling1D
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
@@ -220,13 +222,14 @@ class MaxPooling1D(Layer):
         Returns:
             tuple: output shape
         """
-        # output_shape = (input_shape - pool_size + 1) / strides)
         input_shape = layers[current_layer_index -
                              1].output_shape(layers, current_layer_index-1)
-        return math.ceil((input_shape - self.pool_size + 1) / self.strides)
+        self.output_shape_value = math.ceil(
+            (input_shape - self.pool_size + 1) / self.strides)
+        return self.output_shape_value
 
     def __repr__(self) -> str:
-        return f"MaxPooling1D layer"
+        return f"{self.name} (MaxPool1D){' ' * (28 - len(self.name) - 11)}{(None, self.output_shape_value)}{' ' * (26-len(f'(None, {self.output_shape_value})'))}0\n"
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
         """Call function for the MaxPooling1D layer. It reduces the size of an array by how much the pool_size and strides is set to.
@@ -257,7 +260,7 @@ class MaxPooling1D(Layer):
 
 
 class MaxPooling2D(Layer):
-    def __init__(self, pool_size: tuple[int, int] = (2, 2), strides: tuple[int, int] = None):
+    def __init__(self, pool_size: tuple[int, int] = (2, 2), strides: tuple[int, int] = None, name: str = "MaxPool2D"):
         """Intializer for the MaxPooling2D layer
 
         Args:
@@ -267,18 +270,18 @@ class MaxPooling2D(Layer):
         self.pool_size = pool_size
         self.strides = pool_size if strides is None else strides
         self.type = MaxPooling2D
+        self.name = name
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
         input_shape = layers[current_layer_index -
                              1].output_shape(layers, current_layer_index-1)
-        # math.floor((input_shape - pool_size) / strides) + 1
-        # return math.floor((input_shape - self.pool_size) / self.strides) + 1
-        output_shape = [math.floor(
-            (input_shape[i] - self.pool_size[i]) / self.strides[i]) + 1 for i in range(2)]
-        return tuple(output_shape)
+        self.output_shape_value = tuple([math.floor(
+            (input_shape[i] - self.pool_size[i]) / self.strides[i]) + 1 for i in range(2)])
+        return self.output_shape_value
 
     def __repr__(self) -> str:
-        return f"MaxPooling2D Layer"
+        formatted_output = f'(None, {", ".join(map(str, self.output_shape_value))})'
+        return f"{self.name} (MaxPool2D){' ' * (28 - len(self.name) - 11)}{formatted_output}{' ' * (26-len(formatted_output))}0\n"
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
         """Call function for the MaxPooling1D layer. It reduces the size of an array by how much the pool_size and strides is set to.
@@ -317,22 +320,24 @@ class MaxPooling2D(Layer):
 
 
 class Conv1D(Layer):
-    def __init__(self, filters: int, pool_size: int, strides: int = None, activation: Activation | str = None) -> None:
+    def __init__(self, filters: int, pool_size: int, strides: int = None, activation: Activation | str = None, name: str = "Conv1D") -> None:
         self.number_of_filters = filters
         self.pool_size = pool_size
         self.strides = pool_size if strides is None else strides
         self.activation = ACTIVATIONS[activation] if type(
             activation) == str else activation
-
+        self.type = Conv1D
         self.filters = np.random.randn(self.number_of_filters, self.pool_size)
+        self.name = name
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
         input_shape = layers[current_layer_index -
                              1].output_shape(layers, current_layer_index-1)
-        return (input_shape // self.strides, self.number_of_filters)
+        self.output_shape_value = input_shape // self.strides, self.number_of_filters
+        return self.output_shape_value[0]
 
     def __repr__(self) -> str:
-        return f"Conv1D Layer"
+        return f"{self.name} (Conv1D){' ' * (28 - len(self.name) - 8)}{self.output_shape_value}{' ' * (26-len(f'{self.output_shape_value}'))}{self.filters.size}\n"
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
         self.inputs = x
