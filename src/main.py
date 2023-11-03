@@ -10,12 +10,11 @@ from callbacks import *
 
 """
 TODO Today:
-1. Change the NN.summary() to act the same way as keras.model.Model.summary()
+1. Create proper feed forward for Conv1D and Conv2D layers
 
 TODO Overall:
-1. Change the Conv1D to work with (sequence_length, input_features) input shape. Right now it uses 1D arrays
-2. Implement Conv2D. It should work with (height, width, input_feautres) input shape.
-3. Fix the loss functions.
+1. Add backpropagation for Conv1D and Conv2D layers
+2. Fix the loss functions.
 """
 
 
@@ -65,8 +64,8 @@ class NN:
         self.val_loss = None
         self.val_accuracy = None
         self.layers_without_units = [
-            Flatten, Reshape, MaxPooling1D, MaxPooling2D, Conv1D]
-        self.trainable_layers = [Dense, Dropout, Conv1D]
+            Flatten, Reshape, MaxPooling1D, MaxPooling2D, Conv1D, Conv2D]
+        self.trainable_layers = [Dense, Dropout, Conv1D, Conv2D]
 
     def add(self, layer: Layer):
         """Adds a custom layer to the NN.
@@ -301,7 +300,10 @@ if __name__ == "__main__":
     np.random.seed(1337)
     model = NN()
 
-    model.add(Dense(2, name="input"))
+    model.add(Dense(8, name="input"))
+    model.add(Reshape((2, 2, 2)))
+    model.add(Conv2D(2))
+    model.add(Flatten())
     model.add(Dropout(2, "relu", name="hidden"))
     model.add(Dense(1, "sigmoid", name="output"))
 

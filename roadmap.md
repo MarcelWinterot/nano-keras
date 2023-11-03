@@ -38,8 +38,6 @@
 
 #### Not implemented layers I'm planning to add in v. 1.0: Convolutional
 
-#### If I have time I'll also implement: Concantanete layer, LSTM or GRU
-
 ### 2. Fixing the derivatives of loss functions
 
 #### Only the MSE works currently and I want each loss function to work
@@ -50,6 +48,12 @@
 
 ### Rewrite the library in a more efficient language like C++/Rust
 
+### Add GPU support for calculations
+
 ### Make the code work in batches
 
 ### Add more of everything
+
+### Add different parameters initalization strategy
+
+### Add distribution strategies for training a model on multiple CPUs/GPUs
