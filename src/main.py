@@ -9,9 +9,6 @@ from layers import *
 from callbacks import *
 
 """
-TODO Today:
-1. Create proper feed forward for Conv1D and Conv2D layers
-
 TODO Overall:
 1. Add backpropagation for Conv1D and Conv2D layers
 2. Fix the loss functions.
@@ -88,7 +85,7 @@ class NN:
         totalParams = 0
         for layer in self.layers:
             print(layer)
-            if layer.type in self.trainable_layers:
+            if any(isinstance(layer, trainable_layer) for trainable_layer in self.trainable_layers):
                 totalParams += layer.weights.size + layer.biases.size
                 params.append([layer.weights, layer.biases])
         print(f"{'='*line_length}")
@@ -100,7 +97,7 @@ class NN:
         """Support function used in the compile function to generate model's weights.
         """
         for i in range(1, len(self.layers)):
-            if self.layers[i].type not in self.layers_without_units:
+            if not any(isinstance(self.layers[i], layer) for layer in self.layers_without_units):
                 previousUnits = self.layers[i-1].output_shape(self.layers, i-1)
                 try:
                     weights = np.random.randn(
@@ -262,11 +259,9 @@ class NN:
             file_path (str): File path where to save the model. Don't put the file extension as it is alredy handled by numpy.
             For example if you want to save the model at './saved_model' put that as the file_path, and numpy will add the extension
         """
-        # array_to_save = [[layer.weights, layer.biases]
-        #                  for layer in self.layers]
         array_to_save = []
         for layer in self.layers:
-            if layer.type in self.layers_without_units:
+            if any(isinstance(layer, layer_without_units) for layer_without_units in self.layers_without_units):
                 array_to_save.append([])
                 continue
             array_to_save.append([layer.weights, layer.biases])
@@ -300,10 +295,7 @@ if __name__ == "__main__":
     np.random.seed(1337)
     model = NN()
 
-    model.add(Dense(8, name="input"))
-    model.add(Reshape((2, 2, 2)))
-    model.add(Conv2D(2))
-    model.add(Flatten())
+    model.add(Dense(2, name="input"))
     model.add(Dropout(2, "relu", name="hidden"))
     model.add(Dense(1, "sigmoid", name="output"))
 

@@ -54,10 +54,6 @@ class Layer:
 
 
 class Dense(Layer):
-    def __init__(self, units: int, activation: Activation | str = None, regulizer: Regularizer = None, name: str = "Layer") -> None:
-        super().__init__(units, activation, regulizer, name)
-        self.type = Dense
-
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
         """Function to generate the output shape of a layer
 
@@ -97,7 +93,6 @@ class Dropout(Layer):
     def __init__(self, units: int, activation: Activation | str, dropout_rate: float = 0.2, regulizer: Regularizer | None = None, name: str = "Layer") -> None:
         super().__init__(units, activation, regulizer, name)
         self.dropout_rate = dropout_rate
-        self.type = Dropout
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
         """Function to generate the output shape of a layer
@@ -148,7 +143,6 @@ class Dropout(Layer):
 
 class Flatten(Layer):
     def __init__(self, name: str = "Flatten") -> None:
-        self.type = Flatten
         self.name = name
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
@@ -176,7 +170,6 @@ class Flatten(Layer):
 class Reshape(Layer):
     def __init__(self, target_shape: tuple, name: str = "Reshape") -> None:
         self.target_shape = target_shape
-        self.type = Reshape
         self.name = name
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
@@ -210,7 +203,6 @@ class MaxPooling1D(Layer):
         self.kernel_size = kernel_size
         self.strides = kernel_size if strides is None else strides
         self.name = name
-        self.type = MaxPooling1D
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
         """Function to generate the output shape of a layer
@@ -269,7 +261,6 @@ class MaxPooling2D(Layer):
         """
         self.kernel_size = kernel_size
         self.strides = kernel_size if strides is None else strides
-        self.type = MaxPooling2D
         self.name = name
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
@@ -326,9 +317,9 @@ class Conv1D(Layer):
         self.strides = strides
         self.activation = ACTIVATIONS[activation] if type(
             activation) == str else activation
-        self.type = Conv1D
-        self.filters = np.random.randn(filters, self.kernel_size)
+        self.weights = np.random.randn(filters, self.kernel_size)
         self.name = name
+        self.biases = np.random.randn(filters)
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
         input_shape = layers[current_layer_index -
@@ -337,7 +328,7 @@ class Conv1D(Layer):
         return self.output_shape_value
 
     def __repr__(self) -> str:
-        return f"{self.name} (Conv1D){' ' * (28 - len(self.name) - 8)}{self.output_shape_value}{' ' * (26-len(f'{self.output_shape_value}'))}{self.filters.size}\n"
+        return f"{self.name} (Conv1D){' ' * (28 - len(self.name) - 8)}{self.output_shape_value}{' ' * (26-len(f'{self.output_shape_value}'))}{self.weights.size + self.biases.size}\n"
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
         self.inputs = x
@@ -349,9 +340,11 @@ class Conv1D(Layer):
             if i + self.kernel_size > x.size:
                 break  # Reached the end of the input
 
-            for j in range(len(self.filters)):
+            for j in range(len(self.weights)):
                 weighted_sum[i //
-                             self.strides, j] = np.sum(x[i:i+self.kernel_size, j:j+self.kernel_size] * self.filters[j])
+                             self.strides, j] = np.sum(x[i:i+self.kernel_size, j:j+self.kernel_size] * self.weights[j])
+
+        weighted_sum = weighted_sum + self.biases
 
         # Applying activation function
         output = self.activation.compute_loss(weighted_sum)
@@ -367,8 +360,7 @@ class Conv2D(Layer):
         self.strides = strides
         self.activation = ACTIVATIONS[activation] if type(
             activation) == str else activation
-        self.type = Conv2D
-        self.filters = np.random.randn(*kernel_size, filters)
+        self.weights = np.random.randn(*kernel_size, filters)
         self.name = name
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
@@ -381,7 +373,7 @@ class Conv2D(Layer):
         return self.output_shape_value
 
     def __repr__(self) -> str:
-        return f"{self.name} (Conv2D){' ' * (28 - len(self.name) - 8)}{self.output_shape_value}{' ' * (26-len(f'{self.output_shape_value}'))}{self.filters.size}\n"
+        return f"{self.name} (Conv2D){' ' * (28 - len(self.name) - 8)}{self.output_shape_value}{' ' * (26-len(f'{self.output_shape_value}'))}{self.weights.size}\n"
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
         self.inputs = x
@@ -399,7 +391,7 @@ class Conv2D(Layer):
                 for k in range(channels):
                     weighted_sum[i, j, k] = np.sum(x[i:i + self.kernel_size[0],
                                                      j:j + self.kernel_size[1],
-                                                     :] * self.filters[:, :, k])
+                                                     :] * self.weights[:, :, k])
 
         output = self.activation.compute_loss(weighted_sum)
         self.outputs = np.array([output, weighted_sum])
