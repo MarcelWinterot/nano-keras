@@ -53,6 +53,32 @@ class Layer:
         return loss
 
 
+class Input(Layer):
+    def __init__(self, input_shape: tuple, useBiases: bool = True, name: str = "Input") -> None:
+        self.input_shape = input_shape
+        self.name = name
+        self.biases = None
+        if useBiases:
+            try:
+                self.biases = np.random.randn(*input_shape)
+            except:
+                self.biases = np.random.randn(input_shape)
+
+    def output_shape(self, layers: list, current_layer_index: int) -> tuple:
+        return self.input_shape
+
+    def __repr__(self) -> str:
+        return f"{self.name} (Input){' ' * (28 - len(self.name) - 7)}{(None, self.input_shape)}{' ' * (26 - len(f'(None, {self.input_shape})'))}0\n"
+
+    def __call__(self, x: np.ndarray) -> np.ndarray:
+        if self.biases is not None:
+            x = x + self.biases
+        return x
+
+    def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
+        return loss
+
+
 class Dense(Layer):
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
         """Function to generate the output shape of a layer

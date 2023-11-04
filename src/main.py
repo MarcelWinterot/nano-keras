@@ -9,9 +9,12 @@ from layers import *
 from callbacks import *
 
 """
+TODO Today:
+1. Try updating the biases in the input layer
+2. Add backpropagation for Conv1D and Conv2D layers
+
 TODO Overall:
-1. Add backpropagation for Conv1D and Conv2D layers
-2. Fix the loss functions.
+1. Fix the loss functions.
 """
 
 
@@ -61,7 +64,7 @@ class NN:
         self.val_loss = None
         self.val_accuracy = None
         self.layers_without_units = [
-            Flatten, Reshape, MaxPooling1D, MaxPooling2D, Conv1D, Conv2D]
+            Flatten, Reshape, MaxPooling1D, MaxPooling2D, Conv1D, Conv2D, Input]
         self.trainable_layers = [Dense, Dropout, Conv1D, Conv2D]
 
     def add(self, layer: Layer):
@@ -136,11 +139,10 @@ class NN:
         Returns:
             np.ndarray: output of the model 
         """
-        output = x
         # We skip the first layer as it's the input layer
         for layer in self.layers[1:]:
-            output = layer(output)
-        return output
+            x = layer(x)
+        return x
 
     def backpropagate(self, X: np.ndarray, y: np.ndarray, verbose: int = 2, epoch: int = 1, total_epochs: int = 100) -> None:
         """Backpropgate function to make the train function cleaner and better for future expansion
@@ -295,9 +297,9 @@ if __name__ == "__main__":
     np.random.seed(1337)
     model = NN()
 
-    model.add(Dense(2, name="input"))
-    model.add(Dropout(2, "relu", name="hidden"))
-    model.add(Dense(1, "sigmoid", name="output"))
+    model.add(Input(2))
+    model.add(Dense(2, "relu", name="Hidden layer"))
+    model.add(Dense(1, "sigmoid", name="Output layer"))
 
     optimizer = Adam(0.2)
     loss = "mse"

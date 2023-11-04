@@ -1,5 +1,5 @@
 from optimizers import *
-from layers import Dense
+from layers import Dense, Input
 from losses import *
 from main import NN
 from sklearn.model_selection import train_test_split
@@ -47,7 +47,7 @@ y_test = np.array([[y] for y in y_test])
 np.random.seed(1337)
 
 model = NN()
-model.add(Dense(5, "relu"))
+model.add(Input(5))
 model.add(Dense(25, "relu"))
 model.add(Dense(10, "relu"))
 model.add(Dense(5, "relu"))
