@@ -1,6 +1,6 @@
 from activations import *
 from activations import np
-from optimizers import Optimizer
+from optimizers import Optimizer, SGD
 from regulizers import Regularizer
 import numpy as np
 import math
@@ -54,29 +54,27 @@ class Layer:
 
 
 class Input(Layer):
-    def __init__(self, input_shape: tuple, useBiases: bool = True, name: str = "Input") -> None:
+    def __init__(self, input_shape: tuple, name: str = "Input") -> None:
         self.input_shape = input_shape
         self.name = name
         self.biases = None
-        if useBiases:
-            try:
-                self.biases = np.random.randn(*input_shape)
-            except:
-                self.biases = np.random.randn(input_shape)
+        self.biases = np.random.randn(
+            *input_shape) if type(input_shape) == tuple else np.random.randn(input_shape)
+        # Initializing the weights as I don't want to add another if statement to NN.summary() for checking if a layer has weights
+        self.weights = np.array([])
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
         return self.input_shape
 
     def __repr__(self) -> str:
-        return f"{self.name} (Input){' ' * (28 - len(self.name) - 7)}{(None, self.input_shape)}{' ' * (26 - len(f'(None, {self.input_shape})'))}0\n"
+        return f"{self.name} (Input){' ' * (28 - len(self.name) - 7)}{(None, self.input_shape)}{' ' * (26 - len(f'(None, {self.input_shape})'))}{self.biases.size}\n"
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
+        self.inputs = x
         if self.biases is not None:
             x = x + self.biases
+            self.outputs = x
         return x
-
-    def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
-        return loss
 
 
 class Dense(Layer):
@@ -107,9 +105,13 @@ class Dense(Layer):
         """
         if self.regulizer is not None:
             loss = self.regulizer.compute_loss(loss, self.weights, self.biases)
-        delta = np.average([
-            loss * self.activation.compute_derivative(self.outputs[i]) for i in range(len(self.outputs))])
+        delta = np.average(
+            [loss * self.activation.compute_derivative(output) for output in self.outputs])
+
+        print(f"delta: {delta}, self.inputs: {self.inputs.shape}")
+
         weights_gradients = np.outer(self.inputs, delta)
+
         self.weights, self.biases = optimizer.apply_gradients(weights_gradients, np.array(
             delta, dtype=float), self.weights, self.biases)
         return np.dot(delta, self.weights.T)
@@ -158,8 +160,8 @@ class Dropout(Layer):
         """
         if self.regulizer is not None:
             loss = self.regulizer.compute_loss(loss, self.weights, self.biases)
-        delta = np.average([
-            loss * self.activation.compute_derivative(self.outputs[i]) for i in range(len(self.outputs))])
+        delta = np.average(
+            [loss * self.activation.compute_derivative(output) for output in self.outputs])
         delta /= 1/(1-self.dropout_rate)  # Scaling the gradient
         weights_gradients = np.outer(self.inputs, delta)
         self.weights, self.biases = optimizer.apply_gradients(
@@ -337,7 +339,7 @@ class MaxPooling2D(Layer):
 
 
 class Conv1D(Layer):
-    def __init__(self, filters: int = 1, kernel_size: int = 2, strides: int = 2, activation: Activation | str = "relu", name: str = "Conv1D") -> None:
+    def __init__(self, filters: int = 1, kernel_size: int = 2, strides: int = 2, activation: Activation | str = "relu", regulizer: Regularizer = None, name: str = "Conv1D") -> None:
         self.number_of_filters = filters
         self.kernel_size = kernel_size
         self.strides = strides
@@ -346,6 +348,7 @@ class Conv1D(Layer):
         self.weights = np.random.randn(filters, self.kernel_size)
         self.name = name
         self.biases = np.random.randn(filters)
+        self.regulizer = regulizer
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
         input_shape = layers[current_layer_index -
@@ -372,21 +375,46 @@ class Conv1D(Layer):
 
         weighted_sum = weighted_sum + self.biases
 
-        # Applying activation function
         output = self.activation.compute_loss(weighted_sum)
         self.outputs = np.array([output, weighted_sum])
 
         return output
 
+    def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
+        if self.regulizer is not None:
+            loss = self.regulizer.compute_loss(loss, self.weights, self.biases)
+
+        delta = np.average(
+            [loss * self.activation.compute_derivative(output) for output in self.outputs])
+
+        # weights_gradients = delta * self.weights
+        weights_gradients = np.zeros(
+            (x.size // self.strides, self.number_of_filters))
+
+        for i in range(0, x.size, self.strides):
+            if i + self.kernel_size > x.size:
+                break  # Reached the end of the input
+
+            for j in range(len(self.weights)):
+                weights_gradients[i //
+                                  self.strides, j] = np.sum(self.inputs[i:i+self.kernel_size, j:j+self.kernel_size] * delta)
+
+        self.weights, self.biases = optimizer.apply_gradients(
+            weights_gradients, delta, self.weights, self.biases)
+
+        return np.dot(delta, self.weights.T)
+
 
 class Conv2D(Layer):
-    def __init__(self, filters: int = 1, kernel_size: tuple = (2, 2), strides: tuple = (2, 2), activation: Activation | str = "relu", name: str = "Conv2D") -> None:
+    def __init__(self, filters: int = 1, kernel_size: tuple = (2, 2), strides: tuple = (2, 2), activation: Activation | str = "relu", regulizer: Regularizer = None, name: str = "Conv2D") -> None:
         self.number_of_filters = filters
         self.kernel_size = kernel_size
         self.strides = strides
         self.activation = ACTIVATIONS[activation] if type(
             activation) == str else activation
         self.weights = np.random.randn(*kernel_size, filters)
+        self.biases = np.random.randn(filters)
+        self.regulizer = regulizer
         self.name = name
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
@@ -417,7 +445,7 @@ class Conv2D(Layer):
                 for k in range(channels):
                     weighted_sum[i, j, k] = np.sum(x[i:i + self.kernel_size[0],
                                                      j:j + self.kernel_size[1],
-                                                     :] * self.weights[:, :, k])
+                                                     k] * self.weights[:, :, k])
 
         output = self.activation.compute_loss(weighted_sum)
         self.outputs = np.array([output, weighted_sum])
@@ -425,14 +453,15 @@ class Conv2D(Layer):
 
 
 if __name__ == "__main__":
-    INPUT_SHAPE = (6, 10, 2)
-    x = np.random.randn(*INPUT_SHAPE)
-    layer1 = Reshape(INPUT_SHAPE)
-    layer = Conv2D(2)
+    from optimizers import NAdam
+    loss = np.array(0.7, dtype=float)
+    optimizer = NAdam()
 
-    layers = [layer1, layer]
+    x = np.random.randn(2, 2)
+    layer = Conv1D(2)
 
     output = layer(x)
-    print(f"Output: {output}")
-    print(f"Predicted output shape: {output.shape}")
-    print(f"Correct output shape: {layer.output_shape(layers, 1)}")
+
+    print(f"Initial weights: {layer.weights}")
+    layer.backpropagate(loss, optimizer)
+    print(f"Weights after backpropagate: {layer.weights}")

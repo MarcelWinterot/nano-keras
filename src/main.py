@@ -10,8 +10,7 @@ from callbacks import *
 
 """
 TODO Today:
-1. Try updating the biases in the input layer
-2. Add backpropagation for Conv1D and Conv2D layers
+1. Add backpropagation for Conv2D layer
 
 TODO Overall:
 1. Fix the loss functions.
@@ -65,7 +64,7 @@ class NN:
         self.val_accuracy = None
         self.layers_without_units = [
             Flatten, Reshape, MaxPooling1D, MaxPooling2D, Conv1D, Conv2D, Input]
-        self.trainable_layers = [Dense, Dropout, Conv1D, Conv2D]
+        self.trainable_layers = [Dense, Dropout, Conv1D, Conv2D, Input]
 
     def add(self, layer: Layer):
         """Adds a custom layer to the NN.
@@ -314,7 +313,7 @@ if __name__ == "__main__":
     print("\n\n STARTING TRAINING \n\n")
 
     losses, val_losses = model.train(
-        X, y, 2500, validation_data=(X, y), verbose=1)
+        X, y, 1, validation_data=(X, y), verbose=1)
 
     print("\n\n TRAINING FINISHED \n\n")
 
