@@ -16,11 +16,18 @@ class Optimizer:
             np.ndarray: filled array
         """
         arr_shape = arr.shape
-        paddingNeeded = (
-            max(0, target_shape[0] - arr_shape[0]), max(0, target_shape[1] - arr_shape[1]))
-        result = np.pad(
-            arr, ((0, paddingNeeded[0]), (0, paddingNeeded[1])), mode='constant')
-        return result
+        if len(arr_shape) == 2:
+            paddingNeeded = (
+                max(0, target_shape[0] - arr_shape[0]), max(0, target_shape[1] - arr_shape[1]))
+            result = np.pad(
+                arr, ((0, paddingNeeded[0]), (0, paddingNeeded[1])), mode='constant')
+            return result
+        elif len(arr_shape) == 3:
+            paddingNeeded = (max(0, target_shape[0] - arr_shape[1]), max(
+                0, target_shape[1] - arr_shape[1]), max(0, target_shape[1] - arr_shape[1]))
+            result = np.pad(arr, ((0, paddingNeeded[0]), (0, paddingNeeded[1]), [
+                            0, paddingNeeded[2]]), 'constant')
+            return result
 
     def apply_gradients(self, weights_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         pass
@@ -320,6 +327,7 @@ class NAdam(Optimizer):
 
         # Adjusting the shapes before calculations
         target_shape = weights.shape
+
         self.m_w = self._fill_array(self.m_w, target_shape)[
             :target_shape[0], :target_shape[1]]
         self.v_w = self._fill_array(self.v_w, target_shape)[

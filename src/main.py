@@ -313,7 +313,7 @@ if __name__ == "__main__":
     print("\n\n STARTING TRAINING \n\n")
 
     losses, val_losses = model.train(
-        X, y, 1, validation_data=(X, y), verbose=1)
+        X, y, 2500, validation_data=(X, y), verbose=1)
 
     print("\n\n TRAINING FINISHED \n\n")
 

@@ -1,8 +1,7 @@
-from activations import *
-from activations import np
-from optimizers import Optimizer, SGD
-from regulizers import Regularizer
 import numpy as np
+from activations import *
+from optimizers import Optimizer
+from regulizers import Regularizer
 import math
 
 ACTIVATIONS = {'sigmoid': Sigmoid(), 'tanh': Tanh(), 'relu': ReLU(
@@ -107,8 +106,6 @@ class Dense(Layer):
             loss = self.regulizer.compute_loss(loss, self.weights, self.biases)
         delta = np.average(
             [loss * self.activation.compute_derivative(output) for output in self.outputs])
-
-        print(f"delta: {delta}, self.inputs: {self.inputs.shape}")
 
         weights_gradients = np.outer(self.inputs, delta)
 
@@ -389,10 +386,10 @@ class Conv1D(Layer):
 
         # weights_gradients = delta * self.weights
         weights_gradients = np.zeros(
-            (x.size // self.strides, self.number_of_filters))
+            (self.inputs.size // self.strides, self.number_of_filters))
 
-        for i in range(0, x.size, self.strides):
-            if i + self.kernel_size > x.size:
+        for i in range(0, self.inputs.size, self.strides):
+            if i + self.kernel_size > self.inputs.size:
                 break  # Reached the end of the input
 
             for j in range(len(self.weights)):
@@ -451,16 +448,44 @@ class Conv2D(Layer):
         self.outputs = np.array([output, weighted_sum])
         return output
 
+    def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
+        if self.regulizer is not None:
+            loss = self.regulizer.compute_loss(loss, self.weights, self.biases)
+
+        delta = np.average([loss * output for output in self.outputs])
+
+        height = (self.inputs.shape[0] -
+                  self.kernel_size[0]) // self.strides[0] + 1
+        width = (self.inputs.shape[1] -
+                 self.kernel_size[1]) // self.strides[1] + 1
+        channels = self.number_of_filters
+        weights_gradients = np.zeros((height, width, channels))
+
+        for i in range(0, height, self.strides[0]):
+            for j in range(0, width, self.strides[1]):
+                if i + self.strides[0] > self.kernel_size[0] or j + self.strides[1] > self.kernel_size[1]:
+                    break  # Reached the end of the input
+
+                for k in range(channels):
+                    weights_gradients[i, j, k] = np.sum(self.inputs[i:i + self.kernel_size[0],
+                                                                    j:j + self.kernel_size[1],
+                                                                    k] * delta)
+
+        self.weights, self.biases = optimizer.apply_gradients(
+            weights_gradients, delta, self.weights, self.biases)
+
+        return np.dot(delta, self.weights.T)
+
 
 if __name__ == "__main__":
     from optimizers import NAdam
     loss = np.array(0.7, dtype=float)
     optimizer = NAdam()
 
-    x = np.random.randn(2, 2)
-    layer = Conv1D(2)
+    y = np.random.randn(2, 2, 2)
+    layer = Conv2D(2)
 
-    output = layer(x)
+    output = layer(y)
 
     print(f"Initial weights: {layer.weights}")
     layer.backpropagate(loss, optimizer)
