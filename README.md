@@ -6,4 +6,4 @@
 
 ## Documentation
 
-### Will write it in the future, when I release the first version. I'm planning to release it on the 5th of November.
+### Will write it in the future, when I release the first version. I'm planning to release it in the next few days.
