@@ -5,7 +5,8 @@ class Optimizer:
     def __init__(self) -> None:
         pass
 
-    def _fill_array(self, arr: np.ndarray, target_shape: tuple) -> np.ndarray:
+    @staticmethod
+    def _fill_array(arr: np.ndarray, target_shape: tuple) -> np.ndarray:
         """Support function to fill the m_w, v_w and m_b, v_b arrays if their shapes are smaller than the gradients
 
         Args:
@@ -16,18 +17,16 @@ class Optimizer:
             np.ndarray: filled array
         """
         arr_shape = arr.shape
-        if len(arr_shape) == 2:
-            paddingNeeded = (
-                max(0, target_shape[0] - arr_shape[0]), max(0, target_shape[1] - arr_shape[1]))
-            result = np.pad(
-                arr, ((0, paddingNeeded[0]), (0, paddingNeeded[1])), mode='constant')
-            return result
-        elif len(arr_shape) == 3:
-            paddingNeeded = (max(0, target_shape[0] - arr_shape[1]), max(
-                0, target_shape[1] - arr_shape[1]), max(0, target_shape[1] - arr_shape[1]))
-            result = np.pad(arr, ((0, paddingNeeded[0]), (0, paddingNeeded[1]), [
-                            0, paddingNeeded[2]]), 'constant')
-            return result
+
+        # if len(arr_shape) > len(target_shape):
+        #     return arr
+
+        padding_needed = [max(0, target - current)
+                          for target, current in zip(target_shape, arr_shape)]
+        pad_width = [(0, padding) for padding in padding_needed]
+
+        result = np.pad(arr, pad_width, mode='constant')
+        return result
 
     def apply_gradients(self, weights_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         pass
@@ -295,7 +294,7 @@ class NAdam(Optimizer):
             beta2 (float, optional): Paramter that contorls the exponential moving average of the second moment of the gradient. Defaults to 0.999.
             epsilon (float, optional): Paramter that ensures we don't divide by 0 and adds numerical stability to learning rate. Defaults to 1e-7.
         """
-        self.learing_rate = learning_rate
+        self.learning_rate = learning_rate
         self.beta1 = beta1
         self.beta2 = beta2
         self.e = epsilon
@@ -352,7 +351,7 @@ class NAdam(Optimizer):
             ((1 - self.beta1) * bias_gradients / (1 - beta1T))
         v_hat_b = self.beta2 * self.v_b / (1 - beta2T)
 
-        weights += self.learing_rate / np.sqrt(v_hat_w + self.e) * m_hat_w
-        biases += self.learing_rate / np.sqrt(v_hat_b + self.e) * m_hat_b
+        weights += self.learning_rate / np.sqrt(v_hat_w + self.e) * m_hat_w
+        biases += self.learning_rate / np.sqrt(v_hat_b + self.e) * m_hat_b
 
         return (weights, biases)

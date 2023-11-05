@@ -34,13 +34,7 @@
 
 ## Features I'm currently working on
 
-### 1. Finish backpropagation for Conv1D and Conv2D layers
-
-### 2. Fixing the derivatives of loss functions
-
-#### Only the MSE works currently and I want each loss function to work
-
-#### It will take a while as I'm currently learning how to calculate derivatives and I want to calculate them myself
+### 1. Fixing Convolutional layers backpropagation
 
 ## Possible plans for v. 2.0
 
@@ -51,7 +45,5 @@
 ### Make the code work in batches
 
 ### Add more of everything
-
-### Add different parameters initalization strategy, like Xavier/Glorot, He initialization
 
 ### Add distribution strategies for training a model on multiple CPUs/GPUs

@@ -1,5 +1,5 @@
 import numpy as np
-from activations import *
+from activations import Sigmoid, Tanh, ReLU, LeakyReLU, ELU, Softmax, Activation
 from optimizers import Optimizer
 from regulizers import Regularizer
 import math
@@ -9,7 +9,7 @@ ACTIVATIONS = {'sigmoid': Sigmoid(), 'tanh': Tanh(), 'relu': ReLU(
 
 
 class Layer:
-    def __init__(self, units: int, activation: Activation | str = None, regulizer: Regularizer = None, name: str = "Layer") -> None:
+    def __init__(self, units: int, activation: Activation | str, regulizer: Regularizer = None, name: str = "Layer") -> None:
         """Intializer for the layer class. 
 
         Args:
@@ -25,6 +25,11 @@ class Layer:
         self.activation = ACTIVATIONS[activation] if type(
             activation) == str else activation
         self.regulizer = regulizer
+
+    def generate_weights(self, layers: list, current_layer_index: int) -> None:
+        previousUnits = layers[current_layer_index -
+                               1].output_shape(layers, current_layer_index-1)
+        self.weights = np.random.randn(previousUnits, self.units)
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
         return
@@ -66,7 +71,11 @@ class Input(Layer):
         return self.input_shape
 
     def __repr__(self) -> str:
-        return f"{self.name} (Input){' ' * (28 - len(self.name) - 7)}{(None, self.input_shape)}{' ' * (26 - len(f'(None, {self.input_shape})'))}{self.biases.size}\n"
+        try:
+            formatted_output = f'(None, {", ".join(map(str, self.input_shape))})'
+        except:
+            formatted_output = f'(None, {self.input_shape})'
+        return f"{self.name} (Input){' ' * (28 - len(self.name) - 7)}{formatted_output}{' ' * (26 - len(formatted_output))}{self.biases.size}\n"
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
         self.inputs = x
@@ -183,13 +192,22 @@ class Flatten(Layer):
         input_shape = layers[current_layer_index -
                              1].output_shape(layers, current_layer_index-1)
         self.output_shape_value = (np.prod(np.array(input_shape)))
+        self.next_layer_shape = layers[current_layer_index +
+                                       1].output_shape(layers, current_layer_index+1)
         return self.output_shape_value
 
     def __repr__(self) -> str:
         return f"{self.name} (Flatten){' ' * (28 - len(self.name) - 9)}{(None, self.output_shape_value)}{' ' * (26-len(f'(None, {self.output_shape_value})'))}0\n"
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
+        self.original_shape = x.shape
         return np.ravel(x)
+
+    def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
+        try:
+            return loss.reshape(self.next_layer_shape, *self.original_shape)
+        except:
+            return loss
 
 
 class Reshape(Layer):
@@ -350,11 +368,13 @@ class Conv1D(Layer):
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
         input_shape = layers[current_layer_index -
                              1].output_shape(layers, current_layer_index-1)
-        self.output_shape_value = input_shape // self.strides, self.number_of_filters
+        self.output_shape_value = np.array(
+            input_shape).size // self.strides, self.number_of_filters
         return self.output_shape_value
 
     def __repr__(self) -> str:
-        return f"{self.name} (Conv1D){' ' * (28 - len(self.name) - 8)}{self.output_shape_value}{' ' * (26-len(f'{self.output_shape_value}'))}{self.weights.size + self.biases.size}\n"
+        formatted_output = f'(None, {", ".join(map(str, self.output_shape_value))})'
+        return f"{self.name} (Conv1D){' ' * (28 - len(self.name) - 8)}{formatted_output}{' ' * (26-len(formatted_output))}{self.weights.size + self.biases.size}\n"
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
         self.inputs = x
@@ -409,10 +429,17 @@ class Conv2D(Layer):
         self.strides = strides
         self.activation = ACTIVATIONS[activation] if type(
             activation) == str else activation
-        self.weights = np.random.randn(*kernel_size, filters)
+        self.weights = np.array([])
         self.biases = np.random.randn(filters)
         self.regulizer = regulizer
         self.name = name
+
+    def generate_weights(self, layers: list, current_layer_index: int) -> None:
+        input_shape = layers[current_layer_index -
+                             1].output_shape(layers, current_layer_index-1)
+        weights = (self.kernel_size[0], self.kernel_size[1],
+                   input_shape[-1], self.number_of_filters)
+        self.weights = np.random.randn(*weights)
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
         input_shape = layers[current_layer_index -
@@ -424,7 +451,8 @@ class Conv2D(Layer):
         return self.output_shape_value
 
     def __repr__(self) -> str:
-        return f"{self.name} (Conv2D){' ' * (28 - len(self.name) - 8)}{self.output_shape_value}{' ' * (26-len(f'{self.output_shape_value}'))}{self.weights.size}\n"
+        formatted_output = f'(None, {", ".join(map(str, self.output_shape_value))})'
+        return f"{self.name} (Conv2D){' ' * (28 - len(self.name) - 8)}{formatted_output}{' ' * (26-len(formatted_output))}{self.weights.size}\n"
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
         self.inputs = x
@@ -436,13 +464,16 @@ class Conv2D(Layer):
 
         for i in range(0, height, self.strides[0]):
             for j in range(0, width, self.strides[1]):
-                if i + self.strides[0] > self.kernel_size[0] or j + self.strides[1] > self.kernel_size[1]:
+                if i + self.strides[0] > x.shape[0] or j + self.strides[1] > x.shape[1]:
                     break  # Reached the end of the input
 
-                for k in range(channels):
-                    weighted_sum[i, j, k] = np.sum(x[i:i + self.kernel_size[0],
-                                                     j:j + self.kernel_size[1],
-                                                     k] * self.weights[:, :, k])
+                for k in range(self.number_of_filters):
+                    output = np.float64(0)
+                    for l in range(x.shape[-1]):
+                        output += np.sum(x[i:i + self.kernel_size[0],
+                                           j:j + self.kernel_size[1],
+                                           l] * self.weights[:, :, l, k])
+                    weighted_sum[i, j, k] = output
 
         output = self.activation.compute_loss(weighted_sum)
         self.outputs = np.array([output, weighted_sum])
@@ -452,41 +483,47 @@ class Conv2D(Layer):
         if self.regulizer is not None:
             loss = self.regulizer.compute_loss(loss, self.weights, self.biases)
 
-        delta = np.average([loss * output for output in self.outputs])
+        self.outputs = self.activation.compute_derivative(self.outputs)
 
-        height = (self.inputs.shape[0] -
-                  self.kernel_size[0]) // self.strides[0] + 1
-        width = (self.inputs.shape[1] -
-                 self.kernel_size[1]) // self.strides[1] + 1
-        channels = self.number_of_filters
-        weights_gradients = np.zeros((height, width, channels))
+        delta = np.average(
+            [loss * output for output in self.outputs])
 
-        for i in range(0, height, self.strides[0]):
-            for j in range(0, width, self.strides[1]):
-                if i + self.strides[0] > self.kernel_size[0] or j + self.strides[1] > self.kernel_size[1]:
-                    break  # Reached the end of the input
+        weights_gradients = np.zeros(
+            (self.kernel_size[0], self.kernel_size[1], self.inputs.shape[-1], self.number_of_filters))
 
-                for k in range(channels):
-                    weights_gradients[i, j, k] = np.sum(self.inputs[i:i + self.kernel_size[0],
-                                                                    j:j + self.kernel_size[1],
-                                                                    k] * delta)
+        for i in range(0, self.inputs.shape[0], self.strides[0]):
+            for j in range(0, self.inputs.shape[1], self.strides[1]):
+                for k in range(self.number_of_filters):
+                    for l in range(self.inputs.shape[-1]):
+                        output = np.sum(self.inputs[i:i + self.kernel_size[0],
+                                                    j:j + self.kernel_size[1],
+                                                    l] * delta)
+                        weights_gradients[:, :, l, k] += output
 
-        self.weights, self.biases = optimizer.apply_gradients(
-            weights_gradients, delta, self.weights, self.biases)
+        # self.weights, self.biases = optimizer.apply_gradients(
+        #     weights_gradients, delta, self.weights, self.biases)
+        self.weights += weights_gradients * 0.001
+        self.biases += delta * 0.001
 
         return np.dot(delta, self.weights.T)
 
 
 if __name__ == "__main__":
     from optimizers import NAdam
-    loss = np.array(0.7, dtype=float)
+    loss = np.random.randn(32, 8, 8, 256)
     optimizer = NAdam()
 
-    y = np.random.randn(2, 2, 2)
-    layer = Conv2D(2)
+    y = np.random.randn(16, 16, 128)
+    layer1 = Input((16, 16, 128))
+    layer = Conv2D(256)
+
+    layers = [layer1, layer]
+
+    layer.generate_weights(layers, 1)
 
     output = layer(y)
 
-    print(f"Initial weights: {layer.weights}")
+    intial_weights = layer.weights
+    print(f"Entering backpropagation")
     layer.backpropagate(loss, optimizer)
-    print(f"Weights after backpropagate: {layer.weights}")
+    backpropagated_weights = layer.weights

@@ -9,11 +9,9 @@ from layers import *
 from callbacks import *
 
 """
-TODO Today:
-1. Add backpropagation for Conv2D layer
-
-TODO Overall:
-1. Fix the loss functions.
+TODO for the first version release:
+1. Fix convolutional layers
+2. Add different parameters initalization strategy, like Xavier/Glorot, He initialization
 """
 
 
@@ -49,6 +47,17 @@ def print_progress(epoch: int, total_epochs: int, loss: float, accuracy: float =
     print(f"\r{progress_info}", end='')
 
 
+def convert_size(size: int) -> str:
+    units = ['b', 'kb', 'mb', 'gb']
+    unit_index = 0
+
+    while size >= 1024 and unit_index < len(units) - 1:
+        size /= 1024
+        unit_index += 1
+
+    return f"{round(size, 3)} {units[unit_index]}"
+
+
 class NN:
     def __init__(self, name: str = "NN"):
         """NN init function. Simmilar to the keras.models.Sequential class. Simply add layers using NN.add(Layer)
@@ -63,7 +72,7 @@ class NN:
         self.val_loss = None
         self.val_accuracy = None
         self.layers_without_units = [
-            Flatten, Reshape, MaxPooling1D, MaxPooling2D, Conv1D, Conv2D, Input]
+            Flatten, Reshape, MaxPooling1D, MaxPooling2D, Input]
         self.trainable_layers = [Dense, Dropout, Conv1D, Conv2D, Input]
 
     def add(self, layer: Layer):
@@ -83,16 +92,16 @@ class NN:
         print(f"Model: {self.name}\n{'_'*line_length}")
         print(
             f"Layer (type)                Output Shape              Param #\n{'='*line_length}")
-        params = []
+        paramsWeight = 0
         totalParams = 0
         for layer in self.layers:
             print(layer)
             if any(isinstance(layer, trainable_layer) for trainable_layer in self.trainable_layers):
                 totalParams += layer.weights.size + layer.biases.size
-                params.append([layer.weights, layer.biases])
+                paramsWeight += layer.weights.nbytes + layer.biases.nbytes
         print(f"{'='*line_length}")
         print(
-            f"Total params: {totalParams} ({sys.getsizeof(params)} Bytes)")
+            f"Total params: {totalParams} ({convert_size(paramsWeight)})")
         print(f"{'_'*line_length}")
 
     def generate_weights(self) -> None:
@@ -100,15 +109,12 @@ class NN:
         """
         for i in range(1, len(self.layers)):
             if not any(isinstance(self.layers[i], layer) for layer in self.layers_without_units):
-                previousUnits = self.layers[i-1].output_shape(self.layers, i-1)
                 try:
-                    weights = np.random.randn(
-                        previousUnits, self.layers[i].units)
+                    self.layers[i].generate_weights(self.layers, i)
                 except Exception as e:
                     print(
                         f"Exception encountered when creating weights: {e}\nChange your achitecture and try again. If you think it's an error post an issue on github")
                     sys.exit()
-                self.layers[i].weights = weights
 
     def compile(self, loss_function: Loss | str = "mse", optimizer: Optimizer | str = "adam", metrics: str = "") -> None:
         """Function you should call before starting training the model, as we generate the weights in here, set the loss function and optimizer.
