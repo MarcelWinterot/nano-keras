@@ -14,7 +14,7 @@ class Layer:
 
         Args:
             units (int): Number of neurons the layer should have
-            activation (Activation | str, optional): Activation function the model should use. You can find them all in the activations.py. Defaults to None, but you should only set it to None if it's the input layer. As otherwise it'd throw an error.
+            activation (Activation | str): Activation function the model should use. You can find them all in the activations.py.
             regulizer (Regularizer, optional): Regulizer the model should use. You can find them all in the regulizers.py file. You must pass the already intialized class. Defaults to None.
             name (str, optional): Name of the layer. Helpful for debugging. Defaults to "Layer".
         """
@@ -26,10 +26,28 @@ class Layer:
             activation) == str else activation
         self.regulizer = regulizer
 
-    def generate_weights(self, layers: list, current_layer_index: int) -> None:
-        previousUnits = layers[current_layer_index -
-                               1].output_shape(layers, current_layer_index-1)
-        self.weights = np.random.randn(previousUnits, self.units)
+    @staticmethod
+    def random_initalization(previous_units, current_units) -> np.ndarray:
+        return np.random.randn(previous_units, current_units)
+
+    @staticmethod
+    def xavier_intialization(previous_units, current_units) -> np.ndarray:
+        weights = np.random.randn(previous_units, current_units)
+        weights = 2 * weights - 1
+        return weights * math.sqrt(6/(previous_units+current_units))
+
+    @staticmethod
+    def he_intialization(previous_units, current_units) -> np.ndarray:
+        weights = np.random.randn(previous_units, current_units)
+        return weights * math.sqrt(2./previous_units)
+
+    def generate_weights(self, layers: list, current_layer_index: int, weight_initalization: str) -> None:
+        LAYER_INTIALIZATIONS = {"random": self.random_initalization,
+                                "xavier": self.xavier_intialization, "he": self.he_intialization}
+        previous_units = layers[current_layer_index -
+                                1].output_shape(layers, current_layer_index-1)
+        self.weights = LAYER_INTIALIZATIONS[weight_initalization](
+            previous_units, self.units)
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
         return
@@ -236,15 +254,16 @@ class Reshape(Layer):
 
 
 class MaxPooling1D(Layer):
-    def __init__(self, kernel_size: int = 2, strides: int = None, name: str = "MaxPool1D") -> None:
+    def __init__(self, kernel_size: int = 2, strides: int = 2, name: str = "MaxPool1D") -> None:
         """Intializer for the MaxPooling1D layer
 
         Args:
             kernel_size (int, optional): Size of the pooling window. Defaults to 2.
-            strides (int, optional): Step the kernel should take. If the parameter is set to None it will be assigned the value of kernel_size. Defaults to None.
+            strides (int, optional): Step the kernel should take. If the parameter is set to None it will be assigned the value of kernel_size. Defaults to 2.
+            name (str, optional): Name of the layer. Defaults to MaxPool1D.
         """
         self.kernel_size = kernel_size
-        self.strides = kernel_size if strides is None else strides
+        self.strides = strides
         self.name = name
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
@@ -295,15 +314,16 @@ class MaxPooling1D(Layer):
 
 
 class MaxPooling2D(Layer):
-    def __init__(self, kernel_size: tuple[int, int] = (2, 2), strides: tuple[int, int] = None, name: str = "MaxPool2D"):
+    def __init__(self, kernel_size: tuple[int, int] = (2, 2), strides: tuple[int, int] = (2, 2), name: str = "MaxPool2D"):
         """Intializer for the MaxPooling2D layer
 
         Args:
             kernel_size (tuple[int, int], optional): Size of the kernel. Defaults to (2, 2).
-            strides (tuple[int, int], optional): Step the kernel should take. Is the paramter is set to None it will be assigned the value of kernel_size. Defaults to None.
+            strides (tuple[int, int], optional): Step the kernel should take. Defaults to (2, 2).
+            name (str, optional): Name of the layer. Default to NaxPool2D
         """
         self.kernel_size = kernel_size
-        self.strides = kernel_size if strides is None else strides
+        self.strides = strides
         self.name = name
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
@@ -434,7 +454,7 @@ class Conv2D(Layer):
         self.regulizer = regulizer
         self.name = name
 
-    def generate_weights(self, layers: list, current_layer_index: int) -> None:
+    def generate_weights(self, layers: list, current_layer_index: int, weight_initalization: str) -> None:
         input_shape = layers[current_layer_index -
                              1].output_shape(layers, current_layer_index-1)
         weights = (self.kernel_size[0], self.kernel_size[1],
@@ -500,8 +520,6 @@ class Conv2D(Layer):
                                                     l] * delta)
                         weights_gradients[:, :, l, k] += output
 
-        # self.weights, self.biases = optimizer.apply_gradients(
-        #     weights_gradients, delta, self.weights, self.biases)
         self.weights += weights_gradients * 0.001
         self.biases += delta * 0.001
 

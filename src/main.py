@@ -1,6 +1,7 @@
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
 from activations import *
 from losses import *
 from optimizers import *
@@ -8,11 +9,17 @@ from regulizers import *
 from layers import *
 from callbacks import *
 
+matplotlib.use("TkAgg")
+
 """
 TODO for the first version release:
 1. Fix convolutional layers
-2. Add different parameters initalization strategy, like Xavier/Glorot, He initialization
 """
+
+LOSS_FUNCTIONS = {
+    "mae": MAE(), "mse": MSE(), "bce": BCE(), "cce": CCE(), "hinge": Hinge(), "huber": Huber()}
+OPTIMIZERS = {"adam": Adam(), "sgd": SGD(), "adagrad": Adagrad(
+), "adadelta": Adadelta(), "rmsprop": RMSProp(), "nadam": NAdam()}
 
 
 def print_progress(epoch: int, total_epochs: int, loss: float, accuracy: float = None, batch: int = None, total_batches: int = None, val_loss: float = None, val_accuracy: float = None) -> None:
@@ -110,13 +117,14 @@ class NN:
         for i in range(1, len(self.layers)):
             if not any(isinstance(self.layers[i], layer) for layer in self.layers_without_units):
                 try:
-                    self.layers[i].generate_weights(self.layers, i)
+                    self.layers[i].generate_weights(
+                        self.layers, i, self.weight_initaliziton)
                 except Exception as e:
                     print(
                         f"Exception encountered when creating weights: {e}\nChange your achitecture and try again. If you think it's an error post an issue on github")
                     sys.exit()
 
-    def compile(self, loss_function: Loss | str = "mse", optimizer: Optimizer | str = "adam", metrics: str = "") -> None:
+    def compile(self, loss_function: Loss | str = "mse", optimizer: Optimizer | str = "adam", metrics: str = "", weight_initaliziton: str = "random") -> None:
         """Function you should call before starting training the model, as we generate the weights in here, set the loss function and optimizer.
 
         Args:
@@ -124,16 +132,13 @@ class NN:
             optimizer (Optimizer | str): Optimizer the model should use when updating it's params. You can pass either the name of it as a str or initalized class. Defaults to "adam"
             metrics (str, optional): Paramter that specifies what metrics should the model use. Possible metrics are: accuracy. Defaults to "".
         """
-        _loss_functions = {
-            "mae": MAE(), "mse": MSE(), "bce": BCE(), "cce": CCE(), "hinge": Hinge(), "huber": Huber()}
-        _optimizers = {"adam": Adam(), "sgd": SGD(), "adagrad": Adagrad(
-        ), "adadelta": Adadelta(), "rmsprop": RMSProp(), "nadam": NAdam()}
-        self.generate_weights()
-        self.loss_function = _loss_functions[loss_function] if type(
+        self.loss_function = LOSS_FUNCTIONS[loss_function] if type(
             loss_function) == str else loss_function
-        self.optimizer = _optimizers[optimizer] if type(
+        self.optimizer = OPTIMIZERS[optimizer] if type(
             optimizer) == str else optimizer
         self.metrics = metrics
+        self.weight_initaliziton = weight_initaliziton
+        self.generate_weights()
 
     def feed_forward(self, x: np.ndarray) -> np.ndarray:
         """Feed forward for the whole model
@@ -309,7 +314,8 @@ if __name__ == "__main__":
     optimizer = Adam(0.2)
     loss = "mse"
 
-    model.compile(loss, optimizer, metrics="accuracy")
+    model.compile(loss, optimizer, metrics="accuracy",
+                  weight_initaliziton="random")
     model.summary()
 
     # AND

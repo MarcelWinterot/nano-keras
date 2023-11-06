@@ -2,6 +2,7 @@ from layers import Input, Flatten, Conv2D, Dense
 from main import NN
 import numpy as np
 from keras.datasets import mnist
+from optimizers import NAdam
 
 (X_train, y_train), (X_test, y_test) = mnist.load_data()
 
@@ -20,7 +21,9 @@ model.add(Dense(50, "relu"))  # Working
 model.add(Dense(25, "relu"))  # Working
 model.add(Dense(10, "softmax"))  # Working
 
-model.compile(optimizer="nadam")
+optimizer = NAdam(adjust_biases_shape=True)
+
+model.compile(optimizer=optimizer)
 model.summary()
 
 

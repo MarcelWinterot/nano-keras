@@ -285,7 +285,7 @@ class Adadelta(Optimizer):
 
 
 class NAdam(Optimizer):
-    def __init__(self, learning_rate: float = 0.001, beta1: float = 0.9, beta2: float = 0.999, epsilon: float = 1e-7) -> None:
+    def __init__(self, learning_rate: float = 0.001, beta1: float = 0.9, beta2: float = 0.999, epsilon: float = 1e-7, adjust_biases_shape: bool = False) -> None:
         """Initializer for the NAdam(Nesterov-accelerated Adaptive Moment Estimator) algorithm
 
         Args:
@@ -298,6 +298,7 @@ class NAdam(Optimizer):
         self.beta1 = beta1
         self.beta2 = beta2
         self.e = epsilon
+        self.adjust_biases_shape = adjust_biases_shape
         self.m_w = None
         self.v_w = None
         self.m_b = None
@@ -331,6 +332,13 @@ class NAdam(Optimizer):
             :target_shape[0], :target_shape[1]]
         self.v_w = self._fill_array(self.v_w, target_shape)[
             :target_shape[0], :target_shape[1]]
+
+        if self.adjust_biases_shape:
+            target_shape = biases.shape
+            self.m_b = self._fill_array(self.m_b, target_shape)[
+                :target_shape[0]]
+            self.v_b = self._fill_array(self.v_b, target_shape)[
+                :target_shape[0]]
 
         # Calculations
         self.m_w = self.beta1 * self.m_w + (1 - self.beta1) * weights_gradients

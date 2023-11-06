@@ -28,15 +28,13 @@
 
 ### 4. Layers: Input, Dense, Dropout, Flatten, Reshape, MaxPooling1D, MaxPooling2D
 
-### 5. L1, L2 and L1L2 regulization techniques
+### 5. Regulization techniques: L1, L2, L1L2
 
-### 6. Callbacks - Early stopping
+### 6. Callbacks: Early stopping
 
-## Features I'm currently working on
+### 7. Weight intalizations: Xavier, He, Random
 
-### 1. Fixing Convolutional layers backpropagation
-
-## Possible plans for v. 2.0
+## Possible plans for the future
 
 ### Rewrite the library in a more efficient language like C++/Rust
 
