@@ -185,8 +185,10 @@ class NN:
 
             if verbose == 2:
                 loss = self.loss_function.compute_loss(y[i], yPred)
+                accuracy = np.average(
+                    total_accuracy) if self.metrics == "accuracy" else None
                 print_progress(epoch+1, total_epochs, loss,
-                               np.average(total_accuracy), i+1, length_of_x, self.val_loss, self.val_accuracy)
+                               accuracy, i+1, length_of_x, self.val_loss, self.val_accuracy)
 
     def _handle_callbacks(self, result, callbacks: EarlyStopping | None) -> None | np.ndarray:
         """Support function to make the code cleaner for handling the callbacks
