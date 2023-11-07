@@ -1,7 +1,7 @@
 from layers import Input, Flatten, Conv2D, Dense
 from main import NN
 import numpy as np
-from keras.datasets import mnist
+from keras.datasets import mnist  # We are using keras to only download the dataset
 from optimizers import NAdam
 
 (X_train, y_train), (X_test, y_test) = mnist.load_data()
@@ -27,4 +27,4 @@ model.compile(optimizer=optimizer)
 model.summary()
 
 
-model.train(X_train, y_train, 100, verbose=1)
+model.train(X_train, y_train, 100, verbose=2)

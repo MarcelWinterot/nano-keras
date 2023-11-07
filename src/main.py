@@ -12,6 +12,11 @@ from callbacks import *
 matplotlib.use("TkAgg")
 
 """
+TODO Today:
+1. Fix convolutional layers
+Currently the layers work if we only have 1, and I think it's because we calculate the new gradient incorrectly.
+So changing the gradient calculation in the return statement should fix everything.
+
 TODO for the first version release:
 1. Fix convolutional layers
 """
@@ -46,7 +51,10 @@ def print_progress(epoch: int, total_epochs: int, loss: float, accuracy: float =
         progress_info = f"{epoch}/{total_epochs} {progress_bar} - loss: {loss:.8f}"
 
     if accuracy is not None:
-        progress_info += f" - accuracy: {accuracy:.2f}"
+        if type(accuracy) == np.nan:
+            progress_info += f" - accuracy: {0:.2f}"
+        else:
+            progress_info += f" - accuracy: {accuracy:.2f}"
 
     if val_loss is not None:
         progress_info += f" - val_loss: {val_loss:.8f} - val_accuracy: {val_accuracy:.2f}"
@@ -162,16 +170,23 @@ class NN:
             y (np.ndarray): y dataset
         """
         length_of_x = len(X)
+        total_accuracy = np.ndarray(length_of_x)
         for i in range(length_of_x):
             yPred = self.feed_forward(X[i])
+
+            # Accuracy calculation
+            if self.metrics == "accuracy":
+                total_accuracy[i] = np.average(np.abs(y[i] - yPred) < 0.25)
+
             loss = self.loss_function.compute_derivative(y[i], yPred)
             # We skip over the input layer, as it doesn't have any parameters to update
             for layer in self.layers[-1:0:-1]:
                 loss = layer.backpropagate(loss, self.optimizer)
+
             if verbose == 2:
-                loss, accuracy = self.evaluate(X, y)
+                loss = self.loss_function.compute_loss(y[i], yPred)
                 print_progress(epoch+1, total_epochs, loss,
-                               accuracy, i+1, length_of_x, self.val_loss, self.val_accuracy)
+                               np.average(total_accuracy), i+1, length_of_x, self.val_loss, self.val_accuracy)
 
     def _handle_callbacks(self, result, callbacks: EarlyStopping | None) -> None | np.ndarray:
         """Support function to make the code cleaner for handling the callbacks
@@ -325,7 +340,7 @@ if __name__ == "__main__":
     print("\n\n STARTING TRAINING \n\n")
 
     losses, val_losses = model.train(
-        X, y, 2500, validation_data=(X, y), verbose=1)
+        X, y, 2500, validation_data=(X, y), verbose=2)
 
     print("\n\n TRAINING FINISHED \n\n")
 
