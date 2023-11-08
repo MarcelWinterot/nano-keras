@@ -50,6 +50,15 @@ class Layer:
             previous_units, self.units)
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
+        """Function to generate the output shape of a layer
+
+        Args:
+            layers (list): All layers in a network
+            current_layer_index (int): Index of the current layer
+
+        Returns:
+            tuple: output shape
+        """
         return
 
     def __repr__(self) -> str:
@@ -62,17 +71,17 @@ class Layer:
         self.outputs = np.array([output, weighted_sum])
         return output
 
-    def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
+    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer) -> np.ndarray:
         """Backpropagation algorithm base implementation for all the layers that don't have any parameters to update
 
         Args:
-            loss (np.ndarray): Loss calculated by loss.compute_derivative()
+            gradient (np.ndarray): gradient calculated by gradient.compute_derivative()
             optimizer (Optimizer): Optimizer to use when updating layers parameters 
 
         Returns:
-            np.ndarray: New loss
+            np.ndarray: New gradient
         """
-        return loss
+        return gradient
 
 
 class Input(Layer):
@@ -105,39 +114,32 @@ class Input(Layer):
 
 class Dense(Layer):
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
-        """Function to generate the output shape of a layer
-
-        Args:
-            layers (list): All layers in a network
-            current_layer_index (int): Index of the current layer
-
-        Returns:
-            tuple: output shape
-        """
         return self.units
 
     def __repr__(self) -> str:
         return f"{self.name} (Dense){' ' * (28 - len(self.name) - 7)}{(None, self.units)}{' ' * (26 - len(f'(None, {self.units})'))}{self.weights.size + self.biases.size}\n"
 
-    def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
+    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer) -> np.ndarray:
         """Backpropagation algorithm for the dense layer
 
         Args:
-            loss (np.ndarray): loss calculated by the activation function derivative or loss calculated by previous layers backpropagation algorithm
+            gradient (np.ndarray): gradient calculated by the activation function derivative or by previous layers backpropagation algorithm
             optimizer (Optimizer): Optimizer to update the model's parameters
 
         Returns:
-            np.ndarray: new loss
+            np.ndarray: new gradient
         """
         if self.regulizer is not None:
-            loss = self.regulizer.compute_loss(loss, self.weights, self.biases)
+            gradient = self.regulizer.compute_loss(
+                gradient, self.weights, self.biases)
         delta = np.average(
-            [loss * self.activation.compute_derivative(output) for output in self.outputs])
+            [gradient * self.activation.compute_derivative(output) for output in self.outputs])
 
         weights_gradients = np.outer(self.inputs, delta)
 
         self.weights, self.biases = optimizer.apply_gradients(weights_gradients, np.array(
             delta, dtype=float), self.weights, self.biases)
+
         return np.dot(delta, self.weights.T)
 
 
@@ -147,15 +149,6 @@ class Dropout(Layer):
         self.dropout_rate = dropout_rate
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
-        """Function to generate the output shape of a layer
-
-        Args:
-            layers (list): All layers in a network
-            current_layer_index (int): Index of the current layer
-
-        Returns:
-            tuple: output shape
-        """
         return self.units
 
     def __repr__(self) -> str:
@@ -172,22 +165,27 @@ class Dropout(Layer):
 
         return super().__call__(x)
 
-    def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
+    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer) -> np.ndarray:
         """Backpropagation algorithm for the dense layer
 
         Args:
-            loss (np.ndarray): loss calculated by the activation function derivative or loss calculated by previous layers backpropagation algorithm 
+            gradient (np.ndarray): gradient calculated by the activation function derivative or by previous layers backpropagation algorithm 
             optimizer (Optimizer): Optimizer to update the model's parameters
 
         Returns:
-            np.ndarray: new loss
+            np.ndarray: new gradient
         """
         if self.regulizer is not None:
-            loss = self.regulizer.compute_loss(loss, self.weights, self.biases)
+            gradient = self.regulizer.compute_loss(
+                gradient, self.weights, self.biases)
+
         delta = np.average(
-            [loss * self.activation.compute_derivative(output) for output in self.outputs])
+            [gradient * self.activation.compute_derivative(output) for output in self.outputs])
+
         delta /= 1/(1-self.dropout_rate)  # Scaling the gradient
+
         weights_gradients = np.outer(self.inputs, delta)
+
         self.weights, self.biases = optimizer.apply_gradients(
             weights_gradients, np.array(delta, dtype=float), self.weights, self.biases)
         return np.dot(delta, self.weights.T)
@@ -198,15 +196,6 @@ class Flatten(Layer):
         self.name = name
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
-        """Function to generate the output shape of a layer
-
-        Args:
-            layers (list): All layers in a network
-            current_layer_index (int): Index of the current layer
-
-        Returns:
-            tuple: output shape
-        """
         input_shape = layers[current_layer_index -
                              1].output_shape(layers, current_layer_index-1)
         self.output_shape_value = (np.prod(np.array(input_shape)))
@@ -221,11 +210,11 @@ class Flatten(Layer):
         self.original_shape = x.shape
         return np.ravel(x)
 
-    def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
+    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer) -> np.ndarray:
         try:
-            return loss.reshape(self.next_layer_shape, *self.original_shape)
+            return gradient.reshape(self.next_layer_shape, *self.original_shape)
         except:
-            return loss
+            return gradient
 
 
 class Reshape(Layer):
@@ -234,15 +223,6 @@ class Reshape(Layer):
         self.name = name
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
-        """Function to generate the output shape of a layer
-
-        Args:
-            layers (list): All layers in a network
-            current_layer_index (int): Index of the current layer
-
-        Returns:
-            tuple: output shape
-        """
         return self.target_shape
 
     def __repr__(self) -> str:
@@ -250,12 +230,19 @@ class Reshape(Layer):
         return f"{self.name} (Reshape){' ' * (28 - len(self.name) - 9)}{formatted_output}{' ' * (26-len(formatted_output))}0\n"
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
+        self.original_shape = x.shape
         return np.reshape(x, self.target_shape)
 
+    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer) -> np.ndarray:
+        try:
+            return gradient.reshape(self.original_shape)
+        except:
+            return gradient
 
-class MaxPooling1D(Layer):
+
+class MaxPool1D(Layer):
     def __init__(self, kernel_size: int = 2, strides: int = 2, name: str = "MaxPool1D") -> None:
-        """Intializer for the MaxPooling1D layer
+        """Intializer for the MaxPool1D layer
 
         Args:
             kernel_size (int, optional): Size of the pooling window. Defaults to 2.
@@ -267,15 +254,6 @@ class MaxPooling1D(Layer):
         self.name = name
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
-        """Function to generate the output shape of a layer
-
-        Args:
-            layers (list): All layers in a network
-            current_layer_index (int): Index of the current layer
-
-        Returns:
-            tuple: output shape
-        """
         input_shape = layers[current_layer_index -
                              1].output_shape(layers, current_layer_index-1)
         self.output_shape_value = math.ceil(
@@ -286,7 +264,7 @@ class MaxPooling1D(Layer):
         return f"{self.name} (MaxPool1D){' ' * (28 - len(self.name) - 11)}{(None, self.output_shape_value)}{' ' * (26-len(f'(None, {self.output_shape_value})'))}0\n"
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
-        """Call function for the MaxPooling1D layer. It reduces the size of an array by how much the kernel_size and strides is set to.
+        """Call function for the MaxPool1D layer. It reduces the size of an array by how much the kernel_size and strides is set to.
         For example let's say we have those parameters:\n
         array X = [[1., 5., 3., 6., 7., 4.]]\n
         both kernel_size and strides set to 2\n
@@ -313,9 +291,9 @@ class MaxPooling1D(Layer):
         return output
 
 
-class MaxPooling2D(Layer):
+class MaxPool2D(Layer):
     def __init__(self, kernel_size: tuple[int, int] = (2, 2), strides: tuple[int, int] = (2, 2), name: str = "MaxPool2D"):
-        """Intializer for the MaxPooling2D layer
+        """Intializer for the MaxPool2D layer
 
         Args:
             kernel_size (tuple[int, int], optional): Size of the kernel. Defaults to (2, 2).
@@ -331,6 +309,10 @@ class MaxPooling2D(Layer):
                              1].output_shape(layers, current_layer_index-1)
         self.output_shape_value = tuple([math.floor(
             (input_shape[i] - self.kernel_size[i]) / self.strides[i]) + 1 for i in range(2)])
+
+        if len(input_shape) > 2:
+            self.output_shape_value += (input_shape[-1],)
+
         return self.output_shape_value
 
     def __repr__(self) -> str:
@@ -338,7 +320,7 @@ class MaxPooling2D(Layer):
         return f"{self.name} (MaxPool2D){' ' * (28 - len(self.name) - 11)}{formatted_output}{' ' * (26-len(formatted_output))}0\n"
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
-        """Call function for the MaxPooling1D layer. It reduces the size of an array by how much the kernel_size and strides is set to.
+        """Call function for the MaxPool1D layer. It reduces the size of an array by how much the kernel_size and strides is set to.
         For example let's say we have those parameters:\n
         array X:\n
         [[2, 3, 5, 9],\n
@@ -357,11 +339,13 @@ class MaxPooling2D(Layer):
         Returns:
             np.ndarray: Array with reduced size
         """
-        x.shape
+        self.inputs = x
+
         height = (x.shape[0] - self.kernel_size[0]) // self.strides[0] + 1
         width = (x.shape[1] - self.kernel_size[1]) // self.strides[1] + 1
 
-        output = np.zeros((height, width))
+        # We have height x width x channels. We also don't reduce the size of the channels
+        output = np.zeros((height, width, x.shape[-1]))
 
         for i in range(0, height, self.strides[0]):
             for j in range(0, width, self.strides[1]):
@@ -370,11 +354,18 @@ class MaxPooling2D(Layer):
                 output[i, j] = np.max(
                     x[i:i+self.kernel_size[0], j:j+self.kernel_size[1]])
 
+        output[-1, -1, :] = x[-1, -1, :]
+        self.output = output
         return output
+
+    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer) -> np.ndarray:
+        # TODO Change gradient calculation to increase the size of it.
+        # A good example of what to do is https://stats.stackexchange.com/questions/414301/2d-max-pool-gradient-propagation
+        return gradient
 
 
 class Conv1D(Layer):
-    def __init__(self, filters: int = 1, kernel_size: int = 2, strides: int = 2, activation: Activation | str = "relu", regulizer: Regularizer = None, name: str = "Conv1D") -> None:
+    def __init__(self, filters: int = 1, kernel_size: int = 2, strides: int = 1, activation: Activation | str = "relu", regulizer: Regularizer = None, name: str = "Conv1D") -> None:
         self.number_of_filters = filters
         self.kernel_size = kernel_size
         self.strides = strides
@@ -417,12 +408,13 @@ class Conv1D(Layer):
 
         return output
 
-    def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
+    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer) -> np.ndarray:
         if self.regulizer is not None:
-            loss = self.regulizer.compute_loss(loss, self.weights, self.biases)
+            gradient = self.regulizer.compute_loss(
+                gradient, self.weights, self.biases)
 
         delta = np.average(
-            [loss * self.activation.compute_derivative(output) for output in self.outputs])
+            [gradient * self.activation.compute_derivative(output) for output in self.outputs])
 
         # weights_gradients = delta * self.weights
         weights_gradients = np.zeros(
@@ -443,7 +435,7 @@ class Conv1D(Layer):
 
 
 class Conv2D(Layer):
-    def __init__(self, filters: int = 1, kernel_size: tuple = (2, 2), strides: tuple = (2, 2), activation: Activation | str = "relu", regulizer: Regularizer = None, name: str = "Conv2D") -> None:
+    def __init__(self, filters: int = 1, kernel_size: tuple = (2, 2), strides: tuple = (1, 1), activation: Activation | str = "relu", regulizer: Regularizer = None, name: str = "Conv2D") -> None:
         self.number_of_filters = filters
         self.kernel_size = kernel_size
         self.strides = strides
@@ -462,17 +454,19 @@ class Conv2D(Layer):
         self.weights = np.random.randn(*weights)
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
-        input_shape = layers[current_layer_index -
-                             1].output_shape(layers, current_layer_index-1)
-        height = (input_shape[0] - self.kernel_size[0]) // self.strides[0] + 1
-        width = (input_shape[1] - self.kernel_size[1]) // self.strides[1] + 1
+        self.input_shape = layers[current_layer_index -
+                                  1].output_shape(layers, current_layer_index-1)
+        height = (self.input_shape[0] -
+                  self.kernel_size[0]) // self.strides[0] + 1
+        width = (self.input_shape[1] -
+                 self.kernel_size[1]) // self.strides[1] + 1
         channels = self.number_of_filters
         self.output_shape_value = (height, width, channels)
         return self.output_shape_value
 
     def __repr__(self) -> str:
         formatted_output = f'(None, {", ".join(map(str, self.output_shape_value))})'
-        return f"{self.name} (Conv2D){' ' * (28 - len(self.name) - 8)}{formatted_output}{' ' * (26-len(formatted_output))}{self.weights.size}\n"
+        return f"{self.name} (Conv2D){' ' * (28 - len(self.name) - 8)}{formatted_output}{' ' * (26-len(formatted_output))}{self.weights.size + self.biases.size}\n"
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
         self.inputs = x
@@ -499,14 +493,13 @@ class Conv2D(Layer):
         self.outputs = np.array([output, weighted_sum])
         return output
 
-    def backpropagate(self, loss: np.ndarray, optimizer: Optimizer) -> np.ndarray:
+    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer) -> np.ndarray:
         if self.regulizer is not None:
-            loss = self.regulizer.compute_loss(loss, self.weights, self.biases)
+            gradient = self.regulizer.compute_loss(
+                gradient, self.weights, self.biases)
 
         self.outputs = self.activation.compute_derivative(self.outputs)
-
-        delta = np.average(
-            [loss * output for output in self.outputs])
+        delta = np.average([gradient * output for output in self.outputs])
 
         weights_gradients = np.zeros(
             (self.kernel_size[0], self.kernel_size[1], self.inputs.shape[-1], self.number_of_filters))
@@ -523,7 +516,9 @@ class Conv2D(Layer):
         self.weights += weights_gradients * 0.001
         self.biases += delta * 0.001
 
-        return np.dot(delta, self.weights.T)
+        output_gradient = np.dot(delta, self.weights)
+
+        return output_gradient
 
 
 if __name__ == "__main__":

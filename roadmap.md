@@ -26,7 +26,7 @@
 
 ### 3. Optimizers: Adam, SGD, Adagrad, RMSprop, Adadelta, NAdam
 
-### 4. Layers: Input, Dense, Dropout, Flatten, Reshape, MaxPooling1D, MaxPooling2D
+### 4. Layers: Input, Dense, Dropout, Flatten, Reshape, MaxPool1D, MaxPool2D
 
 ### 5. Regulization techniques: L1, L2, L1L2
 

@@ -13,7 +13,9 @@ matplotlib.use("TkAgg")
 
 """
 TODO Today:
-1. Fix convolutional layers
+1. Fix MaxPool2D gradient calculation
+
+2. Fix convolutional layers
 Currently the layers work if we only have 1, and I think it's because we calculate the new gradient incorrectly.
 So changing the gradient calculation in the return statement should fix everything.
 
@@ -87,7 +89,7 @@ class NN:
         self.val_loss = None
         self.val_accuracy = None
         self.layers_without_units = [
-            Flatten, Reshape, MaxPooling1D, MaxPooling2D, Input]
+            Flatten, Reshape, MaxPool1D, MaxPool2D, Input]
         self.trainable_layers = [Dense, Dropout, Conv1D, Conv2D, Input]
 
     def add(self, layer: Layer):
@@ -139,6 +141,7 @@ class NN:
             loss_function (Loss | str): Loss function the model should use. You can pass either the name of it as a str or intialized class. Defaults to "mse".
             optimizer (Optimizer | str): Optimizer the model should use when updating it's params. You can pass either the name of it as a str or initalized class. Defaults to "adam"
             metrics (str, optional): Paramter that specifies what metrics should the model use. Possible metrics are: accuracy. Defaults to "".
+            weight_initaliziton (str, optional): Weights intialization function you want to use for weight intialization. Your options are: random, xavier, he. Defalut to "random"
         """
         self.loss_function = LOSS_FUNCTIONS[loss_function] if type(
             loss_function) == str else loss_function
@@ -170,24 +173,25 @@ class NN:
             y (np.ndarray): y dataset
         """
         length_of_x = len(X)
-        total_accuracy = np.ndarray(length_of_x)
+        total_accuracy = 0
+        losses = 0
         for i in range(length_of_x):
             yPred = self.feed_forward(X[i])
 
             # Accuracy calculation
             if self.metrics == "accuracy":
-                total_accuracy[i] = np.average(np.abs(y[i] - yPred) < 0.25)
+                total_accuracy += np.average(np.abs(y[i] - yPred) < 0.25)
 
-            loss = self.loss_function.compute_derivative(y[i], yPred)
+            gradient = self.loss_function.compute_derivative(y[i], yPred)
             # We skip over the input layer, as it doesn't have any parameters to update
             for layer in self.layers[-1:0:-1]:
-                loss = layer.backpropagate(loss, self.optimizer)
+                gradient = layer.backpropagate(gradient, self.optimizer)
 
             if verbose == 2:
-                loss = self.loss_function.compute_loss(y[i], yPred)
-                accuracy = np.average(
-                    total_accuracy) if self.metrics == "accuracy" else None
-                print_progress(epoch+1, total_epochs, loss,
+                losses += self.loss_function.compute_loss(y[i], yPred)
+                accuracy = total_accuracy / \
+                    (i+1) if self.metrics == "accuracy" else None
+                print_progress(epoch+1, total_epochs, losses / (i+1),
                                accuracy, i+1, length_of_x, self.val_loss, self.val_accuracy)
 
     def _handle_callbacks(self, result, callbacks: EarlyStopping | None) -> None | np.ndarray:
