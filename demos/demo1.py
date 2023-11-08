@@ -1,12 +1,19 @@
-from optimizers import *
-from layers import Dense, Input
-from losses import *
-from main import NN
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MinMaxScaler
-import pandas as pd
-import seaborn as sns
+import sys
+import os
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(current_dir, os.pardir))
+sys.path.append(f"{project_root}/src")
+
 import numpy as np
+import seaborn as sns
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
+from main import NN
+from losses import *
+from layers import Dense, Input
+from optimizers import *
 
 X = sns.load_dataset("titanic")
 

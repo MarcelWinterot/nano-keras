@@ -1,3 +1,10 @@
+import sys
+import os
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(current_dir, os.pardir))
+sys.path.append(f"{project_root}/src")
+
 from layers import Input, Flatten, Conv2D, Dropout, Dense
 from main import NN
 import numpy as np
