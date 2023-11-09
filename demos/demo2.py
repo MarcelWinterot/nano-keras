@@ -5,10 +5,11 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(current_dir, os.pardir))
 sys.path.append(f"{project_root}/src")
 
-from layers import Input, Flatten, Conv2D, Dropout, Dense
-from main import NN
-import numpy as np
 from optimizers import NAdam
+import numpy as np
+from main import NN
+from layers import Input, Flatten, Conv2D, Dropout, Dense
+
 
 
 def load_data() -> tuple:
@@ -35,7 +36,6 @@ print("\033c", end='')
 model = NN("NN for MNIST")
 model.add(Input((28, 28, 1)))
 model.add(Conv2D(16, strides=(2, 2), name="Conv 1"))
-# model.add(Conv2D(64, strides=(2, 2), name="Conv 2")) - Not working
 model.add(Flatten())
 model.add(Dropout(100, "relu", 0.5))
 model.add(Dense(50, "relu"))

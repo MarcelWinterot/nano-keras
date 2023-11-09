@@ -21,32 +21,35 @@ class Layer:
         self.units = units
         self.name = name
         self.weights = np.array([])
-        self.biases = np.random.randn(units)
+        self.biases = np.array([])
         self.activation = ACTIVATIONS[activation] if type(
             activation) == str else activation
         self.regulizer = regulizer
 
     @staticmethod
-    def random_initalization(previous_units, current_units) -> np.ndarray:
-        return np.random.randn(previous_units, current_units)
+    def random_initalization(previous_units, current_units) -> tuple[np.ndarray, np.ndarray]:
+        return np.random.randn(previous_units, current_units), np.random.randn(current_units)
 
     @staticmethod
-    def xavier_intialization(previous_units, current_units) -> np.ndarray:
+    def xavier_intialization(previous_units, current_units) -> tuple[np.ndarray, np.ndarray]:
         weights = np.random.randn(previous_units, current_units)
         weights = 2 * weights - 1
-        return weights * math.sqrt(6/(previous_units+current_units))
+        weights *= math.sqrt(6/(previous_units+current_units))
+        return weights, np.zeros(current_units)
 
     @staticmethod
-    def he_intialization(previous_units, current_units) -> np.ndarray:
+    def he_intialization(previous_units, current_units) -> tuple[np.ndarray, np.ndarray]:
         weights = np.random.randn(previous_units, current_units)
-        return weights * math.sqrt(2./previous_units)
+        weights *= math.sqrt(2./previous_units)
+        return weights, np.zeros(current_units)
 
     def generate_weights(self, layers: list, current_layer_index: int, weight_initalization: str) -> None:
         LAYER_INTIALIZATIONS = {"random": self.random_initalization,
                                 "xavier": self.xavier_intialization, "he": self.he_intialization}
+
         previous_units = layers[current_layer_index -
                                 1].output_shape(layers, current_layer_index-1)
-        self.weights = LAYER_INTIALIZATIONS[weight_initalization](
+        self.weights, self.biases = LAYER_INTIALIZATIONS[weight_initalization](
             previous_units, self.units)
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
@@ -442,16 +445,35 @@ class Conv2D(Layer):
         self.activation = ACTIVATIONS[activation] if type(
             activation) == str else activation
         self.weights = np.array([])
-        self.biases = np.random.randn(filters)
+        self.biases = np.array([])
         self.regulizer = regulizer
         self.name = name
 
-    def generate_weights(self, layers: list, current_layer_index: int, weight_initalization: str) -> None:
+    def random_initalization(self, weights: list, input_shape: tuple) -> tuple[np.ndarray, np.ndarray]:
+        return np.random.randn(*weights), np.random.randn(self.number_of_filters)
+
+    def xavier_intialization(self, weights: list, input_shape: tuple) -> tuple[np.ndarray, np.ndarray]:
+        weights = np.random.randn(*weights)
+        weights = 2 * weights - 1
+        fan_in = input_shape[-1] * self.kernel_size[0] * self.kernel_size[1]
+        weights *= math.sqrt(6/(fan_in + self.number_of_filters))
+        return weights, np.zeros(self.number_of_filters)
+
+    def he_intialization(self, weights: list, input_shape: tuple) -> tuple[np.ndarray, np.ndarray]:
+        weights = np.random.randn(*weights)
+        fan_in = input_shape[-1] * self.kernel_size[0] * self.kernel_size[1]
+        weights *= math.sqrt(2. / fan_in)
+        return weights, np.zeros(self.number_of_filters)
+
+    def generate_weights(self, layers: list[Layer], current_layer_index: int, weight_initalization: str) -> None:
+        LAYER_INTIALIZATIONS = {"random": self.random_initalization,
+                                "xavier": self.xavier_intialization, "he": self.he_intialization}
         input_shape = layers[current_layer_index -
                              1].output_shape(layers, current_layer_index-1)
         weights = (self.kernel_size[0], self.kernel_size[1],
                    input_shape[-1], self.number_of_filters)
-        self.weights = np.random.randn(*weights)
+        self.weights, self.biases = LAYER_INTIALIZATIONS[weight_initalization](
+            weights, input_shape)
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
         self.input_shape = layers[current_layer_index -

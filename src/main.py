@@ -12,15 +12,9 @@ from callbacks import *
 matplotlib.use("TkAgg")
 
 """
-TODO Today:
-1. Fix MaxPool2D gradient calculation
-
-2. Fix convolutional layers
-Currently the layers work if we only have 1, and I think it's because we calculate the new gradient incorrectly.
-So changing the gradient calculation in the return statement should fix everything.
-
 TODO for the first version release:
-1. Fix convolutional layers
+1. Make it possible for there to be more than one convolutiional layer in a model at once
+2. Make the convolutional layer use an optimizer instead of simple sgd
 """
 
 LOSS_FUNCTIONS = {

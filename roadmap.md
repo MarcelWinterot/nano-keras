@@ -32,7 +32,7 @@
 
 ### 6. Callbacks: Early stopping
 
-### 7. Weight initializations: Xavier, He, Random
+### 7. Weight initialization startegies: Xavier, He, Random
 
 ## Possible plans for the future
 
