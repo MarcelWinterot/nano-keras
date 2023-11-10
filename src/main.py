@@ -13,11 +13,10 @@ matplotlib.use("TkAgg")
 
 """
 TODO Today:
-1. Fix convolutional layers gradient calculations
+1. Speed up the convolutional layer to use numpy operations instead of for loops
 
 TODO for the first version release:
-1. Make it possible for there to be more than one convolutiional layer in a model at once
-2. Make the convolutional layer use an optimizer instead of simple sgd
+1. Make the convolutional layer use an optimizer instead of simple sgd
 """
 
 LOSS_FUNCTIONS = {

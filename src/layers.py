@@ -538,7 +538,7 @@ class Conv2D(Layer):
         self.weights += weights_gradients * 0.001
         self.biases += delta * 0.001
 
-        output_gradient = np.dot(delta, self.weights)
+        output_gradient = np.dot(delta, self.inputs)
 
         return output_gradient
 
