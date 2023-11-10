@@ -14,9 +14,12 @@ matplotlib.use("TkAgg")
 """
 TODO Today:
 1. Speed up the convolutional layer to use numpy operations instead of for loops
+2. Make MaxPool2D backpropagation work
 
 TODO for the first version release:
 1. Make the convolutional layer use an optimizer instead of simple sgd
+An early idea I have for it is to create special optimizers that work on 4d and inherit from the 2d optimizer
+
 """
 
 LOSS_FUNCTIONS = {
@@ -50,12 +53,12 @@ def print_progress(epoch: int, total_epochs: int, loss: float, accuracy: float =
 
     if accuracy is not None:
         if type(accuracy) == np.nan:
-            progress_info += f" - accuracy: {0:.2f}"
+            progress_info += f" - accuracy: {0:.3f}"
         else:
-            progress_info += f" - accuracy: {accuracy:.2f}"
+            progress_info += f" - accuracy: {accuracy:.3f}"
 
     if val_loss is not None:
-        progress_info += f" - val_loss: {val_loss:.8f} - val_accuracy: {val_accuracy:.2f}"
+        progress_info += f" - val_loss: {val_loss:.8f} - val_accuracy: {val_accuracy:.3f}"
 
     print(f"\r{progress_info}", end='')
 
@@ -117,20 +120,20 @@ class NN:
             f"Total params: {totalParams} ({convert_size(paramsWeight)})")
         print(f"{'_'*line_length}")
 
-    def generate_weights(self) -> None:
+    def generate_weights(self, weight_data_type: np.float_) -> None:
         """Support function used in the compile function to generate model's weights.
         """
         for i in range(1, len(self.layers)):
             if not any(isinstance(self.layers[i], layer) for layer in self.layers_without_units):
                 try:
                     self.layers[i].generate_weights(
-                        self.layers, i, self.weight_initaliziton)
+                        self.layers, i, self.weight_initaliziton, weight_data_type)
                 except Exception as e:
                     print(
                         f"Exception encountered when creating weights: {e}\nChange your achitecture and try again. If you think it's an error post an issue on github")
                     sys.exit()
 
-    def compile(self, loss_function: Loss | str = "mse", optimizer: Optimizer | str = "adam", metrics: str = "", weight_initaliziton: str = "random") -> None:
+    def compile(self, loss_function: Loss | str = "mse", optimizer: Optimizer | str = "adam", metrics: str = "", weight_initaliziton: str = "random", weight_data_type: np.float_ = np.float64) -> None:
         """Function you should call before starting training the model, as we generate the weights in here, set the loss function and optimizer.
 
         Args:
@@ -145,7 +148,7 @@ class NN:
             optimizer) == str else optimizer
         self.metrics = metrics
         self.weight_initaliziton = weight_initaliziton
-        self.generate_weights()
+        self.generate_weights(weight_data_type)
 
     def feed_forward(self, x: np.ndarray) -> np.ndarray:
         """Feed forward for the whole model

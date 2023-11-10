@@ -44,7 +44,7 @@ model.add(Dense(10, "softmax"))
 optimizer = NAdam(adjust_biases_shape=True)
 
 model.compile("bce", optimizer=optimizer,
-              weight_initaliziton="he", metrics="accuracy")
+              weight_initaliziton="he", metrics="accuracy", weight_data_type=np.float32)
 model.summary()
 
 
