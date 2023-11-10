@@ -42,6 +42,6 @@
 
 ### Make the code work in batches
 
-### Add more of everything
+### Add more: Optimizers, Activations, Losses, Layers
 
 ### Add distribution strategies for training a model on multiple CPUs/GPUs

@@ -11,7 +11,6 @@ from main import NN
 from layers import Input, Flatten, Conv2D, Dropout, Dense
 
 
-
 def load_data() -> tuple:
     from keras.datasets import mnist
     from keras.utils import to_categorical

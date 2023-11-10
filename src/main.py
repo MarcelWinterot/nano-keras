@@ -12,6 +12,9 @@ from callbacks import *
 matplotlib.use("TkAgg")
 
 """
+TODO Today:
+1. Fix convolutional layers gradient calculations
+
 TODO for the first version release:
 1. Make it possible for there to be more than one convolutiional layer in a model at once
 2. Make the convolutional layer use an optimizer instead of simple sgd
@@ -174,7 +177,11 @@ class NN:
 
             # Accuracy calculation
             if self.metrics == "accuracy":
-                total_accuracy += np.average(np.abs(y[i] - yPred) < 0.25)
+                if len(yPred) == 1:
+                    total_accuracy += np.average(np.abs(y[i] - yPred) < 0.25)
+                else:
+                    total_accuracy += 1 if np.argmax(y[i]
+                                                     ) == np.argmax(yPred) else 0
 
             gradient = self.loss_function.compute_derivative(y[i], yPred)
             # We skip over the input layer, as it doesn't have any parameters to update
@@ -185,6 +192,7 @@ class NN:
                 losses += self.loss_function.compute_loss(y[i], yPred)
                 accuracy = total_accuracy / \
                     (i+1) if self.metrics == "accuracy" else None
+                # Note that we use (i + 1) as we want to divide the losses and accuracy by the amount of times they've been updated
                 print_progress(epoch+1, total_epochs, losses / (i+1),
                                accuracy, i+1, length_of_x, self.val_loss, self.val_accuracy)
 
