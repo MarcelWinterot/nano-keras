@@ -76,7 +76,7 @@ class Layer:
         self.outputs = np.array([output, weighted_sum])
         return output
 
-    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer) -> np.ndarray:
+    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer, Optimizer]) -> np.ndarray:
         """Backpropagation algorithm base implementation for all the layers that don't have any parameters to update
 
         Args:
@@ -124,7 +124,7 @@ class Dense(Layer):
     def __repr__(self) -> str:
         return f"{self.name} (Dense){' ' * (28 - len(self.name) - 7)}{(None, self.units)}{' ' * (26 - len(f'(None, {self.units})'))}{self.weights.size + self.biases.size}\n"
 
-    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer) -> np.ndarray:
+    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer, Optimizer]) -> np.ndarray:
         """Backpropagation algorithm for the dense layer
 
         Args:
@@ -134,7 +134,7 @@ class Dense(Layer):
         Returns:
             np.ndarray: new gradient
         """
-        if self.regulizer is not None:
+        if self.regulizer:
             gradient = self.regulizer.compute_loss(
                 gradient, self.weights, self.biases)
         delta = np.average(
@@ -142,8 +142,12 @@ class Dense(Layer):
 
         weights_gradients = np.outer(self.inputs, delta)
 
-        self.weights, self.biases = optimizer.apply_gradients(weights_gradients, np.array(
-            delta, dtype=float), self.weights, self.biases)
+        if isinstance(optimizer, list):
+            self.weights, self.biases = optimizer[0].apply_gradients(weights_gradients, np.array(
+                delta, dtype=float), self.weights, self.biases)
+        else:
+            self.weights, self.biases = optimizer.apply_gradients(weights_gradients, np.array(
+                delta, dtype=float), self.weights, self.biases)
 
         return np.dot(delta, self.weights.T)
 
@@ -170,7 +174,7 @@ class Dropout(Layer):
 
         return super().__call__(x)
 
-    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer) -> np.ndarray:
+    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer, Optimizer]) -> np.ndarray:
         """Backpropagation algorithm for the dense layer
 
         Args:
@@ -180,7 +184,7 @@ class Dropout(Layer):
         Returns:
             np.ndarray: new gradient
         """
-        if self.regulizer is not None:
+        if self.regulizer:
             gradient = self.regulizer.compute_loss(
                 gradient, self.weights, self.biases)
 
@@ -191,8 +195,13 @@ class Dropout(Layer):
 
         weights_gradients = np.outer(self.inputs, delta)
 
-        self.weights, self.biases = optimizer.apply_gradients(
-            weights_gradients, np.array(delta, dtype=float), self.weights, self.biases)
+        if isinstance(optimizer, list):
+            self.weights, self.biases = optimizer[0].apply_gradients(weights_gradients, np.array(
+                delta, dtype=float), self.weights, self.biases)
+        else:
+            self.weights, self.biases = optimizer.apply_gradients(weights_gradients, np.array(
+                delta, dtype=float), self.weights, self.biases)
+
         return np.dot(delta, self.weights.T)
 
 
@@ -215,7 +224,7 @@ class Flatten(Layer):
         self.original_shape = x.shape
         return np.ravel(x)
 
-    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer) -> np.ndarray:
+    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer, Optimizer]) -> np.ndarray:
         try:
             return gradient.reshape(self.next_layer_shape, *self.original_shape)
         except:
@@ -238,7 +247,7 @@ class Reshape(Layer):
         self.original_shape = x.shape
         return np.reshape(x, self.target_shape)
 
-    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer) -> np.ndarray:
+    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer, Optimizer]) -> np.ndarray:
         try:
             return gradient.reshape(self.original_shape)
         except:
@@ -363,7 +372,7 @@ class MaxPool2D(Layer):
         self.output = output
         return output
 
-    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer) -> np.ndarray:
+    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer, Optimizer]) -> np.ndarray:
         # TODO Change gradient calculation to increase the size of it.
         # A good example of what to do is https://stats.stackexchange.com/questions/414301/2d-max-pool-gradient-propagation
         return gradient
@@ -413,8 +422,8 @@ class Conv1D(Layer):
 
         return output
 
-    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer) -> np.ndarray:
-        if self.regulizer is not None:
+    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer, Optimizer]) -> np.ndarray:
+        if self.regulizer:
             gradient = self.regulizer.compute_loss(
                 gradient, self.weights, self.biases)
 
@@ -433,8 +442,12 @@ class Conv1D(Layer):
                 weights_gradients[i //
                                   self.strides, j] = np.sum(self.inputs[i:i+self.kernel_size, j:j+self.kernel_size] * delta)
 
-        self.weights, self.biases = optimizer.apply_gradients(
-            weights_gradients, delta, self.weights, self.biases)
+        if isinstance(optimizer, list):
+            self.weights, self.biases = optimizer[0].apply_gradients(weights_gradients, np.array(
+                delta, dtype=float), self.weights, self.biases)
+        else:
+            self.weights, self.biases = optimizer.apply_gradients(weights_gradients, np.array(
+                delta, dtype=float), self.weights, self.biases)
 
         return np.dot(delta, self.weights.T)
 
@@ -458,13 +471,13 @@ class Conv2D(Layer):
         weights = np.random.randn(*weights).astype(weight_data_type)
         weights = 2 * weights - 1
         fan_in = input_shape[-1] * self.kernel_size[0] * self.kernel_size[1]
-        weights *= math.sqrt(6/(fan_in + self.number_of_filters))
+        weights *= np.sqrt(6/(fan_in + self.number_of_filters))
         return weights, np.zeros(self.number_of_filters).astype(weight_data_type)
 
     def he_intialization(self, weights: list, input_shape: tuple, weight_data_type: np.float_) -> tuple[np.ndarray, np.ndarray]:
         weights = np.random.randn(*weights).astype(weight_data_type)
         fan_in = input_shape[-1] * self.kernel_size[0] * self.kernel_size[1]
-        weights *= math.sqrt(2. / fan_in)
+        weights *= np.sqrt(2. / fan_in)
         return weights, np.zeros(self.number_of_filters).astype(weight_data_type)
 
     def generate_weights(self, layers: list[Layer], current_layer_index: int, weight_initalization: str, weight_data_type: np.float_) -> None:
@@ -518,10 +531,11 @@ class Conv2D(Layer):
 
         output = self.activation.compute_loss(weighted_sum)
         self.outputs = np.array([output, weighted_sum])
+
         return output
 
-    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer) -> np.ndarray:
-        if self.regulizer is not None:
+    def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer, Optimizer]) -> np.ndarray:
+        if self.regulizer:
             gradient = self.regulizer.compute_loss(
                 gradient, self.weights, self.biases)
 
@@ -540,8 +554,8 @@ class Conv2D(Layer):
                                                     l] * delta)
                         weights_gradients[:, :, l, k] += output
 
-        self.weights += weights_gradients * optimizer.learning_rate
-        self.biases += delta * optimizer.learning_rate
+        self.weights, self.biases = optimizer[1].apply_gradients(
+            weights_gradients, delta, self.weights, self.biases)
 
         output_gradient = np.dot(delta, self.inputs)
 

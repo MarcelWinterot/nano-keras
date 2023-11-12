@@ -22,11 +22,11 @@
 
 ### 2. Acitavitons: Sigmoid, Tanh, ReLU, Leaky ReLU, ELU, Softmax
 
-### 2.1. Loss functions: MAE, MSE, Binary Crossentropy, Categorical Crossentropy, Hinge, Huber. Although only MSE currently works
+### 2.1. Loss functions: MAE, MSE, Binary Crossentropy, Categorical Crossentropy, Hinge, Hube
 
 ### 3. Optimizers: Adam, SGD, Adagrad, RMSprop, Adadelta, NAdam
 
-### 4. Layers: Input, Dense, Dropout, Flatten, Reshape, MaxPool1D, MaxPool2D
+### 4. Layers: Input, Dense, Dropout, Flatten, Reshape, MaxPool1D, MaxPool2D, Conv1D, Conv2D
 
 ### 5. Regulization techniques: L1, L2, L1L2
 

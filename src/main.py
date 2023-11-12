@@ -1,25 +1,19 @@
 import sys
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib
 from activations import *
 from losses import *
 from optimizers import *
 from regulizers import *
 from layers import *
 from callbacks import *
-
-matplotlib.use("TkAgg")
+from copy import deepcopy
 
 """
 TODO Today:
 1. Speed up the convolutional layer to use numpy operations instead of for loops
+We might use np.tensordot() for it
+
 2. Make MaxPool2D backpropagation work
-
-TODO for the first version release:
-1. Make the convolutional layer use an optimizer instead of simple sgd
-An early idea I have for it is to create special optimizers that work on 4d and inherit from the 2d optimizer
-
 """
 
 LOSS_FUNCTIONS = {
@@ -36,8 +30,10 @@ def print_progress(epoch: int, total_epochs: int, loss: float, accuracy: float =
         total_epochs (int): total number of epochs
         loss (float): loss calculated by NN.evaluate function
         accuracy (float, optional): accuracy of the model during training. Default to None.
-        batch (int, optional): current batch. Will be set if verbose is set to 2 in the NN.train function. Defaults to None.
-        total_batches (int, optional): total number of batches. Will be set if verbose is set to 2 in the NN.train function. Defaults to None.
+        batch (int, optional): current batch. Will be set if verbose is set to 2 in the NN.train function. If it's None we ignore it during printing. Defaults to None.
+        total_batches (int, optional): total number of batches. Will be set if verbose is set to 2 in the NN.train function. If it's None we ignore it during printing. Defaults to None.
+        val_loss (float, optional): Validation loss of the model. If it's None we ignore it during printing. Defaults to None.
+        val_accuracy (float, optional): Validation accuracy of the model. If it's None we ignore it during printing. Defaults to None.
     """
     bar_length = 30
 
@@ -137,15 +133,21 @@ class NN:
         """Function you should call before starting training the model, as we generate the weights in here, set the loss function and optimizer.
 
         Args:
-            loss_function (Loss | str): Loss function the model should use. You can pass either the name of it as a str or intialized class. Defaults to "mse".
-            optimizer (Optimizer | str): Optimizer the model should use when updating it's params. You can pass either the name of it as a str or initalized class. Defaults to "adam"
+            loss_function (Loss | str, optional): Loss function the model should use. You can pass either the name of it as a str or intialized class. Defaults to "mse".
+            optimizer (Optimizer | str, optional): Optimizer the model should use when updating it's params. You can pass either the name of it as a str or initalized class. Defaults to "adam"
             metrics (str, optional): Paramter that specifies what metrics should the model use. Possible metrics are: accuracy. Defaults to "".
             weight_initaliziton (str, optional): Weights intialization function you want to use for weight intialization. Your options are: random, xavier, he. Defalut to "random"
         """
         self.loss_function = LOSS_FUNCTIONS[loss_function] if type(
             loss_function) == str else loss_function
+
         self.optimizer = OPTIMIZERS[optimizer] if type(
             optimizer) == str else optimizer
+        # We use 2 different optimizers for CNNs. We use the first one to update 2d weights and the second one for 4d weights
+        if any(isinstance(layer, Conv2D) for layer in self.layers):
+            optimizer4d = deepcopy(self.optimizer)
+            self.optimizer = [self.optimizer, optimizer4d]
+
         self.metrics = metrics
         self.weight_initaliziton = weight_initaliziton
         self.generate_weights(weight_data_type)
@@ -329,6 +331,10 @@ class NN:
 
 
 if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+    import matplotlib
+    matplotlib.use("TkAgg")
+
     np.random.seed(1337)
     model = NN()
 
