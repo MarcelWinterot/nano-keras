@@ -67,6 +67,7 @@ class Adam(Optimizer):
             beta1 (float, optional): Paramter that controls the exponential moving average of the first moment of the gradient. Defaults to 0.9.
             beta2 (float, optional): Paramter that contorls the exponential moving average of the second moment of the gradient. Defaults to 0.999.
             epsilon (float, optional): Paramter that ensures we don't divide by 0 and adds numerical stability to learning rate. Defaults to 1e-7.
+            adjust_biases_shape (bool, optional): Paramter that controles wheter we adjuts the bias gradients and moving averages for biases shapes. Default to False.
         """
         self.learningRate = learningRate
         self.beta1 = beta1
@@ -143,6 +144,8 @@ class Adagrad(Optimizer):
 
         Args:
             learning_rate (float, optional): Paramater that specifies how fast the model will learn. Defaults to 0.001.
+            epsilon (float, optional): Paramter that ensures we don't divide by 0 and adds numerical stability to learning rate. Defaults to 1e-7.
+            adjust_biases_shape (bool, optional): Paramter that controles wheter we adjuts the bias gradients and moving averages for biases shapes. Default to False.
         """
         self.learning_rate = learning_rate
         self.e = epsilon
@@ -196,6 +199,8 @@ class RMSProp(Optimizer):
         Args:
             learning_rate (float, optional): Paramter that specifies how fast the model will learn. Defaults to 0.001.
             rho (float, optional): Paramter that controls the exponential moving average of the squared gradients. Defaults to 0.9.
+            epsilon (float, optional): Paramter that ensures we don't divide by 0 and adds numerical stability to learning rate. Defaults to 1e-7.
+            adjust_biases_shape (bool, optional): Paramter that controles wheter we adjuts the bias gradients and moving averages for biases shapes. Default to False.
         """
         self.learning_rate = learning_rate
         self.rho = rho
@@ -248,6 +253,8 @@ class Adadelta(Optimizer):
 
         Args:
             rho (float, optional): Parameter that controls an exponential moving average. Defaults to 0.9.
+            epsilon (float, optional): Paramter that ensures we don't divide by 0 and adds numerical stability to learning rate. Defaults to 1e-7.
+            adjust_biases_shape (bool, optional): Paramter that controles wheter we adjuts the bias gradients and moving averages for biases shapes. Default to False.
         """
         self.rho = rho
         self.e = epsilon
@@ -318,6 +325,7 @@ class NAdam(Optimizer):
             beta1 (float, optional): Paramter that controls the exponential moving average of the first moment of the gradient. Defaults to 0.9.
             beta2 (float, optional): Paramter that contorls the exponential moving average of the second moment of the gradient. Defaults to 0.999.
             epsilon (float, optional): Paramter that ensures we don't divide by 0 and adds numerical stability to learning rate. Defaults to 1e-7.
+            adjust_biases_shape (bool, optional): Paramter that controles wheter we adjuts the bias gradients and moving averages for biases shapes. Default to False.
         """
         self.learning_rate = learning_rate
         self.beta1 = beta1

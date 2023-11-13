@@ -21,6 +21,11 @@ class EarlyStopping:
         self.counter = 0
 
     def get_models_weights(self, layers: list) -> None:
+        """Support function to get the weights of the model
+
+        Args:
+            layers (list): List of all the layers in a model
+        """
         for layer in layers:
             try:
                 self.weights.append(layer.weights)
@@ -30,16 +35,11 @@ class EarlyStopping:
                 self.biases.append([])
 
     def watch(self, metric: np.ndarray, layers: list) -> tuple | None:
-        """
-        Plans for the algorithm:
-        We will check if the new metric has improved to the currently stored one
-        If it has improved it will be stored in the memory with the current weights, and counter will be reset to 0
-        If it has not improved we will update the counter by 1 and check if the counter == patience, if so end the training and return the best weights
+        """Function to watch over the models metric to measure and see if it's getting better or worse
 
         Args:
             metric (np.ndarray): New metric
-            weights (np.ndarray): Our models weights
-            biases (np.ndarray): Our models biases
+            layers (list): List of all layers in a model
 
         Returns:
             tuple | None: Either the weights and biases in a tuple if the training has finished or nothing if the training continues

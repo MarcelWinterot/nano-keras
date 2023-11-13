@@ -9,7 +9,7 @@ from callbacks import *
 from copy import deepcopy
 
 """
-TODO Today:
+TODO Overall:
 1. Speed up the convolutional layer to use numpy operations instead of for loops
 We might use np.tensordot() for it
 
@@ -59,23 +59,14 @@ def print_progress(epoch: int, total_epochs: int, loss: float, accuracy: float =
     print(f"\r{progress_info}", end='')
 
 
-def convert_size(size: int) -> str:
-    units = ['b', 'kb', 'mb', 'gb']
-    unit_index = 0
-
-    while size >= 1024 and unit_index < len(units) - 1:
-        size /= 1024
-        unit_index += 1
-
-    return f"{round(size, 3)} {units[unit_index]}"
-
-
 class NN:
     def __init__(self, name: str = "NN"):
-        """NN init function. Simmilar to the keras.models.Sequential class. Simply add layers using NN.add(Layer)
+        """NN init function. Simmilar to the keras.models.Sequential class. Simply add layers using NN.add(Layer)\n
+        Note that the first layer is treated as the input layer so it's recommended to use layers.Input for it as you
+        can modify the shape of the input data there
 
         Args:
-            name (str, optional): Name of the NN. Defaults to "NN".
+            name (str, optional): Name of the model. Defaults to "NN".
         """
         self.name = name
         self.layers = []
@@ -86,6 +77,25 @@ class NN:
         self.layers_without_units = [
             Flatten, Reshape, MaxPool1D, MaxPool2D, Input]
         self.trainable_layers = [Dense, Dropout, Conv1D, Conv2D, Input]
+
+    @staticmethod
+    def _convert_size(size: int) -> str:
+        """Support function to convert bytes into bigger units so it's more readable
+
+        Args:
+            size (int): Size in bytes
+
+        Returns:
+            str: Bigger units
+        """
+        units = ['b', 'kb', 'mb', 'gb']
+        unit_index = 0
+
+        while size >= 1024 and unit_index < len(units) - 1:
+            size /= 1024
+            unit_index += 1
+
+        return f"{round(size, 3)} {units[unit_index]}"
 
     def add(self, layer: Layer):
         """Adds a custom layer to the NN.
@@ -99,7 +109,7 @@ class NN:
         """Prints out the NN's information.
 
         Args:
-            line_length (int, optional): Sets how long the string will be. Defaults to 50.
+            line_length (int, optional): Sets how long the string will be. Defaults to 65.
         """
         print(f"Model: {self.name}\n{'_'*line_length}")
         print(
@@ -113,11 +123,14 @@ class NN:
                 paramsWeight += layer.weights.nbytes + layer.biases.nbytes
         print(f"{'='*line_length}")
         print(
-            f"Total params: {totalParams} ({convert_size(paramsWeight)})")
+            f"Total params: {totalParams} ({self._convert_size(paramsWeight)})")
         print(f"{'_'*line_length}")
 
     def generate_weights(self, weight_data_type: np.float_) -> None:
         """Support function used in the compile function to generate model's weights.
+
+        Args:
+            weight_data_type (np.float_): numpy data type in which the models weights should be stored. Use only np.float_ data types.
         """
         for i in range(1, len(self.layers)):
             if not any(isinstance(self.layers[i], layer) for layer in self.layers_without_units):
@@ -137,6 +150,7 @@ class NN:
             optimizer (Optimizer | str, optional): Optimizer the model should use when updating it's params. You can pass either the name of it as a str or initalized class. Defaults to "adam"
             metrics (str, optional): Paramter that specifies what metrics should the model use. Possible metrics are: accuracy. Defaults to "".
             weight_initaliziton (str, optional): Weights intialization function you want to use for weight intialization. Your options are: random, xavier, he. Defalut to "random"
+            weight_data_type (np.float_, optional): Data type you want the models weights to be. Use np.float_ types like np.float32 or np.float64. Defaults to np.float64.
         """
         self.loss_function = LOSS_FUNCTIONS[loss_function] if type(
             loss_function) == str else loss_function
@@ -172,6 +186,9 @@ class NN:
         Args:
             X (np.ndarray): X dataset
             y (np.ndarray): y dataset
+            verbose (int, optional): What information should be printed out during training. 0 - None, 1 - Epoch/Epochs, 2 - Batch/Batches. Defaults to 2.
+            epoch (int, optional): Current epoch we're on. Only used for printing out. Defaults to 1.
+            total_epochs (int, optional): The amount of epochs we have to go through. Only used for printing out. Defaults to 100.
         """
         length_of_x = len(X)
         total_accuracy = 0
@@ -200,14 +217,15 @@ class NN:
                 print_progress(epoch+1, total_epochs, losses / (i+1),
                                accuracy, i+1, length_of_x, self.val_loss, self.val_accuracy)
 
-    def _handle_callbacks(self, result, callbacks: EarlyStopping | None) -> None | np.ndarray:
-        """Support function to make the code cleaner for handling the callbacks
+    def _handle_callbacks(self, result: tuple[np.ndarray, np.ndarray] | None, callbacks: EarlyStopping | None) -> int:
+        """Support function used for handling callbacks in train function. It either returns 0 - training continues, 1 - training stops
 
         Args:
-            callbacks (EarlyStopping | None): Callbacks used by the model. If it isn't set it's None
+            result (tuple[np.ndarray, np.ndarray] | None): Result from the callbacks.monitor() function. Either models weights or None
+            callbacks (EarlyStopping | None): Callbacks we use during models training
 
         Returns:
-            None |np.ndarray: Either None if the training continues
+            int: Information about training. 0 - continues, 1 - stops
         """
         if result is not None:
             if callbacks.restore_best_weights:
@@ -218,15 +236,14 @@ class NN:
             return 1
         return 0
 
-    def train(self, X: np.ndarray, y: np.ndarray, epochs: int, callbacks: EarlyStopping | None = None, verbose: int = 1, validation_data: tuple[np.ndarray, np.ndarray] = None) -> np.ndarray | tuple:
-        """Function to train the model. Remember to call the NN.compile() before calling this function as it won't work. \n
-        Currently the code updates the weights after each parameter instead of working in batches but I will add that in the future
+    def train(self, X: np.ndarray, y: np.ndarray, epochs: int, callbacks: EarlyStopping = None, verbose: int = 1, validation_data: tuple[np.ndarray, np.ndarray] = None) -> np.ndarray | tuple:
+        """Function to train the model. Remember to call the NN.compile() before calling this function as it won't work because we don't have weights. \n
 
         Args:
             X (np.ndarray): X dataset
             y (np.ndarray): y dataset
             epochs (int): number of iterations a model should do during training
-            callbacks (EarlyStopping | None, optional): One of the callbacks implemented in callbacks.py although currently there's only early stopping in there. Defaults to None.
+            callbacks (EarlyStopping, optional): One of the callbacks implemented in callbacks.py although currently there's only early stopping in there. Defaults to None.
             verbose (int, optional): Parameter to control what the model prints out during training. 0 - nothing, 1 - only epoch/epochs, 2 - all the useful information. Defaults to 1.
             validation_data (tuple, optional): Validation data a model should use to check the validation loss and accuracy. It should be a tuple of X and y. Default to None.
 
@@ -265,7 +282,7 @@ class NN:
             return losses, val_losses
         return losses
 
-    def evaluate(self, X: np.ndarray, y: np.ndarray, show_preds: bool = False, min_accuracy_error: float = 0.3) -> float:
+    def evaluate(self, X: np.ndarray, y: np.ndarray, show_preds: bool = False, min_accuracy_error: float = 0.25) -> float:
         """Model's evaluate function, which returns the loss calculated by the models loss function.
 
         Args:
@@ -287,7 +304,12 @@ class NN:
 
         accuracy = None
         if self.metrics == "accuracy":
-            accuracy = np.average(np.abs(y - yPreds) < min_accuracy_error)
+            if len(yPreds) == 1:
+                total_accuracy += np.average(
+                    np.abs(y[i] - yPreds) < min_accuracy_error)
+            else:
+                total_accuracy += 1 if np.argmax(y[i]
+                                                 ) == np.argmax(yPreds) else 0
 
         return self.loss_function.compute_loss(y, yPreds), accuracy
 
