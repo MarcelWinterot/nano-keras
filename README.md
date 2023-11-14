@@ -14,13 +14,19 @@
 
 ## Instalation
 
-### You will be able to download it from PyPI after around 12th of Noveber and I will explain how to do it then
+### **nano-keras** is available on [PyPI](https://pypi.org/project/nano-keras/) so simply use:
+
+#### pip install nano-keras
+
+### You can use it then by importing it in your python file:
+
+#### import nano_keras
+
+##### If you have an issue message me on github or send me an email
 
 ## Documentation
 
 ### Currently, the documentation is in progress and is expected to be released along with the first version on November 12th. It will cover:
-
-#### - Installation instructions
 
 #### - Usage examples
 

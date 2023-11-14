@@ -10,12 +10,10 @@ from copy import deepcopy
 
 """
 TODO Overall:
-1. Write install guide for nano-keras
-
-2. Speed up the convolutional layer to use numpy operations instead of for loops
+1. Speed up the convolutional layer to use numpy operations instead of for loops
 We might use np.tensordot() for it
 
-3. Make MaxPool2D backpropagation work
+2. Make MaxPool2D backpropagation work
 """
 
 
