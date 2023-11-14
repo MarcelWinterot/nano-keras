@@ -8,8 +8,11 @@ from time import time
 
 """
 TODO Overall:
-1. Speed up the convolutional layer to use numpy operations instead of for loops
-We might use np.tensordot() for it
+1. Finish speeding up the Conv2D layer by implementing im2col technique
+After implementing np.tensordot() it is 4x faster
+Useful links for it: 
+https://numpy.org/doc/stable/reference/generated/numpy.lib.stride_tricks.as_strided.html
+
 
 2. Make MaxPool2D backpropagation work
 """

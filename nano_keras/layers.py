@@ -3,6 +3,7 @@ from nano_keras.activations import ACTIVATIONS, Activation
 from nano_keras.optimizers import Optimizer
 from nano_keras.regulizers import Regularizer
 import math
+from time import time
 
 
 class Layer:
@@ -697,12 +698,11 @@ class Conv2D(Layer):
                     break  # Reached the end of the input
 
                 for k in range(self.number_of_filters):
-                    output = np.float64(0)
-                    for l in range(x.shape[-1]):
-                        output += np.sum(x[i:i + self.kernel_size[0],
-                                           j:j + self.kernel_size[1],
-                                           l] * self.weights[:, :, l, k])
-                    weighted_sum[i, j, k] = output
+                    weighted_sum[i, j, k] = np.tensordot(
+                        x[i:i + self.kernel_size[0], j:j + self.kernel_size[1], :],
+                        self.weights[:, :, :, k],
+                        axes=([0, 1, 2], [0, 1, 2])
+                    )
 
         output = self.activation.compute_loss(weighted_sum)
         self.outputs = np.array([output, weighted_sum])
@@ -732,12 +732,19 @@ class Conv2D(Layer):
 
         for i in range(0, self.inputs.shape[0], self.strides[0]):
             for j in range(0, self.inputs.shape[1], self.strides[1]):
+                if i + self.strides[0] > self.inputs.shape[0] or j + self.strides[1] > self.inputs.shape[1]:
+                    break  # Reached the end of self.inputs
+
+                delta_array = np.full(
+                    self.inputs[i:i + self.kernel_size[0], j:j + self.kernel_size[1], :].shape, delta)
+
                 for k in range(self.number_of_filters):
-                    for l in range(self.inputs.shape[-1]):
-                        output = np.sum(self.inputs[i:i + self.kernel_size[0],
-                                                    j:j + self.kernel_size[1],
-                                                    l] * delta)
-                        weights_gradients[:, :, l, k] += output
+                    weights_gradients[:, :, :, k] += np.tensordot(
+                        self.inputs[i:i + self.kernel_size[0],
+                                    j:j + self.kernel_size[1], :],
+                        delta_array,
+                        axes=([0, 1, 2], [0, 1, 2])
+                    )
 
         self.weights, self.biases = optimizer[1].apply_gradients(
             weights_gradients, delta, self.weights, self.biases)
