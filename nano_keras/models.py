@@ -1,10 +1,10 @@
-import sys
 import numpy as np
 from nano_keras.losses import LOSS_FUNCTIONS, Loss
 from nano_keras.optimizers import OPTIMIZERS, Optimizer
 from nano_keras.layers import LAYERS_WITHOUT_UNITS, TRAINABLE_LAYERS, Layer
 from nano_keras.callbacks import EarlyStopping
 from copy import deepcopy
+from time import time
 
 """
 TODO Overall:
@@ -51,7 +51,7 @@ class NN:
         return f"{round(size, 3)} {units[unit_index]}"
 
     @staticmethod
-    def print_progress(epoch: int, total_epochs: int, loss: float, accuracy: float = None, batch: int = None, total_batches: int = None, val_loss: float = None, val_accuracy: float = None) -> None:
+    def print_progress(epoch: int, total_epochs: int, loss: float, accuracy: float = None, batch: int = None, total_batches: int = None, val_loss: float = None, val_accuracy: float = None, time_taken: float = None) -> None:
         """Function that prints out current training progress
 
         Args:
@@ -63,6 +63,7 @@ class NN:
             total_batches (int, optional): total number of batches. Will be set if verbose is set to 2 in the NN.train function. If it's None we ignore it during printing. Defaults to None.
             val_loss (float, optional): Validation loss of the model. If it's None we ignore it during printing. Defaults to None.
             val_accuracy (float, optional): Validation accuracy of the model. If it's None we ignore it during printing. Defaults to None.
+            time_taken (float, optional): Time that a batch has taken to complete. Note that it is only shown if verbose is set to 2. Defaults to None
         """
         bar_length = 30
 
@@ -75,6 +76,9 @@ class NN:
             progress = int(bar_length * epoch / total_epochs)
             progress_bar = f"[{'=' * progress}>{'.' * (bar_length - progress)}]"
             progress_info = f"{epoch}/{total_epochs} {progress_bar} - loss: {loss:.8f}"
+
+        if time_taken is not None:
+            progress_info += f" - ETA: {(time_taken * (total_batches - batch)):.2f}"
 
         if accuracy is not None:
             if type(accuracy) == np.nan:
@@ -130,7 +134,7 @@ class NN:
                 except Exception as e:
                     print(
                         f"Exception encountered when creating weights: {e}\nChange your achitecture and try again. If you think it's an error post an issue on github")
-                    sys.exit()
+                    exit(1)
 
     def compile(self, loss_function: Loss | str = "mse", optimizer: Optimizer | str = "adam", metrics: str = "", weight_initaliziton: str = "random", weight_data_type: np.float_ = np.float64) -> None:
         """Function you should call before starting training the model, as we generate the weights in here, set the loss function and optimizer.
@@ -182,6 +186,7 @@ class NN:
         total_accuracy = 0
         losses = 0
         for i in range(length_of_x):
+            start = time()
             yPred = self.feed_forward(X[i])
 
             # Accuracy calculation
@@ -201,9 +206,10 @@ class NN:
                 losses += self.loss_function.compute_loss(y[i], yPred)
                 accuracy = total_accuracy / \
                     (i+1) if self.metrics == "accuracy" else None
+                time_taken = time() - start
                 # Note that we use (i + 1) as we want to divide the losses and accuracy by the amount of times they've been updated
                 self.print_progress(epoch+1, total_epochs, losses / (i+1),
-                                    accuracy, i+1, length_of_x, self.val_loss, self.val_accuracy)
+                                    accuracy, i+1, length_of_x, self.val_loss, self.val_accuracy, time_taken)
 
     def _handle_callbacks(self, result: tuple[np.ndarray, np.ndarray] | None, callbacks: EarlyStopping | None) -> int:
         """Support function used for handling callbacks in train function. It either returns 0 - training continues, 1 - training stops
