@@ -1,11 +1,8 @@
 import numpy as np
-from nano_keras.activations import Sigmoid, Tanh, ReLU, LeakyReLU, ELU, Softmax, Activation
+from nano_keras.activations import ACTIVATIONS, Activation
 from nano_keras.optimizers import Optimizer
 from nano_keras.regulizers import Regularizer
 import math
-
-ACTIVATIONS = {'sigmoid': Sigmoid(), 'tanh': Tanh(), 'relu': ReLU(
-), 'leaky_relu': LeakyReLU(), 'elu': ELU(), "softmax": Softmax()}
 
 
 class Layer:
@@ -182,12 +179,13 @@ class Dense(Layer):
     def __repr__(self) -> str:
         return f"{self.name} (Dense){' ' * (28 - len(self.name) - 7)}{(None, self.units)}{' ' * (26 - len(f'(None, {self.units})'))}{self.weights.size + self.biases.size}\n"
 
-    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer, Optimizer]) -> np.ndarray:
+    def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer, Optimizer]) -> np.ndarray:
         """Backpropagation algorithm for the dense layer
 
         Args:
             gradient (np.ndarray): Gradient calculated by the loss function derivative or by previous layers backpropagation algorithm
-            optimizer (Optimizer): Optimizer to use for updating the model's parameters
+            optimizer (List[Optimizer, Optimizer]): Optimizer to use for updating the model's parameters. Note that we use 2 different optimizers as then we don't have to check a bunch of times 
+            wheter we use 1 or 2 optimizers, and we need 2 optimizers for CNNs
 
         Returns:
             np.ndarray: Output gradient of the layer
@@ -200,14 +198,8 @@ class Dense(Layer):
 
         weights_gradients = np.outer(self.inputs, delta)
 
-        # Checking if our optimizer is a list or a single element as we use 2 optimizers when we have convolutional layers
-        # as I've implemented that we use 2 different optimizers, first one for 2d, the second one for 4d weights
-        if isinstance(optimizer, list):
-            self.weights, self.biases = optimizer[0].apply_gradients(weights_gradients, np.array(
-                delta, dtype=float), self.weights, self.biases)
-        else:
-            self.weights, self.biases = optimizer.apply_gradients(weights_gradients, np.array(
-                delta, dtype=float), self.weights, self.biases)
+        self.weights, self.biases = optimizer[0].apply_gradients(weights_gradients, np.array(
+            delta, dtype=float), self.weights, self.biases)
 
         return np.dot(delta, self.weights.T)
 
@@ -253,12 +245,13 @@ class Dropout(Layer):
 
         return super().__call__(x)
 
-    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer, Optimizer]) -> np.ndarray:
+    def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer, Optimizer]) -> np.ndarray:
         """Backpropagation algorithm for the dropout layer
 
         Args:
             gradient (np.ndarray): Gradient calculated by loss.compute_derivative() or previous layers output gradient
-            optimizer (Optimizer | list[Optimizer, Optimizer]): Optimizer we should use to update model's weights
+            optimizer (List[Optimizer, Optimizer]): Optimizer to use for updating the model's parameters. Note that we use 2 different optimizers as then we don't have to check a bunch of times 
+            wheter we use 1 or 2 optimizers, and we need 2 optimizers for CNNs
 
         Returns:
             np.ndarray: Output gradient
@@ -274,12 +267,8 @@ class Dropout(Layer):
 
         weights_gradients = np.outer(self.inputs, delta)
 
-        if isinstance(optimizer, list):
-            self.weights, self.biases = optimizer[0].apply_gradients(weights_gradients, np.array(
-                delta, dtype=float), self.weights, self.biases)
-        else:
-            self.weights, self.biases = optimizer.apply_gradients(weights_gradients, np.array(
-                delta, dtype=float), self.weights, self.biases)
+        self.weights, self.biases = optimizer[0].apply_gradients(weights_gradients, np.array(
+            delta, dtype=float), self.weights, self.biases)
 
         return np.dot(delta, self.weights.T)
 
@@ -308,12 +297,13 @@ class Flatten(Layer):
         self.original_shape = x.shape
         return np.ravel(x)
 
-    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer, Optimizer]) -> np.ndarray:
+    def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer, Optimizer]) -> np.ndarray:
         """Backpropagate algorithm for the flatten layer. We unflatten the gradient in here
 
         Args:
             gradient (np.ndarray): Gradient calculated by loss.compute_derivative() or previous layers output gradient
-            optimizer (Optimizer | list[Optimizer, Optimizer]): Optimizer we should use to update model's weights
+            optimizer (List[Optimizer, Optimizer]): Optimizer to use for updating the model's parameters. Note that we use 2 different optimizers as then we don't have to check a bunch of times 
+            wheter we use 1 or 2 optimizers, and we need 2 optimizers for CNNs
 
         Returns:
             np.ndarray: Output gradient
@@ -348,12 +338,13 @@ class Reshape(Layer):
         self.original_shape = x.shape
         return np.reshape(x, self.target_shape)
 
-    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer, Optimizer]) -> np.ndarray:
+    def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer, Optimizer]) -> np.ndarray:
         """Backpropagate algorithm used for reshape layer. We reshape the gradient in here
 
         Args:
             gradient (np.ndarray): Gradient calculated by the loss.compute_derivative function
-            optimizer (Optimizer | list[Optimizer, Optimizer]): Optimizer we should use to update the model's params
+            optimizer (List[Optimizer, Optimizer]): Optimizer to use for updating the model's parameters. Note that we use 2 different optimizers as then we don't have to check a bunch of times 
+            wheter we use 1 or 2 optimizers, and we need 2 optimizers for CNNs
 
         Returns:
             np.ndarray: Output gradient
@@ -482,12 +473,13 @@ class MaxPool2D(Layer):
         self.output = output
         return output
 
-    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer, Optimizer]) -> np.ndarray:
+    def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer, Optimizer]) -> np.ndarray:
         """Backpropagation algorithm for MaxPool2D layer. Note that it's not finished so it doesn't work properly
 
         Args:
             gradient (np.ndarray): Gradient calculated by loss.compute_derivative() or previous layers output gradient
-            optimizer (Optimizer | list[Optimizer, Optimizer]): Optimizer we should use to update model's weights
+            optimizer (List[Optimizer, Optimizer]): Optimizer to use for updating the model's parameters. Note that we use 2 different optimizers as then we don't have to check a bunch of times 
+            wheter we use 1 or 2 optimizers, and we need 2 optimizers for CNNs
 
         Returns:
             np.ndarray: Output gradient
@@ -551,12 +543,13 @@ class Conv1D(Layer):
 
         return output
 
-    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer, Optimizer]) -> np.ndarray:
+    def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer, Optimizer]) -> np.ndarray:
         """Backpropagation algorithm for Conv1D layer
 
         Args:
             gradient (np.ndarray): Gradient calculated by loss.compute_derivative() or previous layers output gradient
-            optimizer (Optimizer | list[Optimizer, Optimizer]): Optimizer we should use to update the model's params
+            optimizer (List[Optimizer, Optimizer]): Optimizer to use for updating the model's parameters. Note that we use 2 different optimizers as then we don't have to check a bunch of times 
+            wheter we use 1 or 2 optimizers, and we need 2 optimizers for CNNs
 
         Returns:
             np.ndarray: Output gradient
@@ -580,12 +573,8 @@ class Conv1D(Layer):
                 weights_gradients[i //
                                   self.strides, j] = np.sum(self.inputs[i:i+self.kernel_size, j:j+self.kernel_size] * delta)
 
-        if isinstance(optimizer, list):
-            self.weights, self.biases = optimizer[0].apply_gradients(weights_gradients, np.array(
-                delta, dtype=float), self.weights, self.biases)
-        else:
-            self.weights, self.biases = optimizer.apply_gradients(weights_gradients, np.array(
-                delta, dtype=float), self.weights, self.biases)
+        self.weights, self.biases = optimizer[0].apply_gradients(weights_gradients, np.array(
+            delta, dtype=float), self.weights, self.biases)
 
         return np.dot(delta, self.weights.T)
 
@@ -725,7 +714,8 @@ class Conv2D(Layer):
 
         Args:
             gradient (np.ndarray): Gradient calculated by loss.compute_derivative() or previous layers output gradient
-            optimizer (list[Optimizer, Optimizer]): Optimizer we should use to update model's weights
+            optimizer (List[Optimizer, Optimizer]): Optimizer to use for updating the model's parameters. Note that we use 2 different optimizers as then we don't have to check a bunch of times 
+            wheter we use 1 or 2 optimizers, and we need 2 optimizers for CNNs
 
         Returns:
             np.ndarray: Output gradient
@@ -755,3 +745,8 @@ class Conv2D(Layer):
         output_gradient = np.dot(delta, self.inputs)
 
         return output_gradient
+
+
+LAYERS_WITHOUT_UNITS = [
+    Flatten, Reshape, MaxPool1D, MaxPool2D, Input]
+TRAINABLE_LAYERS = [Dense, Dropout, Conv1D, Conv2D, Input]

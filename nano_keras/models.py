@@ -1,11 +1,9 @@
 import sys
 import numpy as np
-from nano_keras.activations import *
-from nano_keras.losses import *
-from nano_keras.optimizers import *
-from nano_keras.regulizers import *
-from nano_keras.layers import *
-from nano_keras.callbacks import *
+from nano_keras.losses import LOSS_FUNCTIONS, Loss
+from nano_keras.optimizers import OPTIMIZERS, Optimizer
+from nano_keras.layers import LAYERS_WITHOUT_UNITS, TRAINABLE_LAYERS, Layer
+from nano_keras.callbacks import EarlyStopping
 from copy import deepcopy
 
 """
@@ -32,13 +30,6 @@ class NN:
         self.accuracy = 0
         self.val_loss = None
         self.val_accuracy = None
-        self.layers_without_units = [
-            Flatten, Reshape, MaxPool1D, MaxPool2D, Input]
-        self.trainable_layers = [Dense, Dropout, Conv1D, Conv2D, Input]
-        self.LOSS_FUNCTIONS = {
-            "mae": MAE(), "mse": MSE(), "bce": BCE(), "cce": CCE(), "hinge": Hinge(), "huber": Huber()}
-        self.OPTIMIZERS = {"adam": Adam(), "sgd": SGD(), "adagrad": Adagrad(
-        ), "adadelta": Adadelta(), "rmsprop": RMSProp(), "nadam": NAdam()}
 
     @staticmethod
     def _convert_size(size: int) -> str:
@@ -117,7 +108,7 @@ class NN:
         totalParams = 0
         for layer in self.layers:
             print(layer)
-            if any(isinstance(layer, trainable_layer) for trainable_layer in self.trainable_layers):
+            if any(isinstance(layer, trainable_layer) for trainable_layer in TRAINABLE_LAYERS):
                 totalParams += layer.weights.size + layer.biases.size
                 paramsWeight += layer.weights.nbytes + layer.biases.nbytes
         print(f"{'='*line_length}")
@@ -132,7 +123,7 @@ class NN:
             weight_data_type (np.float_): numpy data type in which the models weights should be stored. Use only np.float_ data types.
         """
         for i in range(1, len(self.layers)):
-            if not any(isinstance(self.layers[i], layer) for layer in self.layers_without_units):
+            if not any(isinstance(self.layers[i], layer) for layer in LAYERS_WITHOUT_UNITS):
                 try:
                     self.layers[i].generate_weights(
                         self.layers, i, self.weight_initaliziton, weight_data_type)
@@ -151,15 +142,13 @@ class NN:
             weight_initaliziton (str, optional): Weights intialization function you want to use for weight intialization. Your options are: random, xavier, he. Defalut to "random"
             weight_data_type (np.float_, optional): Data type you want the models weights to be. Use np.float_ types like np.float32 or np.float64. Defaults to np.float64.
         """
-        self.loss_function = self.LOSS_FUNCTIONS[loss_function] if type(
+        self.loss_function = LOSS_FUNCTIONS[loss_function] if type(
             loss_function) == str else loss_function
 
-        self.optimizer = self.OPTIMIZERS[optimizer] if type(
+        self.optimizer = OPTIMIZERS[optimizer] if type(
             optimizer) == str else optimizer
-        # We use 2 different optimizers for CNNs. We use the first one to update 2d weights and the second one for 4d weights
-        if any(isinstance(layer, Conv2D) for layer in self.layers):
-            optimizer4d = deepcopy(self.optimizer)
-            self.optimizer = [self.optimizer, optimizer4d]
+        optimizer4d = deepcopy(self.optimizer)
+        self.optimizer = [self.optimizer, optimizer4d]
 
         self.metrics = metrics
         self.weight_initaliziton = weight_initaliziton
@@ -323,7 +312,7 @@ class NN:
         """
         array_to_save = []
         for layer in self.layers:
-            if any(isinstance(layer, layer_without_units) for layer_without_units in self.layers_without_units):
+            if any(isinstance(layer, layer_without_units) for layer_without_units in LAYERS_WITHOUT_UNITS):
                 array_to_save.append([])
                 continue
             array_to_save.append([layer.weights, layer.biases])
@@ -351,44 +340,3 @@ class NN:
             self.layers[i].biases = array[i][1]
 
         return
-
-
-if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-    import matplotlib
-    matplotlib.use("TkAgg")
-
-    np.random.seed(1337)
-    model = NN()
-
-    model.add(Input(2))
-    model.add(Dense(2, "relu", name="Hidden layer"))
-    model.add(Dense(1, "sigmoid", name="Output layer"))
-
-    optimizer = Adam(0.2)
-    loss = "mse"
-
-    model.compile(loss, optimizer, metrics="accuracy",
-                  weight_initaliziton="random")
-    model.summary()
-
-    # AND
-    X = np.array([[0, 0], [1, 0], [0, 1], [1, 1]])
-    y = np.array([[1], [0], [0], [1]])
-
-    print("\n\n STARTING TRAINING \n\n")
-
-    losses, val_losses = model.train(
-        X, y, 2500, validation_data=(X, y), verbose=2)
-
-    print("\n\n TRAINING FINISHED \n\n")
-
-    loss, accuracy = model.evaluate(X, y, show_preds=True)
-
-    model.save("./array")
-
-    plt.plot(range(1, len(losses) + 1), losses)
-    plt.xlabel("Epochs")
-    plt.ylabel("Loss")
-    plt.title("Loss over time")
-    plt.show()

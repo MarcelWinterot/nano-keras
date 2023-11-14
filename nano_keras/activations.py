@@ -193,8 +193,5 @@ class Softmax(Activation):
         return np.diag(s) - np.outer(s, s)
 
 
-if __name__ == "__main__":
-    X = np.array([0.20666447, 0.983, 0.1])
-    activation = Softmax()
-    print(activation.compute_loss(X))
-    print(activation.compute_derivative(X))
+ACTIVATIONS = {'sigmoid': Sigmoid(), 'tanh': Tanh(), 'relu': ReLU(
+), 'leaky_relu': LeakyReLU(), 'elu': ELU(), "softmax": Softmax()}

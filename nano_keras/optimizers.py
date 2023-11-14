@@ -396,3 +396,7 @@ class NAdam(Optimizer):
         biases += self.learning_rate / np.sqrt(v_hat_b + self.e) * m_hat_b
 
         return (weights, biases)
+
+
+OPTIMIZERS = {"adam": Adam(), "sgd": SGD(), "adagrad": Adagrad(
+), "adadelta": Adadelta(), "rmsprop": RMSProp(), "nadam": NAdam()}

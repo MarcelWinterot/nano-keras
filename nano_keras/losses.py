@@ -211,3 +211,7 @@ class Huber(Loss):
         absolute_error = np.abs(yTrue - yPred)
         return np.where(absolute_error <= self.delta,
                         yPred - yTrue, self.delta * np.sign(yPred - yTrue))
+
+
+LOSS_FUNCTIONS = {"mae": MAE(), "mse": MSE(), "bce": BCE(), "cce": CCE(),
+          "huber": Huber(), "hinge": Hinge()}
