@@ -1,19 +1,12 @@
-import sys
-import os
-
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.abspath(os.path.join(current_dir, os.pardir))
-sys.path.append(f"{project_root}/src")
-
 import numpy as np
 import seaborn as sns
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
-from main import NN
-from losses import *
-from layers import Dense, Input
-from optimizers import *
+from nano_keras.models import NN
+from nano_keras.losses import MSE
+from nano_keras.layers import Dense, Input
+from nano_keras.optimizers import NAdam
 
 X = sns.load_dataset("titanic")
 

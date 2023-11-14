@@ -1,7 +1,7 @@
 import numpy as np
-from activations import Sigmoid, Tanh, ReLU, LeakyReLU, ELU, Softmax, Activation
-from optimizers import Optimizer
-from regulizers import Regularizer
+from nano_keras.activations import Sigmoid, Tanh, ReLU, LeakyReLU, ELU, Softmax, Activation
+from nano_keras.optimizers import Optimizer
+from nano_keras.regulizers import Regularizer
 import math
 
 ACTIVATIONS = {'sigmoid': Sigmoid(), 'tanh': Tanh(), 'relu': ReLU(

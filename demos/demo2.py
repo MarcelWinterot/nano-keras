@@ -1,17 +1,12 @@
-import sys
-import os
-
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.abspath(os.path.join(current_dir, os.pardir))
-sys.path.append(f"{project_root}/src")
-
-from optimizers import NAdam
+from nano_keras.optimizers import NAdam
 import numpy as np
-from main import NN
-from layers import Input, Flatten, Conv2D, Dropout, Dense
+from nano_keras.models import NN
+from nano_keras.layers import Input, Flatten, Conv2D, Dropout, Dense
 
 
 def load_data() -> tuple:
+    # Note that we use keras to only downlaod the dataset and modify it's values as
+    # I'm focusing on creating NNs and not playing with data
     from keras.datasets import mnist
     from keras.utils import to_categorical
 

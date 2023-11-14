@@ -1,62 +1,22 @@
 import sys
 import numpy as np
-from activations import *
-from losses import *
-from optimizers import *
-from regulizers import *
-from layers import *
-from callbacks import *
+from nano_keras.activations import *
+from nano_keras.losses import *
+from nano_keras.optimizers import *
+from nano_keras.regulizers import *
+from nano_keras.layers import *
+from nano_keras.callbacks import *
 from copy import deepcopy
 
 """
 TODO Overall:
-1. Speed up the convolutional layer to use numpy operations instead of for loops
+1. Write install guide for nano-keras
+
+2. Speed up the convolutional layer to use numpy operations instead of for loops
 We might use np.tensordot() for it
 
-2. Make MaxPool2D backpropagation work
+3. Make MaxPool2D backpropagation work
 """
-
-LOSS_FUNCTIONS = {
-    "mae": MAE(), "mse": MSE(), "bce": BCE(), "cce": CCE(), "hinge": Hinge(), "huber": Huber()}
-OPTIMIZERS = {"adam": Adam(), "sgd": SGD(), "adagrad": Adagrad(
-), "adadelta": Adadelta(), "rmsprop": RMSProp(), "nadam": NAdam()}
-
-
-def print_progress(epoch: int, total_epochs: int, loss: float, accuracy: float = None, batch: int = None, total_batches: int = None, val_loss: float = None, val_accuracy: float = None) -> None:
-    """Function that prints out current training progress
-
-    Args:
-        epoch (int): current epoch
-        total_epochs (int): total number of epochs
-        loss (float): loss calculated by NN.evaluate function
-        accuracy (float, optional): accuracy of the model during training. Default to None.
-        batch (int, optional): current batch. Will be set if verbose is set to 2 in the NN.train function. If it's None we ignore it during printing. Defaults to None.
-        total_batches (int, optional): total number of batches. Will be set if verbose is set to 2 in the NN.train function. If it's None we ignore it during printing. Defaults to None.
-        val_loss (float, optional): Validation loss of the model. If it's None we ignore it during printing. Defaults to None.
-        val_accuracy (float, optional): Validation accuracy of the model. If it's None we ignore it during printing. Defaults to None.
-    """
-    bar_length = 30
-
-    if batch is not None and total_batches is not None:
-        progress = int(bar_length * batch / total_batches)
-        progress_bar = f"[{'=' * progress}>{'.' * (bar_length - progress)}]"
-        progress_info = f"{epoch}/{total_epochs}: {progress_bar} - batch: {batch}/{total_batches} - loss: {loss:.8f}"
-
-    else:
-        progress = int(bar_length * epoch / total_epochs)
-        progress_bar = f"[{'=' * progress}>{'.' * (bar_length - progress)}]"
-        progress_info = f"{epoch}/{total_epochs} {progress_bar} - loss: {loss:.8f}"
-
-    if accuracy is not None:
-        if type(accuracy) == np.nan:
-            progress_info += f" - accuracy: {0:.3f}"
-        else:
-            progress_info += f" - accuracy: {accuracy:.3f}"
-
-    if val_loss is not None:
-        progress_info += f" - val_loss: {val_loss:.8f} - val_accuracy: {val_accuracy:.3f}"
-
-    print(f"\r{progress_info}", end='')
 
 
 class NN:
@@ -77,6 +37,10 @@ class NN:
         self.layers_without_units = [
             Flatten, Reshape, MaxPool1D, MaxPool2D, Input]
         self.trainable_layers = [Dense, Dropout, Conv1D, Conv2D, Input]
+        self.LOSS_FUNCTIONS = {
+            "mae": MAE(), "mse": MSE(), "bce": BCE(), "cce": CCE(), "hinge": Hinge(), "huber": Huber()}
+        self.OPTIMIZERS = {"adam": Adam(), "sgd": SGD(), "adagrad": Adagrad(
+        ), "adadelta": Adadelta(), "rmsprop": RMSProp(), "nadam": NAdam()}
 
     @staticmethod
     def _convert_size(size: int) -> str:
@@ -96,6 +60,43 @@ class NN:
             unit_index += 1
 
         return f"{round(size, 3)} {units[unit_index]}"
+
+    @staticmethod
+    def print_progress(epoch: int, total_epochs: int, loss: float, accuracy: float = None, batch: int = None, total_batches: int = None, val_loss: float = None, val_accuracy: float = None) -> None:
+        """Function that prints out current training progress
+
+        Args:
+            epoch (int): current epoch
+            total_epochs (int): total number of epochs
+            loss (float): loss calculated by NN.evaluate function
+            accuracy (float, optional): accuracy of the model during training. Default to None.
+            batch (int, optional): current batch. Will be set if verbose is set to 2 in the NN.train function. If it's None we ignore it during printing. Defaults to None.
+            total_batches (int, optional): total number of batches. Will be set if verbose is set to 2 in the NN.train function. If it's None we ignore it during printing. Defaults to None.
+            val_loss (float, optional): Validation loss of the model. If it's None we ignore it during printing. Defaults to None.
+            val_accuracy (float, optional): Validation accuracy of the model. If it's None we ignore it during printing. Defaults to None.
+        """
+        bar_length = 30
+
+        if batch is not None and total_batches is not None:
+            progress = int(bar_length * batch / total_batches)
+            progress_bar = f"[{'=' * progress}>{'.' * (bar_length - progress)}]"
+            progress_info = f"{epoch}/{total_epochs}: {progress_bar} - batch: {batch}/{total_batches} - loss: {loss:.8f}"
+
+        else:
+            progress = int(bar_length * epoch / total_epochs)
+            progress_bar = f"[{'=' * progress}>{'.' * (bar_length - progress)}]"
+            progress_info = f"{epoch}/{total_epochs} {progress_bar} - loss: {loss:.8f}"
+
+        if accuracy is not None:
+            if type(accuracy) == np.nan:
+                progress_info += f" - accuracy: {0:.3f}"
+            else:
+                progress_info += f" - accuracy: {accuracy:.3f}"
+
+        if val_loss is not None:
+            progress_info += f" - val_loss: {val_loss:.8f} - val_accuracy: {val_accuracy:.3f}"
+
+        print(f"\r{progress_info}", end='')
 
     def add(self, layer: Layer):
         """Adds a custom layer to the NN.
@@ -152,10 +153,10 @@ class NN:
             weight_initaliziton (str, optional): Weights intialization function you want to use for weight intialization. Your options are: random, xavier, he. Defalut to "random"
             weight_data_type (np.float_, optional): Data type you want the models weights to be. Use np.float_ types like np.float32 or np.float64. Defaults to np.float64.
         """
-        self.loss_function = LOSS_FUNCTIONS[loss_function] if type(
+        self.loss_function = self.LOSS_FUNCTIONS[loss_function] if type(
             loss_function) == str else loss_function
 
-        self.optimizer = OPTIMIZERS[optimizer] if type(
+        self.optimizer = self.OPTIMIZERS[optimizer] if type(
             optimizer) == str else optimizer
         # We use 2 different optimizers for CNNs. We use the first one to update 2d weights and the second one for 4d weights
         if any(isinstance(layer, Conv2D) for layer in self.layers):
@@ -214,8 +215,8 @@ class NN:
                 accuracy = total_accuracy / \
                     (i+1) if self.metrics == "accuracy" else None
                 # Note that we use (i + 1) as we want to divide the losses and accuracy by the amount of times they've been updated
-                print_progress(epoch+1, total_epochs, losses / (i+1),
-                               accuracy, i+1, length_of_x, self.val_loss, self.val_accuracy)
+                self.print_progress(epoch+1, total_epochs, losses / (i+1),
+                                    accuracy, i+1, length_of_x, self.val_loss, self.val_accuracy)
 
     def _handle_callbacks(self, result: tuple[np.ndarray, np.ndarray] | None, callbacks: EarlyStopping | None) -> int:
         """Support function used for handling callbacks in train function. It either returns 0 - training continues, 1 - training stops
@@ -276,8 +277,8 @@ class NN:
 
             losses[epoch] = self.loss
             if verbose == 1:
-                print_progress(epoch+1, epochs, self.loss, self.accuracy,
-                               val_loss=self.val_loss, val_accuracy=self.val_accuracy)
+                self.print_progress(epoch+1, epochs, self.loss, self.accuracy,
+                                    val_loss=self.val_loss, val_accuracy=self.val_accuracy)
         if validation_data is not None:
             return losses, val_losses
         return losses
@@ -303,13 +304,15 @@ class NN:
             print(yPreds)
 
         accuracy = None
-        if self.metrics == "accuracy":
+        # if self.metrics == "accuracy":
+        if self.metrics.find("accuracy") != -1:
+            accuracy = 0
             if len(yPreds) == 1:
-                total_accuracy += np.average(
+                accuracy += np.average(
                     np.abs(y[i] - yPreds) < min_accuracy_error)
             else:
-                total_accuracy += 1 if np.argmax(y[i]
-                                                 ) == np.argmax(yPreds) else 0
+                accuracy += 1 if np.argmax(y[i]
+                                           ) == np.argmax(yPreds) else 0
 
         return self.loss_function.compute_loss(y, yPreds), accuracy
 
