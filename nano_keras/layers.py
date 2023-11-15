@@ -3,7 +3,6 @@ from nano_keras.activations import ACTIVATIONS, Activation
 from nano_keras.optimizers import Optimizer
 from nano_keras.regulizers import Regularizer
 import math
-from copy import deepcopy
 
 
 class Layer:
@@ -408,15 +407,15 @@ class MaxPool1D(Layer):
 
 
 class MaxPool2D(Layer):
-    def __init__(self, kernel_size: tuple[int, int] = (2, 2), strides: tuple[int, int] = (2, 2), name: str = "MaxPool2D"):
+    def __init__(self, pool_size: tuple[int, int] = (2, 2), strides: tuple[int, int] = (2, 2), name: str = "MaxPool2D"):
         """Intializer for the MaxPool2D layer
 
         Args:
-            kernel_size (tuple[int, int], optional): Size of the kernel. Defaults to (2, 2).
+            pool_size (tuple[int, int], optional): Size of the pool. Defaults to (2, 2).
             strides (tuple[int, int], optional): Step the kernel should take. Defaults to (2, 2).
             name (str, optional): Name of the layer. Default to NaxPool2D
         """
-        self.kernel_size = kernel_size
+        self.pool_size = pool_size
         self.strides = strides
         self.name = name
 
@@ -424,7 +423,7 @@ class MaxPool2D(Layer):
         input_shape = layers[current_layer_index -
                              1].output_shape(layers, current_layer_index-1)
         self.output_shape_value = tuple([math.floor(
-            (input_shape[i] - self.kernel_size[i]) / self.strides[i]) + 1 for i in range(2)])
+            (input_shape[i] - self.pool_size[i]) / self.strides[i]) + 1 for i in range(2)])
 
         if len(input_shape) > 2:
             self.output_shape_value += (input_shape[-1],)
@@ -457,20 +456,28 @@ class MaxPool2D(Layer):
         """
         self.inputs = x
 
-        height = (x.shape[0] - self.kernel_size[0]) // self.strides[0] + 1
-        width = (x.shape[1] - self.kernel_size[1]) // self.strides[1] + 1
+        x_shape = x.shape
+        height = (x_shape[0] - self.pool_size[0]) // self.strides[0] + 1
+        width = (x_shape[1] - self.pool_size[1]) // self.strides[1] + 1
 
-        # We have height x width x channels. We also don't reduce the size of the channels
-        output = np.zeros((height, width, x.shape[-1]))
+        output = np.zeros((height, width))
 
-        for i in range(0, height, self.strides[0]):
-            for j in range(0, width, self.strides[1]):
-                if i + self.kernel_size[0] > x.shape[0] or j + self.kernel_size[1] > x.shape[1]:
-                    break  # Reached the end of the input
-                output[i, j] = np.max(
-                    x[i:i+self.kernel_size[0], j:j+self.kernel_size[1]])
+        if len(x_shape) == 3:
+            output = np.zeros((height, width, x_shape[-1]))
 
-        output[-1, -1, :] = x[-1, -1, :]
+        for i in range(height):
+            for j in range(width):
+                # We are using this method instead of range(0, x.shape[0], self.strides[0]) as then we'd have to
+                # keep on what iteration of what we are on and that's just too much useless work for now
+                i_start, j_start = i * self.strides[0], j * self.strides[1]
+                i_end, j_end = i_start + \
+                    self.pool_size[0], j_start + self.pool_size[1]
+
+                output[i, j] = np.max(x[i_start:i_end, j_start:j_end])
+
+        if len(x.shape) == 3:
+            output[-1, -1, :] = x[-1, -1, :]
+
         self.output = output
         return output
 
@@ -485,8 +492,8 @@ class MaxPool2D(Layer):
         Returns:
             np.ndarray: Output gradient
         """
-        # TODO Change gradient calculation to increase the size of it.
-        # A good example of what to do is https://stats.stackexchange.com/questions/414301/2d-max-pool-gradient-propagation
+        raise Exception(
+            "MaxPool2D backpropagation is not implemented yet, if you really need it set the strides in Conv2D to something other than (1, 1)")
         return gradient
 
 
@@ -753,16 +760,15 @@ class Conv2D(Layer):
 
         for i in range(0, self.inputs.shape[0], self.strides[0]):
             for j in range(0, self.inputs.shape[1], self.strides[1]):
-                if i + self.strides[0] > self.inputs.shape[0] or j + self.strides[1] > self.inputs.shape[1]:
+                if i + self.kernel_size[0] > self.inputs.shape[0] or j + self.kernel_size[1] > self.inputs.shape[1]:
                     break  # Reached the end of self.inputs
+
+                data_slice = tuple([slice(
+                    i, i + self.kernel_size[0]), slice(j, j + self.kernel_size[1]), slice(0, -1)])
 
                 for k in range(self.number_of_filters):
                     weights_gradients[:, :, :, k] += np.tensordot(
-                        self.inputs[i:i + self.kernel_size[0],
-                                    j:j + self.kernel_size[1], :],
-                        delta_array[i:i + self.kernel_size[0], j:j + self.kernel_size[1], :],
-                        axes=([0, 1, 2], [0, 1, 2])
-                    )
+                        self.inputs[data_slice], delta_array[data_slice],  axes=([0, 1, 2], [0, 1, 2]))
 
         self.weights, self.biases = optimizer[1].apply_gradients(
             weights_gradients, delta, self.weights, self.biases)
