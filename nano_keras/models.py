@@ -8,13 +8,14 @@ from time import time
 
 """
 TODO Overall:
-1. Finish speeding up the Conv2D layer by implementing im2col technique
-After implementing np.tensordot() it is 4x faster
-Useful links for it: 
-https://numpy.org/doc/stable/reference/generated/numpy.lib.stride_tricks.as_strided.html
+1. Make MaxPool2D backpropagation work
+We could change the feed forward to store the indexes of max elements during pooling operation and
+then in the backpropagation create a new gradient with increased shape and use the indexes to paste
+the original values in there
 
-
-2. Make MaxPool2D backpropagation work
+2. Finish speeding up Conv2D layers
+Conv2d layers are a lot faster than they were initally, but there's still a lot room for upgrades
+The best thing we could do is implenet im2col technique for backpropagation function 
 """
 
 

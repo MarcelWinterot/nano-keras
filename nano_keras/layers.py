@@ -3,7 +3,7 @@ from nano_keras.activations import ACTIVATIONS, Activation
 from nano_keras.optimizers import Optimizer
 from nano_keras.regulizers import Regularizer
 import math
-from time import time
+from copy import deepcopy
 
 
 class Layer:
@@ -676,6 +676,26 @@ class Conv2D(Layer):
         formatted_output = f'(None, {", ".join(map(str, self.output_shape_value))})'
         return f"{self.name} (Conv2D){' ' * (28 - len(self.name) - 8)}{formatted_output}{' ' * (26-len(formatted_output))}{self.weights.size + self.biases.size}\n"
 
+    def im2col(self, x: np.ndarray) -> None:
+        inputs_shape = x.shape
+        height = (inputs_shape[0] - self.kernel_size[0]) // self.strides[0] + 1
+        width = (inputs_shape[1] - self.kernel_size[1]) // self.strides[1] + 1
+        channels = inputs_shape[-1]
+
+        i0 = np.repeat(np.arange(self.kernel_size[0]), self.kernel_size[1])
+        i0 = np.tile(i0, channels)
+        i1 = self.strides[0] * np.repeat(np.arange(height), width)
+        j0 = np.tile(
+            np.arange(self.kernel_size[1]), self.kernel_size[0] * channels)
+        j1 = self.strides[1] * np.tile(np.arange(width), height)
+        i = i0.reshape(-1, 1) + i1.reshape(1, -1)
+        j = j0.reshape(-1, 1) + j1.reshape(1, -1)
+
+        k = np.repeat(np.arange(channels),
+                      self.kernel_size[0] * self.kernel_size[1]).reshape(-1, 1)
+
+        return x[i, j, k]
+
     def __call__(self, x: np.ndarray) -> np.ndarray:
         """Call function also known as feed forward function for the Conv2D layer
 
@@ -685,24 +705,23 @@ class Conv2D(Layer):
         Returns:
             np.ndarray: Layers output
         """
+        input_shape = x.shape
+
         self.inputs = x
 
-        height = (x.shape[0] - self.kernel_size[0]) // self.strides[0] + 1
-        width = (x.shape[1] - self.kernel_size[1]) // self.strides[1] + 1
-        channels = self.number_of_filters
-        weighted_sum = np.zeros((height, width, channels))
+        x = self.im2col(x)
 
-        for i in range(0, height, self.strides[0]):
-            for j in range(0, width, self.strides[1]):
-                if i + self.strides[0] > x.shape[0] or j + self.strides[1] > x.shape[1]:
-                    break  # Reached the end of the input
+        height = (input_shape[0] -
+                  self.kernel_size[0]) // self.strides[0] + 1
+        width = (input_shape[1] -
+                 self.kernel_size[1]) // self.strides[1] + 1
 
-                for k in range(self.number_of_filters):
-                    weighted_sum[i, j, k] = np.tensordot(
-                        x[i:i + self.kernel_size[0], j:j + self.kernel_size[1], :],
-                        self.weights[:, :, :, k],
-                        axes=([0, 1, 2], [0, 1, 2])
-                    )
+        weights_col = self.weights.reshape(self.number_of_filters, -1)
+
+        weighted_sum = np.dot(weights_col, x)
+
+        weighted_sum = weighted_sum.reshape(
+            self.number_of_filters, height, width).transpose(1, 2, 0)
 
         output = self.activation.compute_loss(weighted_sum)
         self.outputs = np.array([output, weighted_sum])
@@ -730,19 +749,18 @@ class Conv2D(Layer):
         weights_gradients = np.zeros(
             (self.kernel_size[0], self.kernel_size[1], self.inputs.shape[-1], self.number_of_filters))
 
+        delta_array = np.full_like(self.inputs, delta)
+
         for i in range(0, self.inputs.shape[0], self.strides[0]):
             for j in range(0, self.inputs.shape[1], self.strides[1]):
                 if i + self.strides[0] > self.inputs.shape[0] or j + self.strides[1] > self.inputs.shape[1]:
                     break  # Reached the end of self.inputs
 
-                delta_array = np.full(
-                    self.inputs[i:i + self.kernel_size[0], j:j + self.kernel_size[1], :].shape, delta)
-
                 for k in range(self.number_of_filters):
                     weights_gradients[:, :, :, k] += np.tensordot(
                         self.inputs[i:i + self.kernel_size[0],
                                     j:j + self.kernel_size[1], :],
-                        delta_array,
+                        delta_array[i:i + self.kernel_size[0], j:j + self.kernel_size[1], :],
                         axes=([0, 1, 2], [0, 1, 2])
                     )
 
