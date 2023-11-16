@@ -16,6 +16,10 @@ the original values in there
 2. Finish speeding up Conv2D layers
 Conv2d layers are a lot faster than they were initally, but there's still a lot room for upgrades
 The best thing we could do is implenet im2col technique for backpropagation function 
+
+https://stackoverflow.com/questions/50292750/python-the-implementation-of-im2col-which-takes-the-advantages-of-6-dimensional
+https://github.com/BVLC/caffe/issues/5341
+https://github.com/3outeille/CNNumpy/blob/master/src/fast/model.py
 """
 
 

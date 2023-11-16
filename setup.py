@@ -9,7 +9,7 @@ with codecs.open(os.path.join(here, "README.md"), encoding="utf-8") as fh:
 
 setup(
     name='nano-keras',
-    version='0.9.1',
+    version='0.9.2',
     packages=find_packages(),
     url='https://github.com/MarcelWinterot/nano-keras',
     license='MIT',

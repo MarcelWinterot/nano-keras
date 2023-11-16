@@ -193,6 +193,7 @@ class Dense(Layer):
         if self.regulizer:
             gradient = self.regulizer.compute_loss(
                 gradient, self.weights, self.biases)
+
         delta = np.average(
             [gradient * self.activation.compute_derivative(output) for output in self.outputs])
 
@@ -683,7 +684,17 @@ class Conv2D(Layer):
         formatted_output = f'(None, {", ".join(map(str, self.output_shape_value))})'
         return f"{self.name} (Conv2D){' ' * (28 - len(self.name) - 8)}{formatted_output}{' ' * (26-len(formatted_output))}{self.weights.size + self.biases.size}\n"
 
-    def im2col(self, x: np.ndarray) -> None:
+    def im2col(self, x: np.ndarray) -> np.ndarray:
+        """Support function to perform im2col operation for input data in Conv2D feed forward\n
+        We use this as resarch proved it's faster to use im2col and then a simple matrix multiplication
+        then sliding the kernel over the data and applying the filters manually
+
+        Args:
+            x (np.ndarray): Img we should perform the operation on. It should be 3d: height, width, channels
+
+        Returns:
+            np.ndarray: Columns calculated by the algorithm
+        """
         inputs_shape = x.shape
         height = (inputs_shape[0] - self.kernel_size[0]) // self.strides[0] + 1
         width = (inputs_shape[1] - self.kernel_size[1]) // self.strides[1] + 1
@@ -702,6 +713,47 @@ class Conv2D(Layer):
                       self.kernel_size[0] * self.kernel_size[1]).reshape(-1, 1)
 
         return x[i, j, k]
+
+    def col2im(self, cols: np.ndarray, x_shape: tuple) -> np.ndarray:
+        """Support function to perform col2im operation for input columns in Conv2D backpropagate\n
+        We use this as it has been proven it's faster to use im2col and matrix multiplication then
+        manually sliding over the kernel and applying filters in feed forward, and because we are using
+        im2col in feed forward, we have to convert the columns we saved into images so we can update the weights
+
+
+        Args:
+            cols (np.ndarray): Input data our backpropagation function received and we need to turn it from columns to images
+            x_shape (tuple): Original shape of the iamges before we applied im2col on them
+
+        Returns:
+            np.ndarray: Columns converted to images
+        """
+        height = (x_shape[0] - self.kernel_size[0]) // self.strides[0] + 1
+        width = (x_shape[1] - self.kernel_size[1]) // self.strides[1] + 1
+        channels = x_shape[-1]
+
+        i0 = np.repeat(np.arange(self.kernel_size[0]), self.kernel_size[1])
+        i0 = np.tile(i0, channels)
+        i1 = self.strides[0] * np.repeat(np.arange(height), width)
+        j0 = np.tile(
+            np.arange(self.kernel_size[1]), self.kernel_size[0] * channels)
+        j1 = self.strides[1] * np.tile(np.arange(width), height)
+        i = i0.reshape(-1, 1) + i1.reshape(1, -1)
+        j = j0.reshape(-1, 1) + j1.reshape(1, -1)
+
+        k = np.repeat(
+            np.arange(channels), self.kernel_size[0] * self.kernel_size[1]).reshape(-1, 1)
+
+        cols_reshaped = cols.reshape(
+            channels * self.kernel_size[0] * self.kernel_size[1], -1)
+        cols_reshaped = cols_reshaped.transpose(1, 0)
+
+        # We create an image in the shape of x_shape and then we fill it
+        # with the calculated column values
+        x = np.zeros(
+            (x_shape[0], x_shape[1], x_shape[2]), dtype=cols.dtype)
+        np.add.at(x, (i, j, k), cols_reshaped)
+        return x
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
         """Call function also known as feed forward function for the Conv2D layer
