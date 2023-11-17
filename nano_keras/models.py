@@ -18,7 +18,6 @@ Conv2d layers are a lot faster than they were initally, but there's still a lot 
 The best thing we could do is implenet im2col technique for backpropagation function 
 
 https://stackoverflow.com/questions/50292750/python-the-implementation-of-im2col-which-takes-the-advantages-of-6-dimensional
-https://github.com/BVLC/caffe/issues/5341
 https://github.com/3outeille/CNNumpy/blob/master/src/fast/model.py
 """
 
@@ -59,7 +58,22 @@ class NN:
         return f"{round(size, 3)} {units[unit_index]}"
 
     @staticmethod
-    def print_progress(epoch: int, total_epochs: int, loss: float, accuracy: float = None, batch: int = None, total_batches: int = None, val_loss: float = None, val_accuracy: float = None, time_taken: float = None) -> None:
+    def _convert_time(seconds: int) -> str:
+        hours, minutes = 0, 0
+
+        if seconds >= 3600:
+            hours = seconds // 3600
+            seconds -= 3600 * hours
+
+        if seconds > 60:
+            minutes = seconds // 60
+            seconds -= 60 * minutes
+
+        if hours > 0:
+            return f"{hours:.0f}h {minutes:.0f}m {seconds:.0f}s"
+        return f"{minutes:.0f}m {seconds:.0f}s"
+
+    def print_progress(self, epoch: int, total_epochs: int, loss: float, accuracy: float = None, batch: int = None, total_batches: int = None, time_taken: float = None) -> None:
         """Function that prints out current training progress
 
         Args:
@@ -86,7 +100,7 @@ class NN:
             progress_info = f"{epoch}/{total_epochs} {progress_bar} - loss: {loss:.8f}"
 
         if time_taken is not None:
-            progress_info += f" - ETA: {(time_taken * (total_batches - batch)):.2f}"
+            progress_info += f" - ETA: {self._convert_time(time_taken * (total_batches - batch))}"
 
         if accuracy is not None:
             if type(accuracy) == np.nan:
@@ -94,8 +108,8 @@ class NN:
             else:
                 progress_info += f" - accuracy: {accuracy:.3f}"
 
-        if val_loss is not None:
-            progress_info += f" - val_loss: {val_loss:.8f} - val_accuracy: {val_accuracy:.3f}"
+        if self.val_loss is not None:
+            progress_info += f" - val_loss: {self.val_loss:.8f} - val_accuracy: {self.val_accuracy:.3f}"
 
         print(f"\r{progress_info}", end='')
 
@@ -166,6 +180,9 @@ class NN:
         self.weight_initaliziton = weight_initaliziton
         self.generate_weights(weight_data_type)
 
+        self.val_loss = None
+        self.val_accuracy = None
+
     def feed_forward(self, x: np.ndarray) -> np.ndarray:
         """Feed forward for the whole model
 
@@ -216,8 +233,10 @@ class NN:
                     (i+1) if self.metrics == "accuracy" else None
                 time_taken = time() - start
                 # Note that we use (i + 1) as we want to divide the losses and accuracy by the amount of times they've been updated
+                # self.print_progress(epoch+1, total_epochs, losses / (i+1),
+                #                     accuracy, i+1, length_of_x, self.val_loss, self.val_accuracy, time_taken)
                 self.print_progress(epoch+1, total_epochs, losses / (i+1),
-                                    accuracy, i+1, length_of_x, self.val_loss, self.val_accuracy, time_taken)
+                                    accuracy, i+1, length_of_x, time_taken)
 
     def _handle_callbacks(self, result: tuple[np.ndarray, np.ndarray] | None, callbacks: EarlyStopping | None) -> int:
         """Support function used for handling callbacks in train function. It either returns 0 - training continues, 1 - training stops
@@ -305,15 +324,25 @@ class NN:
             print(yPreds)
 
         accuracy = None
-        # if self.metrics == "accuracy":
         if self.metrics.find("accuracy") != -1:
             accuracy = 0
-            if len(yPreds) == 1:
-                accuracy += np.average(
-                    np.abs(y[i] - yPreds) < min_accuracy_error)
+            if len(y.shape) == 1:
+                if len(yPreds) == 1:
+                    accuracy = np.average(
+                        np.abs(y[i] - yPreds) < min_accuracy_error)
+                else:
+                    accuracy = 1 if np.argmax(y) == np.argmax(yPreds) else 0
+
             else:
-                accuracy += 1 if np.argmax(y[i]
-                                           ) == np.argmax(yPreds) else 0
+                for i in range(len(y)):
+                    if len(yPreds[i]) == 1:
+                        accuracy += np.average(np.abs(y[i] - yPreds[i])
+                                               < min_accuracy_error)
+                    else:
+                        accuracy += 1 if np.argmax(y[i]
+                                                   ) == np.argmax(yPreds[i]) else 0
+
+                accuracy /= len(y)
 
         return self.loss_function.compute_loss(y, yPreds), accuracy
 

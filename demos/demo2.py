@@ -1,7 +1,7 @@
 from nano_keras.optimizers import NAdam
 import numpy as np
 from nano_keras.models import NN
-from nano_keras.layers import Input, Flatten, Conv2D, Dropout, MaxPool2D
+from nano_keras.layers import Input, Flatten, Conv2D, Dropout
 
 
 def load_data() -> tuple:
