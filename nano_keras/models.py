@@ -8,17 +8,13 @@ from time import time
 
 """
 TODO Overall:
-1. Make MaxPool2D backpropagation work
-We could change the feed forward to store the indexes of max elements during pooling operation and
-then in the backpropagation create a new gradient with increased shape and use the indexes to paste
-the original values in there
-
-2. Finish speeding up Conv2D layers
+1. Optimize Conv2D layer
 Conv2d layers are a lot faster than they were initally, but there's still a lot room for upgrades
 The best thing we could do is implenet im2col technique for backpropagation function 
 
-https://stackoverflow.com/questions/50292750/python-the-implementation-of-im2col-which-takes-the-advantages-of-6-dimensional
-https://github.com/3outeille/CNNumpy/blob/master/src/fast/model.py
+2. Review the code so that there aren't any bugs left
+
+3. Add more demos and update the ones that are already shown
 """
 
 
@@ -31,12 +27,12 @@ class NN:
         Args:
             name (str, optional): Name of the model. Defaults to "NN".
         """
-        self.name = name
-        self.layers = []
-        self.loss = 1e50
-        self.accuracy = 0
-        self.val_loss = None
-        self.val_accuracy = None
+        self.name: str = name
+        self.layers: list[Layer] = []
+        self.loss: float = 1e50
+        self.accuracy: float = 0
+        self.val_loss: float = None
+        self.val_accuracy: float = None
 
     @staticmethod
     def _convert_size(size: int) -> str:

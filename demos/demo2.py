@@ -29,8 +29,8 @@ print("\033c", end='')
 
 model = NN("NN for MNIST")
 model.add(Input((28, 28, 1)))
-model.add(Conv2D(32, strides=(2, 2), name="Conv 1"))
-model.add(Conv2D(64, strides=(2, 2), name="Conv 2"))
+model.add(Conv2D(32, (2, 2), (2, 2), name="Conv 1"))
+model.add(Conv2D(64, (2, 2), (2, 2), name='Conv 2'))
 model.add(Flatten())
 model.add(Dropout(10, "relu", 0.5))
 

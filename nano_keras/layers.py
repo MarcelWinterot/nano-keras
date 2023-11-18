@@ -466,6 +466,8 @@ class MaxPool2D(Layer):
         if len(x_shape) == 3:
             output = np.zeros((height, width, x_shape[-1]))
 
+        self.mask = np.zeros(x_shape)
+
         for i in range(height):
             for j in range(width):
                 # We are using this method instead of range(0, x.shape[0], self.strides[0]) as then we'd have to
@@ -474,7 +476,15 @@ class MaxPool2D(Layer):
                 i_end, j_end = i_start + \
                     self.pool_size[0], j_start + self.pool_size[1]
 
-                output[i, j] = np.max(x[i_start:i_end, j_start:j_end])
+                subarray = x[i_start:i_end, j_start:j_end]
+                index = np.argmax(subarray)
+
+                index = np.unravel_index(index, subarray.shape)
+                index = (index[0] + i_start, index[1] + j_start)
+
+                self.mask[index] = 1
+
+                output[i, j] = x[index]
 
         if len(x.shape) == 3:
             output[-1, -1, :] = x[-1, -1, :]
@@ -493,9 +503,11 @@ class MaxPool2D(Layer):
         Returns:
             np.ndarray: Output gradient
         """
-        raise Exception(
-            "MaxPool2D backpropagation is not implemented yet, if you really need it set the strides in Conv2D to something other than (1, 1)")
-        return gradient
+        input_gradient = np.ndarray((gradient.shape[0], *self.inputs.shape))
+
+        input_gradient[:] = self.mask
+
+        return input_gradient
 
 
 class Conv1D(Layer):
