@@ -39,7 +39,7 @@ class SGD(Optimizer):
         Args:
             learning_rate (float, optional): Parameter that spiecfies how fast the model should learn. Defaults to 0.001.
         """
-        self.learning_rate = learning_rate
+        self.learning_rate: float = learning_rate
 
     def apply_gradients(self, weight_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple:
         """Function that updates params using provided gradients and SGD algorithm.
@@ -69,16 +69,16 @@ class Adam(Optimizer):
             epsilon (float, optional): Paramter that ensures we don't divide by 0 and adds numerical stability to learning rate. Defaults to 1e-7.
             adjust_biases_shape (bool, optional): Paramter that controles wheter we adjuts the bias gradients and moving averages for biases shapes. Default to False.
         """
-        self.learningRate = learningRate
-        self.beta1 = beta1
-        self.beta2 = beta2
-        self.e = epsilon
-        self.adjust_biases_shape = adjust_biases_shape
-        self.m_w = np.array([])
-        self.v_w = np.array([])
-        self.m_b = np.array([])
-        self.v_b = np.array([])
-        self.t = 0
+        self.learningRate: float = learningRate
+        self.beta1: float = beta1
+        self.beta2: float = beta2
+        self.e: float = epsilon
+        self.adjust_biases_shape: bool = adjust_biases_shape
+        self.m_w: np.ndarray = np.array([])
+        self.v_w: np.ndarray = np.array([])
+        self.m_b: np.ndarray = np.array([])
+        self.v_b: np.ndarray = np.array([])
+        self.t: int = 0
 
     def apply_gradients(self, weightGradients: np.ndarray, biasGradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Function that updates params using provided gradients and Adam algorithm. You can read more about it
@@ -147,11 +147,11 @@ class Adagrad(Optimizer):
             epsilon (float, optional): Paramter that ensures we don't divide by 0 and adds numerical stability to learning rate. Defaults to 1e-7.
             adjust_biases_shape (bool, optional): Paramter that controles wheter we adjuts the bias gradients and moving averages for biases shapes. Default to False.
         """
-        self.learning_rate = learning_rate
-        self.e = epsilon
-        self.adjust_biases_shape = adjust_biases_shape
-        self.v_w = np.array([])
-        self.v_b = np.array([])
+        self.learning_rate: float = learning_rate
+        self.e: float = epsilon
+        self.adjust_biases_shape: bool = adjust_biases_shape
+        self.v_w: np.ndarray = np.array([])
+        self.v_b: np.ndarray = np.array([])
 
     def apply_gradients(self, weights_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Function that updates models weights and biases using the Adagrad algorithm. 
@@ -202,12 +202,12 @@ class RMSProp(Optimizer):
             epsilon (float, optional): Paramter that ensures we don't divide by 0 and adds numerical stability to learning rate. Defaults to 1e-7.
             adjust_biases_shape (bool, optional): Paramter that controles wheter we adjuts the bias gradients and moving averages for biases shapes. Default to False.
         """
-        self.learning_rate = learning_rate
-        self.rho = rho
-        self.e = epsilon
-        self.adjust_biases_shape = adjust_biases_shape
-        self.v_w = np.array([])
-        self.v_b = np.array([])
+        self.learning_rate: float = learning_rate
+        self.rho: float = rho
+        self.e: float = epsilon
+        self.adjust_biases_shape: bool = adjust_biases_shape
+        self.v_w: np.ndarray = np.array([])
+        self.v_b: np.ndarray = np.array([])
 
     def apply_gradients(self, weights_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Function that updates models weights and biases using the RMSprop algorithm. 
@@ -256,13 +256,13 @@ class Adadelta(Optimizer):
             epsilon (float, optional): Paramter that ensures we don't divide by 0 and adds numerical stability to learning rate. Defaults to 1e-7.
             adjust_biases_shape (bool, optional): Paramter that controles wheter we adjuts the bias gradients and moving averages for biases shapes. Default to False.
         """
-        self.rho = rho
-        self.e = epsilon
-        self.adjust_biases_shape = adjust_biases_shape
-        self.v_w = np.array([])
-        self.v_b = np.array([])
-        self.v_w_a = np.array([])
-        self.v_b_a = np.array([])
+        self.rho: float = rho
+        self.e: float = epsilon
+        self.adjust_biases_shape: bool = adjust_biases_shape
+        self.v_w: np.ndarray = np.array([])
+        self.v_b: np.ndarray = np.array([])
+        self.v_w_a: np.ndarray = np.array([])
+        self.v_b_a: np.ndarray = np.array([])
 
     def apply_gradients(self, weights_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Function that updates models weights and biases using the Adadelta algorithm. 
@@ -327,16 +327,16 @@ class NAdam(Optimizer):
             epsilon (float, optional): Paramter that ensures we don't divide by 0 and adds numerical stability to learning rate. Defaults to 1e-7.
             adjust_biases_shape (bool, optional): Paramter that controles wheter we adjuts the bias gradients and moving averages for biases shapes. Default to False.
         """
-        self.learning_rate = learning_rate
-        self.beta1 = beta1
-        self.beta2 = beta2
-        self.e = epsilon
-        self.adjust_biases_shape = adjust_biases_shape
-        self.m_w = np.array([])
-        self.v_w = np.array([])
-        self.m_b = np.array([])
-        self.v_b = np.array([])
-        self.t = 0
+        self.learning_rate: float = learning_rate
+        self.beta1: float = beta1
+        self.beta2: float = beta2
+        self.e: float = epsilon
+        self.adjust_biases_shape: bool = adjust_biases_shape
+        self.m_w: np.ndarray = np.array([])
+        self.v_w: np.ndarray = np.array([])
+        self.m_b: np.ndarray = np.array([])
+        self.v_b: np.ndarray = np.array([])
+        self.t: int = 0
 
     def apply_gradients(self, weights_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Function that updates models weights and biases using the Adadelta algorithm.

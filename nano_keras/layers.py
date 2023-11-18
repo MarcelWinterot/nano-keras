@@ -15,13 +15,13 @@ class Layer:
             regulizer (Regularizer, optional): Regulizer the model should use. You can find them all in the regulizers.py file. You must pass the already intialized class. Defaults to None.
             name (str, optional): Name of the layer. Helpful for debugging. Defaults to "Layer".
         """
-        self.units = units
-        self.name = name
-        self.weights = np.array([])
-        self.biases = np.array([])
-        self.activation = ACTIVATIONS[activation] if type(
+        self.units: int = units
+        self.name: str = name
+        self.weights: np.ndarray = np.array([])
+        self.biases: np.ndarray = np.array([])
+        self.activation: Activation = ACTIVATIONS[activation] if type(
             activation) == str else activation
-        self.regulizer = regulizer
+        self.regulizer: Regularizer = regulizer
 
     @staticmethod
     def random_initalization(previous_units: int, current_units: int, weight_data_type: np.float_) -> tuple[np.ndarray, np.ndarray]:
@@ -119,13 +119,13 @@ class Layer:
         Returns:
             np.ndarray: output of the model
         """
-        self.inputs = x
+        self.inputs: np.ndarray = x
         weighted_sum = np.dot(x, self.weights) + self.biases
-        output = self.activation.compute_loss(weighted_sum)
-        self.outputs = np.array([output, weighted_sum])
+        output = self.activation.apply_activation(weighted_sum)
+        self.outputs: np.ndarray = np.array([output, weighted_sum])
         return output
 
-    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer, Optimizer]) -> np.ndarray:
+    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer]) -> np.ndarray:
         """Backpropagation algorithm base implementation for all the layers that don't have any parameters to update
 
         Args:
@@ -139,22 +139,24 @@ class Layer:
 
 
 class Input(Layer):
-    def __init__(self, input_shape: tuple, name: str = "Input") -> None:
+    def __init__(self, input_shape: tuple, useBiases: bool = True, name: str = "Input") -> None:
         """Intializer for input layer.
 
         Args:
             input_shape (tuple): Shape of the input for the model
             name (str, optional): Name of the layer. Defaults to "Input".
         """
-        self.input_shape = input_shape
-        self.name = name
-        self.biases = None
-        self.biases = np.random.randn(
-            *input_shape) if type(input_shape) == tuple else np.random.randn(input_shape)
-        # Initializing the weights as I don't want to add another if statement to NN.summary() for checking if a layer has weights
-        self.weights = np.array([])
+        self.input_shape: tuple = input_shape
+        self.name: str = name
+        self.biases: np.ndarray = None
 
-    def output_shape(self, layers: list, current_layer_index: int) -> tuple:
+        if useBiases == True:
+            self.biases: np.ndarray = np.random.randn(
+                *input_shape) if type(input_shape) == tuple else np.random.randn(input_shape)
+        # Initializing the weights as I don't want to add another if statement to NN.summary() for checking if a layer has weights
+        self.weights: np.ndarray = np.array([])
+
+    def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         return self.input_shape
 
     def __repr__(self) -> str:
@@ -165,33 +167,31 @@ class Input(Layer):
         return f"{self.name} (Input){' ' * (28 - len(self.name) - 7)}{formatted_output}{' ' * (26 - len(formatted_output))}{self.biases.size}\n"
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
-        self.inputs = x
-        if self.biases is not None:
-            x = x + self.biases
-            self.outputs = x
+        if self.biases:
+            return x + self.biases
         return x
 
 
 class Dense(Layer):
-    def output_shape(self, layers: list, current_layer_index: int) -> tuple:
+    def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         return self.units
 
     def __repr__(self) -> str:
         return f"{self.name} (Dense){' ' * (28 - len(self.name) - 7)}{(None, self.units)}{' ' * (26 - len(f'(None, {self.units})'))}{self.weights.size + self.biases.size}\n"
 
-    def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer, Optimizer]) -> np.ndarray:
+    def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer]) -> np.ndarray:
         """Backpropagation algorithm for the dense layer
 
         Args:
             gradient (np.ndarray): Gradient calculated by the loss function derivative or by previous layers backpropagation algorithm
-            optimizer (List[Optimizer, Optimizer]): Optimizer to use for updating the model's parameters. Note that we use 2 different optimizers as then we don't have to check a bunch of times 
+            optimizer (List[Optimizer]): Optimizer to use for updating the model's parameters. Note that we use 2 different optimizers as then we don't have to check a bunch of times 
             wheter we use 1 or 2 optimizers, and we need 2 optimizers for CNNs
 
         Returns:
             np.ndarray: Output gradient of the layer
         """
         if self.regulizer:
-            gradient = self.regulizer.compute_loss(
+            gradient = self.regulizer.update_gradient(
                 gradient, self.weights, self.biases)
 
         delta = np.average(
@@ -217,9 +217,9 @@ class Dropout(Layer):
             name (str, optional): Name of the layer. Defaults to "Layer".
         """
         super().__init__(units, activation, regulizer, name)
-        self.dropout_rate = dropout_rate
+        self.dropout_rate: float = dropout_rate
 
-    def output_shape(self, layers: list, current_layer_index: int) -> tuple:
+    def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         return self.units
 
     def __repr__(self) -> str:
@@ -236,29 +236,29 @@ class Dropout(Layer):
         Returns:
             np.ndarray: Output of the model
         """
-        self.inputs = x
+        self.inputs: np.ndarray = x
         if isTraining:
             weighted_sum = np.dot(x, self.weights) + self.biases
             weighted_sum /= 1 - self.dropout_rate
-            output = self.activation.compute_loss(weighted_sum)
-            self.outputs = np.array([output, weighted_sum])
+            output = self.activation.apply_activation(weighted_sum)
+            self.outputs: np.ndarray = np.array([output, weighted_sum])
             return output
 
         return super().__call__(x)
 
-    def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer, Optimizer]) -> np.ndarray:
+    def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer]) -> np.ndarray:
         """Backpropagation algorithm for the dropout layer
 
         Args:
             gradient (np.ndarray): Gradient calculated by loss.compute_derivative() or previous layers output gradient
-            optimizer (List[Optimizer, Optimizer]): Optimizer to use for updating the model's parameters. Note that we use 2 different optimizers as then we don't have to check a bunch of times 
+            optimizer (List[Optimizer]): Optimizer to use for updating the model's parameters. Note that we use 2 different optimizers as then we don't have to check a bunch of times 
             wheter we use 1 or 2 optimizers, and we need 2 optimizers for CNNs
 
         Returns:
             np.ndarray: Output gradient
         """
         if self.regulizer:
-            gradient = self.regulizer.compute_loss(
+            gradient = self.regulizer.update_gradient(
                 gradient, self.weights, self.biases)
 
         delta = np.average(
@@ -281,29 +281,29 @@ class Flatten(Layer):
         Args:
             name (str, optional): Name of the layer. Defaults to "Flatten".
         """
-        self.name = name
+        self.name: str = name
 
-    def output_shape(self, layers: list, current_layer_index: int) -> tuple:
+    def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         input_shape = layers[current_layer_index -
                              1].output_shape(layers, current_layer_index-1)
-        self.output_shape_value = (np.prod(np.array(input_shape)))
-        self.next_layer_shape = layers[current_layer_index +
-                                       1].output_shape(layers, current_layer_index+1)
+        self.output_shape_value: int = np.prod(np.array(input_shape))
+        self.next_layer_shape: tuple = layers[current_layer_index +
+                                              1].output_shape(layers, current_layer_index+1)
         return self.output_shape_value
 
     def __repr__(self) -> str:
         return f"{self.name} (Flatten){' ' * (28 - len(self.name) - 9)}{(None, self.output_shape_value)}{' ' * (26-len(f'(None, {self.output_shape_value})'))}0\n"
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
-        self.original_shape = x.shape
+        self.original_shape: tuple = x.shape
         return np.ravel(x)
 
-    def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer, Optimizer]) -> np.ndarray:
+    def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer]) -> np.ndarray:
         """Backpropagate algorithm for the flatten layer. We unflatten the gradient in here
 
         Args:
             gradient (np.ndarray): Gradient calculated by loss.compute_derivative() or previous layers output gradient
-            optimizer (List[Optimizer, Optimizer]): Optimizer to use for updating the model's parameters. Note that we use 2 different optimizers as then we don't have to check a bunch of times 
+            optimizer (List[Optimizer]): Optimizer to use for updating the model's parameters. Note that we use 2 different optimizers as then we don't have to check a bunch of times 
             wheter we use 1 or 2 optimizers, and we need 2 optimizers for CNNs
 
         Returns:
@@ -323,12 +323,12 @@ class Reshape(Layer):
             target_shape (tuple): Target shape of the layer
             name (str, optional): Name of the layer. Defaults to "Reshape".
         """
-        self.target_shape = target_shape
-        self.name = name
+        self.target_shape: tuple = target_shape
+        self.name: str = name
 
-    def output_shape(self, layers: list, current_layer_index: int) -> tuple:
-        self.next_layer_shape = layers[current_layer_index +
-                                       1].output_shape(layers, current_layer_index+1)
+    def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
+        self.next_layer_shape: tuple = layers[current_layer_index +
+                                              1].output_shape(layers, current_layer_index+1)
         return self.target_shape
 
     def __repr__(self) -> str:
@@ -336,15 +336,15 @@ class Reshape(Layer):
         return f"{self.name} (Reshape){' ' * (28 - len(self.name) - 9)}{formatted_output}{' ' * (26-len(formatted_output))}0\n"
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
-        self.original_shape = x.shape
+        self.original_shape: tuple = x.shape
         return np.reshape(x, self.target_shape)
 
-    def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer, Optimizer]) -> np.ndarray:
+    def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer]) -> np.ndarray:
         """Backpropagate algorithm used for reshape layer. We reshape the gradient in here
 
         Args:
             gradient (np.ndarray): Gradient calculated by the loss.compute_derivative function
-            optimizer (List[Optimizer, Optimizer]): Optimizer to use for updating the model's parameters. Note that we use 2 different optimizers as then we don't have to check a bunch of times 
+            optimizer (List[Optimizer]): Optimizer to use for updating the model's parameters. Note that we use 2 different optimizers as then we don't have to check a bunch of times 
             wheter we use 1 or 2 optimizers, and we need 2 optimizers for CNNs
 
         Returns:
@@ -365,14 +365,14 @@ class MaxPool1D(Layer):
             strides (int, optional): Step the kernel should take. If the parameter is set to None it will be assigned the value of kernel_size. Defaults to 2.
             name (str, optional): Name of the layer. Defaults to MaxPool1D.
         """
-        self.kernel_size = kernel_size
-        self.strides = strides
-        self.name = name
+        self.kernel_size: int = kernel_size
+        self.strides: int = strides
+        self.name: str = name
 
-    def output_shape(self, layers: list, current_layer_index: int) -> tuple:
+    def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         input_shape = layers[current_layer_index -
                              1].output_shape(layers, current_layer_index-1)
-        self.output_shape_value = math.ceil(
+        self.output_shape_value: tuple = math.ceil(
             (input_shape - self.kernel_size + 1) / self.strides)
         return self.output_shape_value
 
@@ -416,14 +416,14 @@ class MaxPool2D(Layer):
             strides (tuple[int, int], optional): Step the kernel should take. Defaults to (2, 2).
             name (str, optional): Name of the layer. Default to NaxPool2D
         """
-        self.pool_size = pool_size
-        self.strides = strides
-        self.name = name
+        self.pool_size: tuple = pool_size
+        self.strides: tuple = strides
+        self.name: tuple = name
 
-    def output_shape(self, layers: list, current_layer_index: int) -> tuple:
+    def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         input_shape = layers[current_layer_index -
                              1].output_shape(layers, current_layer_index-1)
-        self.output_shape_value = tuple([math.floor(
+        self.output_shape_value: tuple = tuple([math.floor(
             (input_shape[i] - self.pool_size[i]) / self.strides[i]) + 1 for i in range(2)])
 
         if len(input_shape) > 2:
@@ -455,7 +455,7 @@ class MaxPool2D(Layer):
         Returns:
             np.ndarray: Array with reduced size
         """
-        self.inputs = x
+        self.inputs: np.ndarray = x
 
         x_shape = x.shape
         height = (x_shape[0] - self.pool_size[0]) // self.strides[0] + 1
@@ -466,7 +466,7 @@ class MaxPool2D(Layer):
         if len(x_shape) == 3:
             output = np.zeros((height, width, x_shape[-1]))
 
-        self.mask = np.zeros(x_shape)
+        self.mask: np.ndarray = np.zeros(x_shape)
 
         for i in range(height):
             for j in range(width):
@@ -489,15 +489,15 @@ class MaxPool2D(Layer):
         if len(x.shape) == 3:
             output[-1, -1, :] = x[-1, -1, :]
 
-        self.output = output
+        self.output: np.ndarray = output
         return output
 
-    def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer, Optimizer]) -> np.ndarray:
+    def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer]) -> np.ndarray:
         """Backpropagation algorithm for MaxPool2D layer. Note that it's not finished so it doesn't work properly
 
         Args:
             gradient (np.ndarray): Gradient calculated by loss.compute_derivative() or previous layers output gradient
-            optimizer (List[Optimizer, Optimizer]): Optimizer to use for updating the model's parameters. Note that we use 2 different optimizers as then we don't have to check a bunch of times 
+            optimizer (List[Optimizer]): Optimizer to use for updating the model's parameters. Note that we use 2 different optimizers as then we don't have to check a bunch of times 
             wheter we use 1 or 2 optimizers, and we need 2 optimizers for CNNs
 
         Returns:
@@ -522,20 +522,20 @@ class Conv1D(Layer):
             regulizer (Regularizer, optional): Regulizer of the layer. Defaults to None.
             name (str, optional): Name of the layer. Defaults to "Conv1D".
         """
-        self.number_of_filters = filters
-        self.kernel_size = kernel_size
-        self.strides = strides
-        self.activation = ACTIVATIONS[activation] if type(
+        self.number_of_filters: int = filters
+        self.kernel_size: int = kernel_size
+        self.strides: int = strides
+        self.activation: Activation = ACTIVATIONS[activation] if type(
             activation) == str else activation
-        self.weights = np.random.randn(filters, self.kernel_size)
-        self.name = name
-        self.biases = np.random.randn(filters)
-        self.regulizer = regulizer
+        self.weights: np.ndarray = np.random.randn(filters, self.kernel_size)
+        self.biases: np.ndarray = np.random.randn(filters)
+        self.regulizer: Regularizer = regulizer
+        self.name: str = name
 
-    def output_shape(self, layers: list, current_layer_index: int) -> tuple:
+    def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         input_shape = layers[current_layer_index -
                              1].output_shape(layers, current_layer_index-1)
-        self.output_shape_value = np.array(
+        self.output_shape_value: tuple = tuple(
             input_shape).size // self.strides, self.number_of_filters
         return self.output_shape_value
 
@@ -544,7 +544,7 @@ class Conv1D(Layer):
         return f"{self.name} (Conv1D){' ' * (28 - len(self.name) - 8)}{formatted_output}{' ' * (26-len(formatted_output))}{self.weights.size + self.biases.size}\n"
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
-        self.inputs = x
+        self.inputs: np.ndarray = x
 
         weighted_sum = np.zeros(
             (x.size // self.strides, self.number_of_filters))
@@ -559,24 +559,24 @@ class Conv1D(Layer):
 
         weighted_sum = weighted_sum + self.biases
 
-        output = self.activation.compute_loss(weighted_sum)
-        self.outputs = np.array([output, weighted_sum])
+        output = self.activation.apply_activation(weighted_sum)
+        self.outputs: np.ndarray = np.array([output, weighted_sum])
 
         return output
 
-    def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer, Optimizer]) -> np.ndarray:
+    def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer]) -> np.ndarray:
         """Backpropagation algorithm for Conv1D layer
 
         Args:
             gradient (np.ndarray): Gradient calculated by loss.compute_derivative() or previous layers output gradient
-            optimizer (List[Optimizer, Optimizer]): Optimizer to use for updating the model's parameters. Note that we use 2 different optimizers as then we don't have to check a bunch of times 
+            optimizer (List[Optimizer]): Optimizer to use for updating the model's parameters. Note that we use 2 different optimizers as then we don't have to check a bunch of times 
             wheter we use 1 or 2 optimizers, and we need 2 optimizers for CNNs
 
         Returns:
             np.ndarray: Output gradient
         """
         if self.regulizer:
-            gradient = self.regulizer.compute_loss(
+            gradient = self.regulizer.update_gradient(
                 gradient, self.weights, self.biases)
 
         delta = np.average(
@@ -612,15 +612,15 @@ class Conv2D(Layer):
             regulizer (Regularizer, optional): Regulizer for the layer. Defaults to None.
             name (str, optional): Name of the layer. Defaults to "Conv2D".
         """
-        self.number_of_filters = filters
-        self.kernel_size = kernel_size
-        self.strides = strides
-        self.activation = ACTIVATIONS[activation] if type(
+        self.number_of_filters: int = filters
+        self.kernel_size: tuple = kernel_size
+        self.strides: tuple = strides
+        self.activation: Activation = ACTIVATIONS[activation] if type(
             activation) == str else activation
-        self.weights = np.array([])
-        self.biases = np.array([])
-        self.regulizer = regulizer
-        self.name = name
+        self.weights: np.ndarray = np.array([])
+        self.biases: np.ndarray = np.array([])
+        self.regulizer: Regularizer = regulizer
+        self.name: str = name
 
     def random_initalization(self, weights: list, input_shape: tuple, weight_data_type: np.float_) -> tuple[np.ndarray, np.ndarray]:
         """Random intitalization strategy used for weights generation. Note that this works for layers that don't use units for weight generation like Conv1d and Conv2d
@@ -681,15 +681,15 @@ class Conv2D(Layer):
         self.weights, self.biases = LAYER_INTIALIZATIONS[weight_initalization](
             weights, input_shape, weight_data_type)
 
-    def output_shape(self, layers: list, current_layer_index: int) -> tuple:
-        self.input_shape = layers[current_layer_index -
-                                  1].output_shape(layers, current_layer_index-1)
+    def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
+        self.input_shape: tuple = layers[current_layer_index -
+                                         1].output_shape(layers, current_layer_index-1)
         height = (self.input_shape[0] -
                   self.kernel_size[0]) // self.strides[0] + 1
         width = (self.input_shape[1] -
                  self.kernel_size[1]) // self.strides[1] + 1
         channels = self.number_of_filters
-        self.output_shape_value = (height, width, channels)
+        self.output_shape_value: tuple = (height, width, channels)
         return self.output_shape_value
 
     def __repr__(self) -> str:
@@ -778,7 +778,7 @@ class Conv2D(Layer):
         """
         input_shape = x.shape
 
-        self.inputs = x
+        self.inputs: np.ndarray = x
 
         x = self.im2col(x)
 
@@ -794,24 +794,24 @@ class Conv2D(Layer):
         weighted_sum = weighted_sum.reshape(
             self.number_of_filters, height, width).transpose(1, 2, 0)
 
-        output = self.activation.compute_loss(weighted_sum)
-        self.outputs = np.array([output, weighted_sum])
+        output = self.activation.apply_activation(weighted_sum)
+        self.outputs: np.ndarray = np.array([output, weighted_sum])
 
         return output
 
-    def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer, Optimizer]) -> np.ndarray:
+    def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer]) -> np.ndarray:
         """Backpropagate algorithm used for Conv2D layer. It's kinda slow right now so it's not recommended to use it but it will be faster in the future
 
         Args:
             gradient (np.ndarray): Gradient calculated by loss.compute_derivative() or previous layers output gradient
-            optimizer (List[Optimizer, Optimizer]): Optimizer to use for updating the model's parameters. Note that we use 2 different optimizers as then we don't have to check a bunch of times 
+            optimizer (List[Optimizer]): Optimizer to use for updating the model's parameters. Note that we use 2 different optimizers as then we don't have to check a bunch of times 
             wheter we use 1 or 2 optimizers, and we need 2 optimizers for CNNs
 
         Returns:
             np.ndarray: Output gradient
         """
         if self.regulizer:
-            gradient = self.regulizer.compute_loss(
+            gradient = self.regulizer.update_gradient(
                 gradient, self.weights, self.biases)
 
         self.outputs = self.activation.compute_derivative(self.outputs)

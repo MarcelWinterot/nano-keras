@@ -15,6 +15,8 @@ The best thing we could do is implenet im2col technique for backpropagation func
 2. Review the code so that there aren't any bugs left
 
 3. Add more demos and update the ones that are already shown
+
+4. Add isTraining to NN.train() so that we can sepcify are we in the training loop or is it a normal call
 """
 
 
@@ -164,20 +166,17 @@ class NN:
             weight_initaliziton (str, optional): Weights intialization function you want to use for weight intialization. Your options are: random, xavier, he. Defalut to "random"
             weight_data_type (np.float_, optional): Data type you want the models weights to be. Use np.float_ types like np.float32 or np.float64. Defaults to np.float64.
         """
-        self.loss_function = LOSS_FUNCTIONS[loss_function] if type(
+        self.loss_function: Loss = LOSS_FUNCTIONS[loss_function] if type(
             loss_function) == str else loss_function
 
-        self.optimizer = OPTIMIZERS[optimizer] if type(
+        self.optimizer: Optimizer = OPTIMIZERS[optimizer] if type(
             optimizer) == str else optimizer
         optimizer4d = deepcopy(self.optimizer)
-        self.optimizer = [self.optimizer, optimizer4d]
+        self.optimizer: list[Optimizer] = [self.optimizer, optimizer4d]
 
-        self.metrics = metrics
-        self.weight_initaliziton = weight_initaliziton
+        self.metrics: str = metrics
+        self.weight_initaliziton: str = weight_initaliziton
         self.generate_weights(weight_data_type)
-
-        self.val_loss = None
-        self.val_accuracy = None
 
     def feed_forward(self, x: np.ndarray) -> np.ndarray:
         """Feed forward for the whole model

@@ -2,23 +2,23 @@ import numpy as np
 
 
 class EarlyStopping:
-    def __init__(self, patience: int, monitor: str = "metric", min_delta: float = 0.0001, restore_best_weights: bool = False) -> None:
+    def __init__(self, patience: int, monitor: str = "loss", min_delta: float = 0.0001, restore_best_weights: bool = False) -> None:
         """Early stopping implementation using just python and numpy
 
         Args:
             patience (int): For how many epochs can the moniotred value degrade before stopping training
-            monitor (int, optional): what should the model watch during training. Possible monitors are: metric, accuracy, val_metric, val_accuracy. Default to metric.
+            monitor (int, optional): what should the model watch during training. Possible monitors are: metric, accuracy, val_metric, val_accuracy. Default to loss.
             min_delta (float, optional): By how much must the monitored value improve in order for it to be classiffied as an improvement. Default to 0.0001
             restore_best_weights (bool, optional): Should the best weights be restored when the training is finished. Defaults to False.
         """
-        self.patience = patience
-        self.monitor = monitor
-        self.min_delta = min_delta
-        self.restore_best_weights = restore_best_weights
-        self.metric = float(1e50)
-        self.weights = []
-        self.biases = []
-        self.counter = 0
+        self.patience: int = patience
+        self.monitor: str = monitor
+        self.min_delta: float = min_delta
+        self.restore_best_weights: bool = restore_best_weights
+        self.metric: float = float(1e50)
+        self.weights: np.ndarray = np.array([])
+        self.biases: np.ndarray = np.array([])
+        self.counter: int = 0
 
     def get_models_weights(self, layers: list) -> None:
         """Support function to get the weights of the model

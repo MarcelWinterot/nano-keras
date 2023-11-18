@@ -7,7 +7,7 @@ class Activation:
         """
         pass
 
-    def compute_loss(self, X: np.ndarray) -> np.ndarray:
+    def apply_activation(self, X: np.ndarray) -> np.ndarray:
         """Base activation class implementation of compute loss function
 
         Args:
@@ -19,7 +19,7 @@ class Activation:
         pass
 
     def compute_derivative(self, X: np.ndarray) -> np.ndarray:
-        """Base activation class implementation of the derivative of compute_loss
+        """Base activation class implementation of the derivative of apply_activation
 
         Args:
             X (np.ndarray): Data to apply activation function on
@@ -31,7 +31,7 @@ class Activation:
 
 
 class Sigmoid(Activation):
-    def compute_loss(self, X: np.ndarray) -> np.ndarray:
+    def apply_activation(self, X: np.ndarray) -> np.ndarray:
         """Function to apply sigmoid activation on given data
 
         Args:
@@ -51,12 +51,12 @@ class Sigmoid(Activation):
         Returns:
             np.ndarray: Data with activation function applied to them
         """
-        sX = self.compute_loss(X)
+        sX = self.apply_activation(X)
         return sX * (1 - sX)
 
 
 class Tanh(Activation):
-    def compute_loss(self, X: np.ndarray) -> np.ndarray:
+    def apply_activation(self, X: np.ndarray) -> np.ndarray:
         """Function to apply tanh activation on given data
 
         Args:
@@ -76,11 +76,11 @@ class Tanh(Activation):
         Returns:
             np.ndarray: Data with activation function applied to them
         """
-        return 1 - self.compute_loss(X) ** 2
+        return 1 - self.apply_activation(X) ** 2
 
 
 class ReLU(Activation):
-    def compute_loss(self, X: np.ndarray) -> np.ndarray:
+    def apply_activation(self, X: np.ndarray) -> np.ndarray:
         """Function to apply ReLU activation on given data
 
         Args:
@@ -110,9 +110,9 @@ class LeakyReLU(Activation):
         Args:
             alpha (float, optional): By how much do we multiply X if it's is smaller than 0. Defaults to 0.2.
         """
-        self.alpha = alpha
+        self.alpha: float = alpha
 
-    def compute_loss(self, X: np.ndarray) -> np.ndarray:
+    def apply_activation(self, X: np.ndarray) -> np.ndarray:
         """Function to apply LeakyReLU activation on given data
 
         Args:
@@ -142,9 +142,9 @@ class ELU(Activation):
         Args:
             alpha (float, optional): By how much do we multiply np.exp(X) if X is smaller than 0. Defaults to 0.2.
         """
-        self.alpha = alpha
+        self.alpha: float = alpha
 
-    def compute_loss(self, X: np.ndarray) -> np.ndarray:
+    def apply_activation(self, X: np.ndarray) -> np.ndarray:
         """Function to apply ELU activation on given data
 
         Args:
@@ -168,7 +168,7 @@ class ELU(Activation):
 
 
 class Softmax(Activation):
-    def compute_loss(self, X: np.ndarray) -> np.ndarray:
+    def apply_activation(self, X: np.ndarray) -> np.ndarray:
         """Function to apply softmax activation on given data
 
         Args:
@@ -189,7 +189,7 @@ class Softmax(Activation):
         Returns:
             np.ndarray: Data with activation function applied to them
         """
-        s = self.compute_loss(X)
+        s = self.apply_activation(X)
         return np.diag(s) - np.outer(s, s)
 
 

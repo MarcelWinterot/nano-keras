@@ -8,55 +8,55 @@ class Regularizer:
         Args:
             strength (float, optional): How much do we punish the model for having big weights and biases. Defaults to 1e-3.
         """
-        self.strength = strength
+        self.strength: float = strength
 
-    def compute_loss(self, gradient: float, weights: np.ndarray, biases: np.ndarray) -> float:
-        """Base implementation for compute_loss function of Regulizer
+    def update_gradient(self, gradient: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> np.ndarray:
+        """Base implementation for gradient update function of Regulizer class
 
         Args:
-            gradient (float): gradient of the model
+            gradient (float): gradient calculate by loss.compute_derivative or previous layers output gradient calculation
             weights (np.ndarray): models weights
             biases (np.ndarray): models biases
 
         Returns:
-            float: new gradient
+            float: updated gradient
         """
         pass
 
 
 class L1(Regularizer):
-    def compute_loss(self, loss: float, weights: np.ndarray, biases: np.ndarray) -> float:
-        """L1 regulizer implementation for compute_loss function of Regulizer
+    def update_gradient(self, gradient: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> np.ndarray:
+        """L1 regulizer implementation of the gradient update functiion
 
         Args:
-            gradient (float): gradient of the model
+            gradient (float): gradient calculate by loss.compute_derivative or previous layers output gradient calculation
             weights (np.ndarray): models weights
             biases (np.ndarray): models biases
 
         Returns:
-            float: new gradient
+            np.ndarray: updated gradient
         """
-        loss += self.strength * \
+        gradient += self.strength * \
             np.sum(np.abs(weights)) + self.strength * np.sum(np.abs(biases))
-        return loss
+        return gradient
 
 
 class L2(Regularizer):
-    def compute_loss(self, loss: float, weights: np.ndarray, biases: np.ndarray) -> float:
-        """L2 regulizer implementation for compute_loss function of Regulizer
+    def update_gradient(self, gradient: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> np.ndarray:
+        """L2 regulizer implementation of the gradient update function
 
         Args:
-            gradient (float): gradient of the model
+            gradient (float): gradient calculate by loss.compute_derivative or previous layers output gradient calculation
             weights (np.ndarray): models weights
             biases (np.ndarray): models biases
 
         Returns:
-            float: new gradient
+            float: updated gradient
         """
-        loss += self.strength * \
+        gradient += self.strength * \
             np.sum(np.square(weights)) + self.strength * \
             np.sum(np.square(biases))
-        return loss
+        return gradient
 
 
 class L1L2(Regularizer):
@@ -67,20 +67,20 @@ class L1L2(Regularizer):
             l1_strength (float, optional): How much do we punish the model for having big weights and biases using L1. Defaults to 1e-3.
             l2_strength (float, optional): How much do we punish the model for having big weights and biases using L2. Defaults to 1e-3.
         """
-        self.l1_strength = l1_strength
-        self.l2_strength = l2_strength
+        self.l1_strength: float = l1_strength
+        self.l2_strength: float = l2_strength
 
-    def compute_loss(self, loss: float, weights: np.ndarray, biases: np.ndarray) -> float:
-        """L1L2 regulizer implementation for compute_loss function of Regulizer
+    def update_gradient(self, gradient: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> np.ndarray:
+        """L1L2 regulizer implementation of the gradient update function
 
         Args:
-            gradient (float): gradient of the model
+            gradient (float): gradient calculate by loss.compute_derivative or previous layers output gradient calculation
             weights (np.ndarray): models weights
             biases (np.ndarray): models biases
 
         Returns:
-            float: new gradient
+            float: updated gradient
         """
-        loss += self.l1_strength * np.sum(np.abs(weights)) + self.l1_strength * np.sum(np.abs(
+        gradient += self.l1_strength * np.sum(np.abs(weights)) + self.l1_strength * np.sum(np.abs(
             biases)) + self.l2_strength * np.sum(np.square(weights)) + self.l2_strength * np.sum(np.square(biases))
-        return loss
+        return gradient

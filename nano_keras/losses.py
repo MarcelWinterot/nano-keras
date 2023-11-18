@@ -86,7 +86,7 @@ class MSE(Loss):
 
 class BCE(Loss):
     def __init__(self) -> None:
-        self.e = 1e-7
+        self.e: float = 1e-7
 
     def compute_loss(self, yTrue: np.ndarray, yPred: np.ndarray) -> np.ndarray:
         """Binary cross entropy implementation of compute_loss function
@@ -121,7 +121,7 @@ class BCE(Loss):
 
 class CCE(Loss):
     def __init__(self) -> None:
-        self.e = 1e-7
+        self.e: float = 1e-7
 
     def compute_loss(self, yTrue: np.ndarray, yPred: np.ndarray) -> np.ndarray:
         """Categorical cross entropy implementation of compute_loss function
@@ -183,7 +183,7 @@ class Huber(Loss):
         Args:
             delta (float, optional): Determines the transition point between the quadratic and linear regions of the loss function. Defaults to 0.5.
         """
-        self.delta = delta
+        self.delta: float = delta
 
     def compute_loss(self, yTrue: np.ndarray, yPred: np.ndarray) -> np.ndarray:
         """Huber implementation of compute_loss function
@@ -214,4 +214,4 @@ class Huber(Loss):
 
 
 LOSS_FUNCTIONS = {"mae": MAE(), "mse": MSE(), "bce": BCE(), "cce": CCE(),
-          "huber": Huber(), "hinge": Hinge()}
+                  "huber": Huber(), "hinge": Hinge()}
