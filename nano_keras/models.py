@@ -15,8 +15,6 @@ The best thing we could do is implenet im2col technique for backpropagation func
 2. Review the code so that there aren't any bugs left
 
 3. Add more demos and update the ones that are already shown
-
-4. Add isTraining to NN.train() so that we can sepcify are we in the training loop or is it a normal call
 """
 
 
@@ -178,18 +176,19 @@ class NN:
         self.weight_initaliziton: str = weight_initaliziton
         self.generate_weights(weight_data_type)
 
-    def feed_forward(self, x: np.ndarray) -> np.ndarray:
+    def feed_forward(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
         """Feed forward for the whole model
 
         Args:
             x (np.ndarray): x dataset
+            isTraining (bool): Changes the behavior of a few layers like Dropout so that it gives better results
 
         Returns:
-            np.ndarray: output of the model 
+            np.ndarray: output of the model
         """
         # We skip the first layer as it's the input layer
         for layer in self.layers[1:]:
-            x = layer(x)
+            x = layer(x, is_training)
         return x
 
     def backpropagate(self, X: np.ndarray, y: np.ndarray, verbose: int = 2, epoch: int = 1, total_epochs: int = 100) -> None:
@@ -207,7 +206,7 @@ class NN:
         losses = 0
         for i in range(length_of_x):
             start = time()
-            yPred = self.feed_forward(X[i])
+            yPred = self.feed_forward(X[i], True)
 
             # Accuracy calculation
             if self.metrics == "accuracy":
@@ -313,7 +312,7 @@ class NN:
         yPreds = np.ndarray((X.shape[0], self.layers[-1].units))
 
         for i, x in enumerate(X):
-            yPreds[i] = self.feed_forward(x)
+            yPreds[i] = self.feed_forward(x, False)
 
         if show_preds:
             print(yPreds)

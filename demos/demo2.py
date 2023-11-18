@@ -1,5 +1,5 @@
-from nano_keras.optimizers import NAdam
 import numpy as np
+from nano_keras.optimizers import NAdam
 from nano_keras.models import NN
 from nano_keras.layers import Input, Flatten, Conv2D, Dropout
 
@@ -32,7 +32,7 @@ model.add(Input((28, 28, 1)))
 model.add(Conv2D(32, (2, 2), (2, 2), name="Conv 1"))
 model.add(Conv2D(64, (2, 2), (2, 2), name='Conv 2'))
 model.add(Flatten())
-model.add(Dropout(10, "relu", 0.5))
+model.add(Dropout(10, "relu", 0.5, name='Dropout'))
 
 optimizer = NAdam(adjust_biases_shape=True)
 

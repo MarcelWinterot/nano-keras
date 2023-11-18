@@ -109,7 +109,7 @@ class Layer:
         """
         return "Base layer class"
 
-    def __call__(self, x: np.ndarray) -> np.ndarray:
+    def __call__(self, x: np.ndarray, is_training: bool) -> np.ndarray:
         """Call function for the layer, also know as feed forward\n
         Note that we also store all the variables the models calculated in self as it's layer used in backpropagate
 
@@ -139,7 +139,7 @@ class Layer:
 
 
 class Input(Layer):
-    def __init__(self, input_shape: tuple, useBiases: bool = True, name: str = "Input") -> None:
+    def __init__(self, input_shape: tuple, name: str = "Input") -> None:
         """Intializer for input layer.
 
         Args:
@@ -148,13 +148,10 @@ class Input(Layer):
         """
         self.input_shape: tuple = input_shape
         self.name: str = name
-        self.biases: np.ndarray = None
-
-        if useBiases == True:
-            self.biases: np.ndarray = np.random.randn(
-                *input_shape) if type(input_shape) == tuple else np.random.randn(input_shape)
-        # Initializing the weights as I don't want to add another if statement to NN.summary() for checking if a layer has weights
-        self.weights: np.ndarray = np.array([])
+        # I don't know why it has to be here but it has to be here
+        # as otherwise we get worse results, further testing required
+        self.biases: np.ndarray = np.random.randn(
+            *input_shape) if type(input_shape) == tuple else np.random.randn(input_shape)
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         return self.input_shape
@@ -164,11 +161,9 @@ class Input(Layer):
             formatted_output = f'(None, {", ".join(map(str, self.input_shape))})'
         except:
             formatted_output = f'(None, {self.input_shape})'
-        return f"{self.name} (Input){' ' * (28 - len(self.name) - 7)}{formatted_output}{' ' * (26 - len(formatted_output))}{self.biases.size}\n"
+        return f"{self.name} (Input){' ' * (28 - len(self.name) - 7)}{formatted_output}{' ' * (26 - len(formatted_output))}0\n"
 
-    def __call__(self, x: np.ndarray) -> np.ndarray:
-        if self.biases:
-            return x + self.biases
+    def __call__(self, x: np.ndarray, is_training: bool) -> np.ndarray:
         return x
 
 
@@ -225,26 +220,26 @@ class Dropout(Layer):
     def __repr__(self) -> str:
         return f"{self.name} (Dropout){' ' * (28 - len(self.name) - 9)}{(None, self.units)}{' ' * (26 - len(f'(None, {self.units})'))}{self.weights.size + self.biases.size}\n"
 
-    def __call__(self, x: np.ndarray, isTraining: bool = True) -> np.ndarray:
+    def __call__(self, x: np.ndarray, is_training: bool) -> np.ndarray:
         """Call function for the dropout layer, also known as feedforward for it. We drop the connections by applying this mask:\n
         weighted_sum /= 1 - self.dropout_rate
 
         Args:
             x (np.ndarray): X dataset
-            isTraining (bool, optional): Param to control the mask. If it's set to False we don't apply the mask. Defaults to True.
+            is_training (bool, optional): Param to control the mask. If it's set to False we don't apply the mask. Defaults to True.
 
         Returns:
             np.ndarray: Output of the model
         """
         self.inputs: np.ndarray = x
-        if isTraining:
+        if is_training:
             weighted_sum = np.dot(x, self.weights) + self.biases
             weighted_sum /= 1 - self.dropout_rate
             output = self.activation.apply_activation(weighted_sum)
             self.outputs: np.ndarray = np.array([output, weighted_sum])
             return output
 
-        return super().__call__(x)
+        return super().__call__(x, is_training)
 
     def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer]) -> np.ndarray:
         """Backpropagation algorithm for the dropout layer
@@ -294,7 +289,7 @@ class Flatten(Layer):
     def __repr__(self) -> str:
         return f"{self.name} (Flatten){' ' * (28 - len(self.name) - 9)}{(None, self.output_shape_value)}{' ' * (26-len(f'(None, {self.output_shape_value})'))}0\n"
 
-    def __call__(self, x: np.ndarray) -> np.ndarray:
+    def __call__(self, x: np.ndarray, is_training: bool) -> np.ndarray:
         self.original_shape: tuple = x.shape
         return np.ravel(x)
 
@@ -335,7 +330,7 @@ class Reshape(Layer):
         formatted_output = f'(None, {", ".join(map(str, self.target_shape))})'
         return f"{self.name} (Reshape){' ' * (28 - len(self.name) - 9)}{formatted_output}{' ' * (26-len(formatted_output))}0\n"
 
-    def __call__(self, x: np.ndarray) -> np.ndarray:
+    def __call__(self, x: np.ndarray, is_training: bool) -> np.ndarray:
         self.original_shape: tuple = x.shape
         return np.reshape(x, self.target_shape)
 
@@ -379,7 +374,7 @@ class MaxPool1D(Layer):
     def __repr__(self) -> str:
         return f"{self.name} (MaxPool1D){' ' * (28 - len(self.name) - 11)}{(None, self.output_shape_value)}{' ' * (26-len(f'(None, {self.output_shape_value})'))}0\n"
 
-    def __call__(self, x: np.ndarray) -> np.ndarray:
+    def __call__(self, x: np.ndarray, is_training: bool) -> np.ndarray:
         """Call function for the MaxPool1D layer. It reduces the size of an array by how much the kernel_size and strides is set to.
         For example let's say we have those parameters:\n
         array X = [[1., 5., 3., 6., 7., 4.]]\n
@@ -435,7 +430,7 @@ class MaxPool2D(Layer):
         formatted_output = f'(None, {", ".join(map(str, self.output_shape_value))})'
         return f"{self.name} (MaxPool2D){' ' * (28 - len(self.name) - 11)}{formatted_output}{' ' * (26-len(formatted_output))}0\n"
 
-    def __call__(self, x: np.ndarray) -> np.ndarray:
+    def __call__(self, x: np.ndarray, is_training: bool) -> np.ndarray:
         """Call function for the MaxPool1D layer. It reduces the size of an array by how much the kernel_size and strides is set to.
         For example let's say we have those parameters:\n
         array X:\n
@@ -543,7 +538,7 @@ class Conv1D(Layer):
         formatted_output = f'(None, {", ".join(map(str, self.output_shape_value))})'
         return f"{self.name} (Conv1D){' ' * (28 - len(self.name) - 8)}{formatted_output}{' ' * (26-len(formatted_output))}{self.weights.size + self.biases.size}\n"
 
-    def __call__(self, x: np.ndarray) -> np.ndarray:
+    def __call__(self, x: np.ndarray, is_training: bool) -> np.ndarray:
         self.inputs: np.ndarray = x
 
         weighted_sum = np.zeros(
@@ -767,7 +762,7 @@ class Conv2D(Layer):
         np.add.at(x, (i, j, k), cols_reshaped)
         return x
 
-    def __call__(self, x: np.ndarray) -> np.ndarray:
+    def __call__(self, x: np.ndarray, is_training: bool) -> np.ndarray:
         """Call function also known as feed forward function for the Conv2D layer
 
         Args:
@@ -844,4 +839,4 @@ class Conv2D(Layer):
 
 LAYERS_WITHOUT_UNITS = [
     Flatten, Reshape, MaxPool1D, MaxPool2D, Input]
-TRAINABLE_LAYERS = [Dense, Dropout, Conv1D, Conv2D, Input]
+TRAINABLE_LAYERS = [Dense, Dropout, Conv1D, Conv2D]
