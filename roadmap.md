@@ -1,24 +1,26 @@
-# Plans for v. 1.0
+# Roadmap for the development of nano-keras
 
-## The goal of this project is to learn how things work in popular ML libraries. Of course the perfromance won't be too good as it is written in python but the performance isn't my goal, although I will try to make it as efficient as possible
+## Features left to implement before releasing v1.0.0
 
-## Features I want to implement
+### 1. Optimizing the backpropagation of Conv2D using col2im
 
-### 1. Easily creating and training NNs with the library taking care of configuration
+## Features I  want in v2.0.0
 
-### 2. A few activation and loss functions
+### 1. GPU support
 
-### 3. A few optimizers to learn how they work
+### 2. Batch support
 
-### 4. Custom layer types, like the ones in keras
+### 3. Optimizers: AdamW, Adamax, Adafactor, Ftrl
 
-### 5. Regularization techniques
+### 4. Layers: LSTM, GRU, MHA, Embedding
 
-### 6. Callbacks
+### 5. Callbacks: LearningRateScheduler, CSVLogger
+
+### 6. Weight initalization strategies: Random uniform, Truncated normal, Zeros, Ones, Xavier uniform, He uniform, Constant, Variance Scalling
 
 ## Features I've implemented
 
-### 1. Easily creating and training most NN types
+### 1. Easily creating and training most simple NN types
 
 ### 2. Acitavitons: Sigmoid, Tanh, ReLU, Leaky ReLU, ELU, Softmax
 
@@ -32,16 +34,8 @@
 
 ### 6. Callbacks: Early stopping
 
-### 7. Weight initialization startegies: Xavier, He, Random
+### 7. Weight initialization startegies: Xavier normal, He normal, Random normal
 
 ## Possible plans for the future
-
-### Rewrite the library in a more efficient language like C++/Rust
-
-### Add GPU support for calculations
-
-### Make the code work in batches
-
-### Add more: Optimizers, Activations, Losses, Layers
 
 ### Add distribution strategies for training a model on multiple CPUs/GPUs

@@ -11,10 +11,6 @@ TODO Overall:
 1. Optimize Conv2D layer
 Conv2d layers are a lot faster than they were initally, but there's still a lot room for upgrades
 The best thing we could do is implenet im2col technique for backpropagation function 
-
-2. Review the code so that there aren't any bugs left
-
-3. Add more demos and update the ones that are already shown
 """
 
 
@@ -55,6 +51,14 @@ class NN:
 
     @staticmethod
     def _convert_time(seconds: int) -> str:
+        """Support function to convert ETA time into a more readable format
+
+        Args:
+            seconds (int): ETA time of the model
+
+        Returns:
+            str: Updated ETA time in a more readable format
+        """
         hours, minutes = 0, 0
 
         if seconds >= 3600:
@@ -66,8 +70,8 @@ class NN:
             seconds -= 60 * minutes
 
         if hours > 0:
-            return f"{hours:.0f}h {minutes:.0f}m {seconds:.0f}s"
-        return f"{minutes:.0f}m {seconds:.0f}s"
+            return f"{hours:.0f}:{minutes:.0f}:{seconds:.0f}"
+        return f"{minutes:.0f}:{seconds:.0f}"
 
     def print_progress(self, epoch: int, total_epochs: int, loss: float, accuracy: float = None, batch: int = None, total_batches: int = None, time_taken: float = None) -> None:
         """Function that prints out current training progress
@@ -79,8 +83,6 @@ class NN:
             accuracy (float, optional): accuracy of the model during training. Default to None.
             batch (int, optional): current batch. Will be set if verbose is set to 2 in the NN.train function. If it's None we ignore it during printing. Defaults to None.
             total_batches (int, optional): total number of batches. Will be set if verbose is set to 2 in the NN.train function. If it's None we ignore it during printing. Defaults to None.
-            val_loss (float, optional): Validation loss of the model. If it's None we ignore it during printing. Defaults to None.
-            val_accuracy (float, optional): Validation accuracy of the model. If it's None we ignore it during printing. Defaults to None.
             time_taken (float, optional): Time that a batch has taken to complete. Note that it is only shown if verbose is set to 2. Defaults to None
         """
         bar_length = 30
