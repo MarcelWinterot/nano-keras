@@ -16,21 +16,25 @@
 
 ### **nano-keras** is available on [PyPI](https://pypi.org/project/nano-keras/) so in order to download it open a terminal and paste:
 
-#### pip install nano-keras
+```bash
+pip install nano-keras
+```
 
-### You should have succesfully installed nano-keras so to use it in your python file you only need to import it like this:
+### You now should have succesfully installed nano-keras so to use it in your python file you only need to import it like this:
 
-#### import nano_keras
+```py
+import nano_keras
+```
 
 ### If you have an issue message me on github or send me an email
 
 ## Documentation
 
-### Currently, the documentation is in progress and is expected to be released along with the first version on November 12th. It will cover:
+### It is under development but you can access it [here](https://github.com/MarcelWinterot/nano-keras/wiki/Documentation)
 
-#### - Usage examples
+## Roadmap
 
-#### - Explanation of classes and methods
+### Roadmap is now in the Wiki section of nano-keras and not in the source code. You can acces it [here](https://github.com/MarcelWinterot/nano-keras/wiki/Roadmap)
 
 ## License
 

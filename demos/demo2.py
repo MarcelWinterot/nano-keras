@@ -32,12 +32,13 @@ model.add(Input((28, 28, 1)))
 model.add(Conv2D(32, (2, 2), (2, 2), name="Conv 1"))
 model.add(Conv2D(64, (2, 2), (2, 2), name='Conv 2'))
 model.add(Flatten())
-model.add(Dropout(10, "relu", 0.5, name='Dropout'))
+model.add(Dropout(10, "relu", 0.5, "he", name='Dropout'))
 
 optimizer = NAdam(adjust_biases_shape=True)
 
-model.compile("bce", optimizer=optimizer,
-              weight_initaliziton="he", metrics="accuracy", weight_data_type=np.float32)
+model.compile("bce", optimizer=optimizer, metrics="accuracy",
+              weight_data_type=np.float32)
+
 model.summary()
 
 

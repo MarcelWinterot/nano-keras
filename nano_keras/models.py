@@ -1,7 +1,7 @@
 import numpy as np
 from nano_keras.losses import LOSS_FUNCTIONS, Loss
 from nano_keras.optimizers import OPTIMIZERS, Optimizer
-from nano_keras.layers import LAYERS_WITHOUT_UNITS, TRAINABLE_LAYERS, Layer
+from nano_keras.layers import LAYERS_WITHOUT_PARAMS, TRAINABLE_LAYERS, Layer
 from nano_keras.callbacks import EarlyStopping
 from copy import deepcopy
 from time import time
@@ -147,23 +147,22 @@ class NN:
             weight_data_type (np.float_): numpy data type in which the models weights should be stored. Use only np.float_ data types.
         """
         for i in range(1, len(self.layers)):
-            if not any(isinstance(self.layers[i], layer) for layer in LAYERS_WITHOUT_UNITS):
+            if not any(isinstance(self.layers[i], layer) for layer in LAYERS_WITHOUT_PARAMS):
                 try:
                     self.layers[i].generate_weights(
-                        self.layers, i, self.weight_initaliziton, weight_data_type)
+                        self.layers, i, weight_data_type)
                 except Exception as e:
                     print(
                         f"Exception encountered when creating weights: {e}\nChange your achitecture and try again. If you think it's an error post an issue on github")
                     exit(1)
 
-    def compile(self, loss_function: Loss | str = "mse", optimizer: Optimizer | str = "adam", metrics: str = "", weight_initaliziton: str = "random", weight_data_type: np.float_ = np.float64) -> None:
+    def compile(self, loss_function: Loss | str = "mse", optimizer: Optimizer | str = "adam", metrics: str = "", weight_data_type: np.float_ = np.float64) -> None:
         """Function you should call before starting training the model, as we generate the weights in here, set the loss function and optimizer.
 
         Args:
             loss_function (Loss | str, optional): Loss function the model should use. You can pass either the name of it as a str or intialized class. Defaults to "mse".
             optimizer (Optimizer | str, optional): Optimizer the model should use when updating it's params. You can pass either the name of it as a str or initalized class. Defaults to "adam"
             metrics (str, optional): Paramter that specifies what metrics should the model use. Possible metrics are: accuracy. Defaults to "".
-            weight_initaliziton (str, optional): Weights intialization function you want to use for weight intialization. Your options are: random, xavier, he. Defalut to "random"
             weight_data_type (np.float_, optional): Data type you want the models weights to be. Use np.float_ types like np.float32 or np.float64. Defaults to np.float64.
         """
         self.loss_function: Loss = LOSS_FUNCTIONS[loss_function] if type(
@@ -175,7 +174,6 @@ class NN:
         self.optimizer: list[Optimizer] = [self.optimizer, optimizer4d]
 
         self.metrics: str = metrics
-        self.weight_initaliziton: str = weight_initaliziton
         self.generate_weights(weight_data_type)
 
     def feed_forward(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
@@ -188,8 +186,7 @@ class NN:
         Returns:
             np.ndarray: output of the model
         """
-        # We skip the first layer as it's the input layer
-        for layer in self.layers[1:]:
+        for layer in self.layers:
             x = layer(x, is_training)
         return x
 
@@ -351,7 +348,7 @@ class NN:
         """
         array_to_save = []
         for layer in self.layers:
-            if any(isinstance(layer, layer_without_units) for layer_without_units in LAYERS_WITHOUT_UNITS):
+            if any(isinstance(layer, layer_without_units) for layer_without_units in LAYERS_WITHOUT_PARAMS):
                 array_to_save.append([])
                 continue
             array_to_save.append([layer.weights, layer.biases])
