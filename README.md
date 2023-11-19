@@ -30,11 +30,13 @@ import nano_keras
 
 ## Documentation
 
-### It is under development but you can access it [here](https://github.com/MarcelWinterot/nano-keras/wiki/Documentation)
+### Documentation is under development and should be finished in the next few days
+
+### You can access it [here](https://github.com/MarcelWinterot/nano-keras/wiki/Documentation)
 
 ## Roadmap
 
-### Roadmap is now in the Wiki section of nano-keras and not in the source code. You can acces it [here](https://github.com/MarcelWinterot/nano-keras/wiki/Roadmap)
+### Roadmap is now in the Wiki section of nano-keras and not in the source code. You can access it [here](https://github.com/MarcelWinterot/nano-keras/wiki/Roadmap)
 
 ## License
 
