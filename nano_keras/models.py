@@ -113,6 +113,17 @@ class NN:
 
         print(f"\r{progress_info}", end='')
 
+    def get_weights(self) -> list[np.ndarray]:
+        output = []
+        empty_array = np.array([])
+        for layer in self.layers:
+            if any(isinstance(layer, trainable_layer) for trainable_layer in TRAINABLE_LAYERS):
+                output.append(np.copy(layer.weights))
+            else:
+                output.append(empty_array)
+
+        return output
+
     def add(self, layer: Layer):
         """Adds a custom layer to the NN.
 
