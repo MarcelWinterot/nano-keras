@@ -7,6 +7,7 @@ from nano_keras.models import NN
 from nano_keras.losses import MSE
 from nano_keras.layers import Dense, Input
 from nano_keras.optimizers import NAdam
+from nano_keras.callbacks import EarlyStopping
 
 X = sns.load_dataset("titanic")
 
@@ -56,8 +57,15 @@ model.add(Dense(1, "sigmoid"))
 optimizer = NAdam()
 loss = MSE()
 
-model.compile(loss, optimizer, metrics="accuracy")
+stop = EarlyStopping(5, "val_accuracy", restore_best_weights=True)
+
+model.compile(loss, optimizer, metrics="val_accuracy")
 
 model.summary()
 
-model.train(X_train, y_train, 50, verbose=2, validation_data=(X_test, y_test))
+model.train(X_train, y_train, 50, verbose=2,
+            validation_data=(X_test, y_test), callbacks=stop)
+
+loss, accuracy = model.evaluate(X_test, y_test)
+
+print(f"\n\nFinished training, the final accuracy: {accuracy}\n\n")

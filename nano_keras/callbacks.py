@@ -16,8 +16,8 @@ class EarlyStopping:
         self.min_delta: float = min_delta
         self.restore_best_weights: bool = restore_best_weights
         self.metric: float = float(1e50)
-        self.weights: np.ndarray = np.array([])
-        self.biases: np.ndarray = np.array([])
+        self.weights: list = []
+        self.biases: list = []
         self.counter: int = 0
 
     def get_models_weights(self, layers: list) -> None:
@@ -26,13 +26,14 @@ class EarlyStopping:
         Args:
             layers (list): List of all the layers in a model
         """
+        empty_array = np.array([])
         for layer in layers:
             try:
                 self.weights.append(layer.weights)
                 self.biases.append(layer.biases)
             except:
-                self.weights.append([])
-                self.biases.append([])
+                self.weights.append(empty_array)
+                self.biases.append(empty_array)
 
     def watch(self, metric: np.ndarray, layers: list) -> tuple | None:
         """Function to watch over the models metric to measure and see if it's getting better or worse
@@ -59,4 +60,6 @@ class EarlyStopping:
 
         self.counter += 1
         if self.counter >= self.patience:
+            # self.weights: np.ndarray = np.array(self.weights)
+            # self.biases: np.ndarray = np.array(self.biases)
             return (self.weights, self.biases) if self.restore_best_weights else ()

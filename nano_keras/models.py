@@ -29,6 +29,8 @@ class NN:
         self.accuracy: float = 0
         self.val_loss: float = None
         self.val_accuracy: float = None
+        self._metrics = {"loss": self.loss, "accuracy": self.accuracy,
+                         "val_loss": self.val_loss, "val_accuracy": self.val_accuracy}
 
     @staticmethod
     def _convert_size(size: int) -> str:
@@ -226,8 +228,6 @@ class NN:
                     (i+1) if self.metrics == "accuracy" else None
                 time_taken = time() - start
                 # Note that we use (i + 1) as we want to divide the losses and accuracy by the amount of times they've been updated
-                # self.print_progress(epoch+1, total_epochs, losses / (i+1),
-                #                     accuracy, i+1, length_of_x, self.val_loss, self.val_accuracy, time_taken)
                 self.print_progress(epoch+1, total_epochs, losses / (i+1),
                                     accuracy, i+1, length_of_x, time_taken)
 
@@ -275,12 +275,6 @@ class NN:
                     validation_data[0], validation_data[1])
 
                 val_losses[epoch] = self.val_loss
-
-                self._metrics = {"loss": self.loss, "accuracy": self.accuracy,
-                                 "val_loss": self.val_loss, "val_accuracy": self.val_accuracy}
-            else:
-                self._metrics = {"loss": self.loss,
-                                 "accuracy": self.accuracy, }
 
             result = callbacks.watch(
                 self._metrics[callbacks.monitor], self.layers) if callbacks is not None else None
