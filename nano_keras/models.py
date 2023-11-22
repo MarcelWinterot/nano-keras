@@ -124,6 +124,15 @@ class NN:
 
         return output
 
+    def set_weights(self, weights: list[np.ndarray]) -> None:
+        for i, layer in enumerate(self.layers):
+            try:
+                if any(isinstance(layer, trainable_layer) for trainable_layer in TRAINABLE_LAYERS):
+                    layer.weights = weights[i]
+            except Exception as e:
+                print(f"Exception occured when setting weights: {e}")
+                exit(1)
+
     def add(self, layer: Layer):
         """Adds a custom layer to the NN.
 
