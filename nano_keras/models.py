@@ -8,9 +8,13 @@ from time import time
 
 """
 TODO Overall:
-1. Optimize Conv2D layer
+1. Change delta calculation in all of backpropagation algorthims except for Dense
+
+2. Optimize Conv2D layer
 Conv2d layers are a lot faster than they were initally, but there's still a lot room for upgrades
 The best thing we could do is implenet im2col technique for backpropagation function 
+
+3. Clean up accuracy calculation
 """
 
 
@@ -29,8 +33,6 @@ class NN:
         self.accuracy: float = 0
         self.val_loss: float = None
         self.val_accuracy: float = None
-        self._metrics = {"loss": self.loss, "accuracy": self.accuracy,
-                         "val_loss": self.val_loss, "val_accuracy": self.val_accuracy}
 
     @staticmethod
     def _convert_size(size: int) -> str:
@@ -251,25 +253,6 @@ class NN:
                 self.print_progress(epoch+1, total_epochs, losses / (i+1),
                                     accuracy, i+1, length_of_x, time_taken)
 
-    def _handle_callbacks(self, result: tuple[np.ndarray, np.ndarray] | None, callbacks: EarlyStopping | None) -> int:
-        """Support function used for handling callbacks in train function. It either returns 0 - training continues, 1 - training stops
-
-        Args:
-            result (tuple[np.ndarray, np.ndarray] | None): Result from the callbacks.monitor() function. Either models weights or None
-            callbacks (EarlyStopping | None): Callbacks we use during models training
-
-        Returns:
-            int: Information about training. 0 - continues, 1 - stops
-        """
-        if result is not None:
-            if callbacks.restore_best_weights:
-                for i, layer in enumerate(self.layers):
-                    if result[0][i].size > 0:
-                        layer.weights = result[0][i]
-                        layer.biases = result[1][i]
-            return 1
-        return 0
-
     def train(self, X: np.ndarray, y: np.ndarray, epochs: int, callbacks: EarlyStopping = None, verbose: int = 1, validation_data: tuple[np.ndarray, np.ndarray] = None) -> np.ndarray | tuple:
         """Function to train the model. Remember to call the NN.compile() before calling this function as it won't work because we don't have weights. \n
 
@@ -293,13 +276,18 @@ class NN:
             if validation_data is not None:
                 self.val_loss, self.val_accuracy = self.evaluate(
                     validation_data[0], validation_data[1])
+                
+                self._metrics = {"loss": self.loss, "accuracy": self.accuracy,
+                                 "val_loss": self.val_loss, "val_accuracy": self.val_accuracy}
 
                 val_losses[epoch] = self.val_loss
+            else:
+                self._metrics = {"loss": self.loss, "accuracy": self.accuracy}
 
             result = callbacks.watch(
-                self._metrics[callbacks.monitor], self.layers) if callbacks is not None else None
+                self._metrics[callbacks.value_to_monitor], self.layers) if callbacks is not None else False
 
-            if self._handle_callbacks(result, callbacks) == 1:
+            if result:
                 break
 
             losses[epoch] = self.loss

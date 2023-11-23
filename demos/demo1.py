@@ -9,7 +9,37 @@ from nano_keras.layers import Dense, Input
 from nano_keras.optimizers import NAdam
 from nano_keras.callbacks import EarlyStopping
 
-X = sns.load_dataset("titanic")
+
+def load_data() -> tuple:
+    X = sns.load_dataset("titanic")
+
+    X = drop_data(X, ["fare", "embarked", "adult_male", "who",
+                  "embark_town", "class", "alive", "deck", "alone"])
+
+    y = X.pop("survived")
+
+    encoder = {"male": 0, "female": 1}
+    X["sex"] = X["sex"].map(encoder)
+
+    X = X.dropna()
+    y = y.loc[X.index]
+
+    scaler = MinMaxScaler()
+
+    X = scaler.fit_transform(X)
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, shuffle=False)  # shuffle = False for reproducibility
+
+    X_train = np.array(X_train)
+    X_test = np.array(X_test)
+    y_train = np.array(y_train)
+    y_test = np.array(y_test)
+
+    y_train = np.array([[y] for y in y_train])
+    y_test = np.array([[y] for y in y_test])
+
+    return X_train, X_test, y_train, y_test
 
 
 def drop_data(data: pd.DataFrame, data_to_drop: list[str]) -> pd.DataFrame:
@@ -18,32 +48,7 @@ def drop_data(data: pd.DataFrame, data_to_drop: list[str]) -> pd.DataFrame:
     return data
 
 
-X = drop_data(X, ["fare", "embarked", "adult_male", "who",
-                  "embark_town", "class", "alive", "deck", "alone"])
-
-y = X.pop("survived")
-
-encoder = {"male": 0, "female": 1}
-X["sex"] = X["sex"].map(encoder)
-
-
-X = X.dropna()
-y = y.loc[X.index]
-
-scaler = MinMaxScaler()
-
-X = scaler.fit_transform(X)
-
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, shuffle=False)  # shuffle = False for reproducibility
-
-X_train = np.array(X_train)
-X_test = np.array(X_test)
-y_train = np.array(y_train)
-y_test = np.array(y_test)
-
-y_train = np.array([[y] for y in y_train])
-y_test = np.array([[y] for y in y_test])
+X_train, X_test, y_train, y_test = load_data()
 
 np.random.seed(1337)
 
@@ -59,7 +64,7 @@ loss = MSE()
 
 stop = EarlyStopping(5, "val_accuracy", restore_best_weights=True)
 
-model.compile(loss, optimizer, metrics="val_accuracy")
+model.compile(loss, optimizer, metrics="accuracy")
 
 model.summary()
 

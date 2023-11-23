@@ -25,6 +25,9 @@ class Layer:
             activation) == str else activation
         self.regulizer: Regularizer = regulizer
 
+        self.weights = np.array([])
+        self.biases = np.array([])
+
     @staticmethod
     def random_initalization(previous_units: int, current_units: int, weight_data_type: np.float_) -> tuple[np.ndarray, np.ndarray]:
         """Random intitalization strategy used for weights generation. Note that this works for 2d layers that use units for weight generation and not layers like Conv1d and Conv2d
@@ -122,9 +125,8 @@ class Layer:
         """
         self.inputs: np.ndarray = x
         weighted_sum = np.dot(x, self.weights) + self.biases
-        output = self.activation.apply_activation(weighted_sum)
-        self.outputs: np.ndarray = np.array([output, weighted_sum])
-        return output
+        self.output = self.activation.apply_activation(weighted_sum)
+        return self.output
 
     def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer]) -> np.ndarray:
         """Backpropagation algorithm base implementation for all the layers that don't have any parameters to update
@@ -149,6 +151,7 @@ class Input(Layer):
         """
         self.input_shape: tuple = input_shape
         self.name: str = name
+        self.weights = np.array([])
         # I don't know why it has to be here but it has to be here
         # as otherwise we get worse results, further testing required
         self.biases: np.ndarray = np.random.randn(
@@ -190,13 +193,14 @@ class Dense(Layer):
             gradient = self.regulizer.update_gradient(
                 gradient, self.weights, self.biases)
 
-        delta = np.average(
-            [gradient * self.activation.compute_derivative(output) for output in self.outputs])
+        self.output = self.activation.compute_derivative(self.output)
+
+        delta = gradient * self.output
 
         weights_gradients = np.outer(self.inputs, delta)
 
-        self.weights, self.biases = optimizer[0].apply_gradients(weights_gradients, np.array(
-            delta, dtype=float), self.weights, self.biases)
+        self.weights, self.biases = optimizer[0].apply_gradients(
+            weights_gradients, np.average(delta), self.weights, self.biases)
 
         return np.dot(delta, self.weights.T)
 
@@ -279,6 +283,8 @@ class Flatten(Layer):
             name (str, optional): Name of the layer. Defaults to "Flatten".
         """
         self.name: str = name
+        self.weights = np.array([])
+        self.biases = np.array([])
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         input_shape = layers[current_layer_index -
@@ -306,6 +312,7 @@ class Flatten(Layer):
         Returns:
             np.ndarray: Output gradient
         """
+        # TODO Make this cleaner
         try:
             return gradient.reshape(self.next_layer_shape, *self.original_shape)
         except:
@@ -322,6 +329,8 @@ class Reshape(Layer):
         """
         self.target_shape: tuple = target_shape
         self.name: str = name
+        self.weights = np.array([])
+        self.biases = np.array([])
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         self.next_layer_shape: tuple = layers[current_layer_index +
@@ -365,6 +374,8 @@ class MaxPool1D(Layer):
         self.pool_size: int = pool_size
         self.strides: int = strides
         self.name: str = name
+        self.weights = np.array([])
+        self.biases = np.array([])
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         input_shape = layers[current_layer_index -
@@ -416,6 +427,8 @@ class MaxPool2D(Layer):
         self.pool_size: tuple = pool_size
         self.strides: tuple = strides
         self.name: tuple = name
+        self.weights = np.array([])
+        self.biases = np.array([])
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         input_shape = layers[current_layer_index -

@@ -18,7 +18,7 @@ def load_data() -> tuple:
     y_train = to_categorical(y_train, 10)
     y_test = to_categorical(y_test, 10)
 
-    return (X_train, X_test, y_train, y_test)
+    return X_train, X_test, y_train, y_test
 
 
 X_train, X_test, y_train, y_test = load_data()
