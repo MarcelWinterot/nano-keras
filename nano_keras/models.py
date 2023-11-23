@@ -14,7 +14,7 @@ TODO Overall:
 Conv2d layers are a lot faster than they were initally, but there's still a lot room for upgrades
 The best thing we could do is implenet im2col technique for backpropagation function 
 
-3. Clean up accuracy calculation
+3. Add validation split to NN.train()
 """
 
 
@@ -35,7 +35,7 @@ class NN:
         self.val_accuracy: float = None
 
     @staticmethod
-    def _convert_size(size: int) -> str:
+    def __convert_size(size: int) -> str:
         """Support function to convert bytes into bigger units so it's more readable
 
         Args:
@@ -54,7 +54,7 @@ class NN:
         return f"{round(size, 3)} {units[unit_index]}"
 
     @staticmethod
-    def _convert_time(seconds: int) -> str:
+    def __convert_time(seconds: int) -> str:
         """Support function to convert ETA time into a more readable format
 
         Args:
@@ -102,7 +102,7 @@ class NN:
             progress_info = f"{epoch}/{total_epochs} {progress_bar} - loss: {loss:.8f}"
 
         if time_taken is not None:
-            progress_info += f" - ETA: {self._convert_time(time_taken * (total_batches - batch))}"
+            progress_info += f" - ETA: {self.__convert_time(time_taken * (total_batches - batch))}"
 
         if accuracy is not None:
             if type(accuracy) == np.nan:
@@ -161,7 +161,7 @@ class NN:
                 paramsWeight += layer.weights.nbytes + layer.biases.nbytes
         print(f"{'='*line_length}")
         print(
-            f"Total params: {totalParams} ({self._convert_size(paramsWeight)})")
+            f"Total params: {totalParams} ({self.__convert_size(paramsWeight)})")
         print(f"{'_'*line_length}")
 
     def generate_weights(self, weight_data_type: np.float_) -> None:
@@ -231,15 +231,11 @@ class NN:
             start = time()
             yPred = self.feed_forward(X[i], True)
 
-            # Accuracy calculation
             if self.metrics == "accuracy":
-                if len(yPred) == 1:
-                    total_accuracy += np.average(np.abs(y[i] - yPred) < 0.25)
-                else:
-                    total_accuracy += 1 if np.argmax(y[i]
-                                                     ) == np.argmax(yPred) else 0
+                total_accuracy += self.__calculate_accuracy(yPred, y[i])
 
             gradient = self.loss_function.compute_derivative(y[i], yPred)
+
             # We skip over the input layer, as it doesn't have any parameters to update
             for layer in self.layers[-1:0:-1]:
                 gradient = layer.backpropagate(gradient, self.optimizer)
@@ -276,7 +272,7 @@ class NN:
             if validation_data is not None:
                 self.val_loss, self.val_accuracy = self.evaluate(
                     validation_data[0], validation_data[1])
-                
+
                 self._metrics = {"loss": self.loss, "accuracy": self.accuracy,
                                  "val_loss": self.val_loss, "val_accuracy": self.val_accuracy}
 
@@ -297,6 +293,39 @@ class NN:
         if validation_data is not None:
             return losses, val_losses
         return losses
+
+    def __calculate_accuracy(self, yPreds: np.ndarray, yTrue: np.ndarray, min_accuracy_error: float = 0.25) -> float:
+        """Function to generate the accuracy given yPreds and yTrue dataset. It's earned a function for itself as I want the code to be cleaner
+        as we have repeating code in NN.backpropagate() and NN.evaluate()
+
+        Args:
+            yPreds (np.ndarray): Predictions of the model
+            yTrue (np.ndarray): Correct values the model should have predicted
+            min_accuracy_error (float): The minimum admissible error threshold for considering an answer as correct.
+
+        Returns:
+            float: Calculated accuracy
+        """
+        accuracy = 0
+        if len(yTrue.shape) == 1:
+            if len(yPreds) == 1:
+                accuracy = np.average(
+                    np.abs(yTrue - yPreds) < min_accuracy_error)
+            else:
+                accuracy = 1 if np.argmax(yTrue) == np.argmax(yPreds) else 0
+
+        else:
+            for i in range(len(yTrue)):
+                if len(yPreds[i]) == 1:
+                    accuracy += np.average(np.abs(yTrue[i] - yPreds[i])
+                                           < min_accuracy_error)
+                else:
+                    accuracy += 1 if np.argmax(yTrue[i]
+                                               ) == np.argmax(yPreds[i]) else 0
+
+            accuracy /= len(yTrue)
+
+        return accuracy
 
     def evaluate(self, X: np.ndarray, y: np.ndarray, show_preds: bool = False, min_accuracy_error: float = 0.25) -> float:
         """Model's evaluate function, which returns the loss calculated by the models loss function.
@@ -320,24 +349,7 @@ class NN:
 
         accuracy = None
         if self.metrics.find("accuracy") != -1:
-            accuracy = 0
-            if len(y.shape) == 1:
-                if len(yPreds) == 1:
-                    accuracy = np.average(
-                        np.abs(y[i] - yPreds) < min_accuracy_error)
-                else:
-                    accuracy = 1 if np.argmax(y) == np.argmax(yPreds) else 0
-
-            else:
-                for i in range(len(y)):
-                    if len(yPreds[i]) == 1:
-                        accuracy += np.average(np.abs(y[i] - yPreds[i])
-                                               < min_accuracy_error)
-                    else:
-                        accuracy += 1 if np.argmax(y[i]
-                                                   ) == np.argmax(yPreds[i]) else 0
-
-                accuracy /= len(y)
+            accuracy = self.__calculate_accuracy(yPreds, y, min_accuracy_error)
 
         return self.loss_function.compute_loss(y, yPreds), accuracy
 

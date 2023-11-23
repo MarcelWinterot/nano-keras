@@ -41,5 +41,4 @@ model.compile("bce", optimizer=optimizer, metrics="accuracy",
 
 model.summary()
 
-
 model.train(X_train, y_train, 100, verbose=2)

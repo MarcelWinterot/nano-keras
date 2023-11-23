@@ -828,8 +828,10 @@ class Conv2D(Layer):
             gradient = self.regulizer.update_gradient(
                 gradient, self.weights, self.biases)
 
-        self.outputs = self.activation.compute_derivative(self.outputs)
-        delta = np.average([gradient * output for output in self.outputs])
+        # self.outputs = self.activation.compute_derivative(self.outputs)
+        # delta = np.average([gradient * output for output in self.outputs])
+        self.outputs[0] = self.activation.compute_derivative(self.outputs[0])
+        delta = np.average(gradient * self.outputs[0])
 
         weights_gradients = np.zeros(
             (self.kernel_size[0], self.kernel_size[1], self.inputs.shape[-1], self.number_of_filters))
