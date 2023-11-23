@@ -249,7 +249,7 @@ class NN:
                 self.print_progress(epoch+1, total_epochs, losses / (i+1),
                                     accuracy, i+1, length_of_x, time_taken)
 
-    def train(self, X: np.ndarray, y: np.ndarray, epochs: int, callbacks: EarlyStopping = None, verbose: int = 1, validation_data: tuple[np.ndarray, np.ndarray] = None) -> np.ndarray | tuple:
+    def train(self, X: np.ndarray, y: np.ndarray, epochs: int, callbacks: EarlyStopping = None, verbose: int = 1, validation_split: float = 0, validation_data: tuple[np.ndarray, np.ndarray] = None) -> np.ndarray | tuple:
         """Function to train the model. Remember to call the NN.compile() before calling this function as it won't work because we don't have weights. \n
 
         Args:
@@ -258,6 +258,7 @@ class NN:
             epochs (int): number of iterations a model should do during training
             callbacks (EarlyStopping, optional): One of the callbacks implemented in callbacks.py although currently there's only early stopping in there. Defaults to None.
             verbose (int, optional): Parameter to control what the model prints out during training. 0 - nothing, 1 - only epoch/epochs, 2 - all the useful information. Defaults to 1.
+            validation_split (float, optional): How much of the training data do you want to split for validation. Only works if validation_data is not assigned any value. Remember that it must be between 0 and 1. Defaults to 0
             validation_data (tuple, optional): Validation data a model should use to check the validation loss and accuracy. It should be a tuple of X and y. Default to None.
 
         Returns:
@@ -265,6 +266,16 @@ class NN:
         """
         losses = np.ndarray((epochs))
         val_losses = np.ndarray((epochs))
+
+        if len(X) != len(y):
+            raise ValueError("X and y must have the same length")
+
+        if validation_data is None and 0 < validation_split < 1:
+            split_index = int(len(X) * (1 - validation_split))
+            X, X_val = X[:split_index], X[split_index:]
+            y, y_val = y[:split_index], y[split_index:]
+            validation_data = (X_val, y_val)
+
         for epoch in range(epochs):
             self.backpropagate(X, y, verbose, epoch, epochs)
             self.loss, self.accuracy = self.evaluate(X, y)

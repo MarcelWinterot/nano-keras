@@ -29,7 +29,7 @@ def load_data() -> tuple:
     X = scaler.fit_transform(X)
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, shuffle=False)  # shuffle = False for reproducibility
+        X, y, test_size=0.1, shuffle=False)  # shuffle = False for reproducibility
 
     X_train = np.array(X_train)
     X_test = np.array(X_test)

@@ -152,8 +152,6 @@ class Input(Layer):
         self.input_shape: tuple = input_shape
         self.name: str = name
         self.weights = np.array([])
-        # I don't know why it has to be here but it has to be here
-        # as otherwise we get worse results, further testing required
         self.biases: np.ndarray = np.random.randn(
             *input_shape) if type(input_shape) == tuple else np.random.randn(input_shape)
 
