@@ -8,7 +8,7 @@ from time import time
 
 """
 TODO Overall:
-1. Change delta calculation in all of backpropagation algorthims except for Dense
+1. Change delta calculation in all of backpropagation algorthims except for Dense, Dropout
 
 2. Optimize Conv2D layer
 Conv2d layers are a lot faster than they were initally, but there's still a lot room for upgrades

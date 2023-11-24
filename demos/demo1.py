@@ -5,7 +5,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 from nano_keras.models import NN
 from nano_keras.losses import MSE
-from nano_keras.layers import Dense, Input
+from nano_keras.layers import Dense, Input, Dropout
 from nano_keras.optimizers import NAdam
 from nano_keras.callbacks import EarlyStopping
 
@@ -57,6 +57,7 @@ model.add(Input(5))
 model.add(Dense(25, "relu"))
 model.add(Dense(10, "relu"))
 model.add(Dense(5, "relu"))
+# model.add(Dropout(5, "relu"))
 model.add(Dense(1, "sigmoid"))
 
 optimizer = NAdam()
@@ -73,4 +74,4 @@ model.train(X_train, y_train, 50, verbose=2,
 
 loss, accuracy = model.evaluate(X_test, y_test)
 
-print(f"\n\nFinished training, the final accuracy: {accuracy}\n\n")
+print(f"\n\nFinished training, the final accuracy: {accuracy}\n")

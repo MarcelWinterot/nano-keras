@@ -229,8 +229,7 @@ class Dropout(LayerWithParams):
         return f"{self.name} (Dropout){' ' * (28 - len(self.name) - 9)}{(None, self.units)}{' ' * (26 - len(f'(None, {self.units})'))}{self.weights.size + self.biases.size}\n"
 
     def __call__(self, x: np.ndarray, is_training: bool) -> np.ndarray:
-        """Call function for the dropout layer, also known as feedforward for it. We drop the connections by applying this mask:\n
-        weighted_sum /= 1 - self.dropout_rate
+        """Call function for the dropout layer. Dropout feed forward works simmilarly to Dense layers feed forward, with only difference being is that we apply a mask to drop connections\n
 
         Args:
             x (np.ndarray): X dataset
@@ -240,14 +239,19 @@ class Dropout(LayerWithParams):
             np.ndarray: Output of the model
         """
         self.inputs: np.ndarray = x
-        if is_training:
-            weighted_sum = np.dot(x, self.weights) + self.biases
-            weighted_sum /= 1 - self.dropout_rate
-            output = self.activation.apply_activation(weighted_sum)
-            self.outputs: np.ndarray = np.array([output, weighted_sum])
-            return output
 
-        return super().__call__(x, is_training)
+        weighted_sum = np.dot(x, self.weights) + self.biases
+
+        if is_training:
+            weighted_sum *= (np.random.rand(*weighted_sum.shape)
+                             >= self.dropout_rate).astype(np.float64)
+
+            weighted_sum /= (1 - self.dropout_rate)
+
+        self.output = self.activation.apply_activation(weighted_sum)
+        self.is_training = is_training
+
+        return self.output
 
     def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer]) -> np.ndarray:
         """Backpropagation algorithm for the dropout layer
@@ -264,15 +268,15 @@ class Dropout(LayerWithParams):
             gradient = self.regulizer.update_gradient(
                 gradient, self.weights, self.biases)
 
-        delta = np.average(
-            [gradient * self.activation.compute_derivative(output) for output in self.outputs])
+        delta = gradient * self.activation.compute_derivative(self.output)
 
-        delta /= 1/(1-self.dropout_rate)  # Scaling the gradient
+        if self.is_training:
+            delta /= (1 - self.dropout_rate)
 
         weights_gradients = np.outer(self.inputs, delta)
 
-        self.weights, self.biases = optimizer[0].apply_gradients(weights_gradients, np.array(
-            delta, dtype=float), self.weights, self.biases)
+        self.weights, self.biases = optimizer[0].apply_gradients(
+            weights_gradients, np.average(delta), self.weights, self.biases)
 
         return np.dot(delta, self.weights.T)
 
@@ -317,8 +321,11 @@ class Flatten(Layer):
         # TODO Make this cleaner
         try:
             return gradient.reshape(self.next_layer_shape, *self.original_shape)
-        except:
-            return gradient
+        except ValueError:
+            try:
+                return gradient.reshape(*self.original_shape)
+            except ValueError:
+                return gradient
 
 
 class Reshape(Layer):
@@ -810,10 +817,9 @@ class Conv2D(LayerWithParams):
         weighted_sum = weighted_sum.reshape(
             self.number_of_filters, height, width).transpose(1, 2, 0)
 
-        output = self.activation.apply_activation(weighted_sum)
-        self.outputs: np.ndarray = np.array([output, weighted_sum])
+        self.output = self.activation.apply_activation(weighted_sum)
 
-        return output
+        return self.output
 
     def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer]) -> np.ndarray:
         """Backpropagate algorithm used for Conv2D layer. It's kinda slow right now so it's not recommended to use it but it will be faster in the future
@@ -830,10 +836,8 @@ class Conv2D(LayerWithParams):
             gradient = self.regulizer.update_gradient(
                 gradient, self.weights, self.biases)
 
-        # self.outputs = self.activation.compute_derivative(self.outputs)
-        # delta = np.average([gradient * output for output in self.outputs])
-        self.outputs[0] = self.activation.compute_derivative(self.outputs[0])
-        delta = np.average(gradient * self.outputs[0])
+        delta = np.average(
+            gradient * self.activation.compute_derivative(self.output))
 
         weights_gradients = np.zeros(
             (self.kernel_size[0], self.kernel_size[1], self.inputs.shape[-1], self.number_of_filters))
