@@ -25,9 +25,6 @@ class Layer:
             activation) == str else activation
         self.regulizer: Regularizer = regulizer
 
-        self.weights = np.array([])
-        self.biases = np.array([])
-
     @staticmethod
     def random_initalization(previous_units: int, current_units: int, weight_data_type: np.float_) -> tuple[np.ndarray, np.ndarray]:
         """Random intitalization strategy used for weights generation. Note that this works for 2d layers that use units for weight generation and not layers like Conv1d and Conv2d
@@ -141,6 +138,13 @@ class Layer:
         return gradient
 
 
+class LayerWithParams(Layer):
+    def __init__(self, units: int, activation: Activation | str, weight_initialization: str = "random", regulizer: Regularizer = None, name: str = "Dense") -> None:
+        super().__init__(units, activation, weight_initialization, regulizer, name)
+        self.weights = np.array([])
+        self.biases = np.array([])
+
+
 class Input(Layer):
     def __init__(self, input_shape: tuple | int, name: str = "Input") -> None:
         """Intializer for input layer.
@@ -169,7 +173,7 @@ class Input(Layer):
         return x
 
 
-class Dense(Layer):
+class Dense(LayerWithParams):
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         return self.units
 
@@ -203,7 +207,7 @@ class Dense(Layer):
         return np.dot(delta, self.weights.T)
 
 
-class Dropout(Layer):
+class Dropout(LayerWithParams):
     def __init__(self, units: int, activation: Activation | str, dropout_rate: float = 0.2, weight_initialization: str = "random", regulizer: Regularizer | None = None, name: str = "Dropout") -> None:
         """Intializer for the dropout layer. Note that dropout layer acts the same as Dense but also drops connections between neurons
 
@@ -518,7 +522,7 @@ class MaxPool2D(Layer):
         return input_gradient
 
 
-class Conv1D(Layer):
+class Conv1D(LayerWithParams):
     def __init__(self, filters: int = 1, kernel_size: int = 2, strides: int = 2, activation: Activation | str = "relu", weight_initialization: str = "he", regulizer: Regularizer = None, name: str = "Conv1D") -> None:
         """Initalizer for the Conv1D layer
 
@@ -610,7 +614,7 @@ class Conv1D(Layer):
         return np.dot(delta, self.weights.T)
 
 
-class Conv2D(Layer):
+class Conv2D(LayerWithParams):
     def __init__(self, filters: int = 1, kernel_size: tuple = (2, 2), strides: tuple = (1, 1), activation: Activation | str = "relu", weight_initaliziton: str = "he", regulizer: Regularizer = None, name: str = "Conv2D") -> None:
         """Intializer for the Conv2D layer
 
@@ -854,8 +858,3 @@ class Conv2D(Layer):
         output_gradient = np.dot(delta, self.inputs)
 
         return output_gradient
-
-
-LAYERS_WITHOUT_PARAMS = [
-    Flatten, Reshape, MaxPool1D, MaxPool2D, Input]
-TRAINABLE_LAYERS = [Dense, Dropout, Conv1D, Conv2D]

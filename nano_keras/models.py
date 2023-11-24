@@ -1,7 +1,7 @@
 import numpy as np
 from nano_keras.losses import LOSS_FUNCTIONS, Loss
 from nano_keras.optimizers import OPTIMIZERS, Optimizer
-from nano_keras.layers import LAYERS_WITHOUT_PARAMS, TRAINABLE_LAYERS, Layer
+from nano_keras.layers import Layer, LayerWithParams
 from nano_keras.callbacks import EarlyStopping
 from copy import deepcopy
 from time import time
@@ -13,8 +13,6 @@ TODO Overall:
 2. Optimize Conv2D layer
 Conv2d layers are a lot faster than they were initally, but there's still a lot room for upgrades
 The best thing we could do is implenet im2col technique for backpropagation function 
-
-3. Add validation split to NN.train()
 """
 
 
@@ -119,7 +117,7 @@ class NN:
         output = []
         empty_array = np.array([])
         for layer in self.layers:
-            if any(isinstance(layer, trainable_layer) for trainable_layer in TRAINABLE_LAYERS):
+            if isinstance(layer, LayerWithParams):
                 output.append(np.copy(layer.weights))
             else:
                 output.append(empty_array)
@@ -129,7 +127,7 @@ class NN:
     def set_weights(self, weights: list[np.ndarray]) -> None:
         for i, layer in enumerate(self.layers):
             try:
-                if any(isinstance(layer, trainable_layer) for trainable_layer in TRAINABLE_LAYERS):
+                if isinstance(layer, LayerWithParams):
                     layer.weights = weights[i]
             except Exception as e:
                 print(f"Exception occured when setting weights: {e}")
@@ -156,7 +154,7 @@ class NN:
         totalParams = 0
         for layer in self.layers:
             print(layer)
-            if any(isinstance(layer, trainable_layer) for trainable_layer in TRAINABLE_LAYERS):
+            if isinstance(layer, LayerWithParams):
                 totalParams += layer.weights.size + layer.biases.size
                 paramsWeight += layer.weights.nbytes + layer.biases.nbytes
         print(f"{'='*line_length}")
@@ -171,7 +169,7 @@ class NN:
             weight_data_type (np.float_): numpy data type in which the models weights should be stored. Use only np.float_ data types.
         """
         for i in range(1, len(self.layers)):
-            if not any(isinstance(self.layers[i], layer) for layer in LAYERS_WITHOUT_PARAMS):
+            if isinstance(self.layers[i], LayerWithParams):
                 try:
                     self.layers[i].generate_weights(
                         self.layers, i, weight_data_type)
@@ -373,7 +371,7 @@ class NN:
         """
         array_to_save = []
         for layer in self.layers:
-            if any(isinstance(layer, layer_without_units) for layer_without_units in LAYERS_WITHOUT_PARAMS):
+            if not isinstance(layer, LayerWithParams):
                 array_to_save.append([])
                 continue
             array_to_save.append([layer.weights, layer.biases])

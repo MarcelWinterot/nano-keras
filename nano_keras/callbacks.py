@@ -1,5 +1,5 @@
 import numpy as np
-from nano_keras.layers import TRAINABLE_LAYERS, Layer
+from nano_keras.layers import Layer
 
 
 class EarlyStopping:
