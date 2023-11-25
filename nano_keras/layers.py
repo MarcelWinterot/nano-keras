@@ -110,12 +110,14 @@ class Layer:
         """
         return "Base layer class"
 
-    def __call__(self, x: np.ndarray, is_training: bool) -> np.ndarray:
+    def __call__(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
         """Call function for the layer, also know as feed forward\n
         Note that we also store all the variables the models calculated in self as it's layer used in backpropagate
 
         Args:
             x (np.ndarray): X dataset
+            is_training (bool): Determines whether the layer should behave like in the training loop or no. Turning it off\n
+            might give better results
 
         Returns:
             np.ndarray: output of the model
@@ -155,7 +157,6 @@ class Input(Layer):
         """
         self.input_shape: tuple = input_shape
         self.name: str = name
-        self.weights = np.array([])
         self.biases: np.ndarray = np.random.randn(
             *input_shape) if type(input_shape) == tuple else np.random.randn(input_shape)
 
@@ -169,7 +170,7 @@ class Input(Layer):
             formatted_output = f'(None, {self.input_shape})'
         return f"{self.name} (Input){' ' * (28 - len(self.name) - 7)}{formatted_output}{' ' * (26 - len(formatted_output))}0\n"
 
-    def __call__(self, x: np.ndarray, is_training: bool) -> np.ndarray:
+    def __call__(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
         return x
 
 
@@ -195,9 +196,7 @@ class Dense(LayerWithParams):
             gradient = self.regulizer.update_gradient(
                 gradient, self.weights, self.biases)
 
-        self.output = self.activation.compute_derivative(self.output)
-
-        delta = gradient * self.output
+        delta = gradient * self.activation.compute_derivative(self.output)
 
         weights_gradients = np.outer(self.inputs, delta)
 
@@ -228,12 +227,12 @@ class Dropout(LayerWithParams):
     def __repr__(self) -> str:
         return f"{self.name} (Dropout){' ' * (28 - len(self.name) - 9)}{(None, self.units)}{' ' * (26 - len(f'(None, {self.units})'))}{self.weights.size + self.biases.size}\n"
 
-    def __call__(self, x: np.ndarray, is_training: bool) -> np.ndarray:
+    def __call__(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
         """Call function for the dropout layer. Dropout feed forward works simmilarly to Dense layers feed forward, with only difference being is that we apply a mask to drop connections\n
 
         Args:
             x (np.ndarray): X dataset
-            is_training (bool, optional): Param to control the mask. If it's set to False we don't apply the mask. Defaults to True.
+            is_training (bool, optional): Param to control the mask. If it's set to False we don't apply the mask. Defaults to False.
 
         Returns:
             np.ndarray: Output of the model
@@ -289,8 +288,6 @@ class Flatten(Layer):
             name (str, optional): Name of the layer. Defaults to "Flatten".
         """
         self.name: str = name
-        self.weights = np.array([])
-        self.biases = np.array([])
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         input_shape = layers[current_layer_index -
@@ -303,7 +300,7 @@ class Flatten(Layer):
     def __repr__(self) -> str:
         return f"{self.name} (Flatten){' ' * (28 - len(self.name) - 9)}{(None, self.output_shape_value)}{' ' * (26-len(f'(None, {self.output_shape_value})'))}0\n"
 
-    def __call__(self, x: np.ndarray, is_training: bool) -> np.ndarray:
+    def __call__(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
         self.original_shape: tuple = x.shape
         return np.ravel(x)
 
@@ -318,7 +315,6 @@ class Flatten(Layer):
         Returns:
             np.ndarray: Output gradient
         """
-        # TODO Make this cleaner
         try:
             return gradient.reshape(self.next_layer_shape, *self.original_shape)
         except ValueError:
@@ -338,8 +334,6 @@ class Reshape(Layer):
         """
         self.target_shape: tuple = target_shape
         self.name: str = name
-        self.weights = np.array([])
-        self.biases = np.array([])
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         self.next_layer_shape: tuple = layers[current_layer_index +
@@ -350,7 +344,7 @@ class Reshape(Layer):
         formatted_output = f'(None, {", ".join(map(str, self.target_shape))})'
         return f"{self.name} (Reshape){' ' * (28 - len(self.name) - 9)}{formatted_output}{' ' * (26-len(formatted_output))}0\n"
 
-    def __call__(self, x: np.ndarray, is_training: bool) -> np.ndarray:
+    def __call__(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
         self.original_shape: tuple = x.shape
         return np.reshape(x, self.target_shape)
 
@@ -383,8 +377,6 @@ class MaxPool1D(Layer):
         self.pool_size: int = pool_size
         self.strides: int = strides
         self.name: str = name
-        self.weights = np.array([])
-        self.biases = np.array([])
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         input_shape = layers[current_layer_index -
@@ -396,7 +388,7 @@ class MaxPool1D(Layer):
     def __repr__(self) -> str:
         return f"{self.name} (MaxPool1D){' ' * (28 - len(self.name) - 11)}{(None, self.output_shape_value)}{' ' * (26-len(f'(None, {self.output_shape_value})'))}0\n"
 
-    def __call__(self, x: np.ndarray, is_training: bool) -> np.ndarray:
+    def __call__(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
         """Call function for the MaxPool1D layer. It reduces the size of an array by how much the kernel_size and strides is set to.
         For example let's say we have those parameters:\n
         array X = [[1., 5., 3., 6., 7., 4.]]\n
@@ -410,18 +402,30 @@ class MaxPool1D(Layer):
         Returns:
             np.ndarray: Array with reduced size
         """
-        output_size = math.ceil((x.size - self.pool_size + 1) / self.strides)
-        output = np.empty((output_size,))
+        self.inputs: np.ndarray = x
+        x_shape = x.shape
+        height: int = (x_shape[0] - self.pool_size) // self.strides + 1
+        self.output: np.ndarray = np.ndarray(height)
 
-        currentIndex = 0
-        for i in range(0, x.size, self.strides):
-            if i + self.pool_size > x.size:
-                break  # Reached the end of the input
+        self.mask = np.zeros_like(self.inputs)
 
-            output[currentIndex] = np.max(x[i:i + self.pool_size])
-            currentIndex += 1
+        if len(x_shape) == 2:
+            self.output = np.ndarray((height, x_shape[-1]))
 
-        return output
+        for i in range(height):
+            i_start = i * self.strides
+            i_end = i_start + self.pool_size
+            index = np.argmax(x[i_start:i_end])
+
+            self.mask[index] = 1
+
+            self.output[i] = x[index]
+
+        return self.output
+
+    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer]) -> np.ndarray:
+        delta = np.average(gradient * self.output)
+        return np.dot(delta, self.inputs)
 
 
 class MaxPool2D(Layer):
@@ -436,8 +440,6 @@ class MaxPool2D(Layer):
         self.pool_size: tuple = pool_size
         self.strides: tuple = strides
         self.name: tuple = name
-        self.weights = np.array([])
-        self.biases = np.array([])
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         input_shape = layers[current_layer_index -
@@ -454,7 +456,7 @@ class MaxPool2D(Layer):
         formatted_output = f'(None, {", ".join(map(str, self.output_shape_value))})'
         return f"{self.name} (MaxPool2D){' ' * (28 - len(self.name) - 11)}{formatted_output}{' ' * (26-len(formatted_output))}0\n"
 
-    def __call__(self, x: np.ndarray, is_training: bool) -> np.ndarray:
+    def __call__(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
         """Call function for the MaxPool2D layer. It reduces the size of an array by how much the kernel_size and strides is set to.
         For example let's say we have those parameters:\n
         array X:\n
@@ -480,12 +482,13 @@ class MaxPool2D(Layer):
         height = (x_shape[0] - self.pool_size[0]) // self.strides[0] + 1
         width = (x_shape[1] - self.pool_size[1]) // self.strides[1] + 1
 
-        output = np.zeros((height, width))
+        self.output = np.zeros((height, width))
+
+        self.mask: np.ndarray = np.zeros_like(self.inputs)
 
         if len(x_shape) == 3:
-            output = np.zeros((height, width, x_shape[-1]))
-
-        self.mask: np.ndarray = np.zeros(x_shape)
+            self.output = np.zeros((height, width, x_shape[-1]))
+            self.mask: np.ndarray = np.zeros_like(self.inputs)
 
         for i in range(height):
             for j in range(width):
@@ -499,17 +502,15 @@ class MaxPool2D(Layer):
                 index = np.argmax(subarray)
 
                 index = np.unravel_index(index, subarray.shape)
-                index = (index[0] + i_start, index[1] + j_start)
 
-                self.mask[index] = 1
+                self.mask[index[0], index[1]] = 1
 
-                output[i, j] = x[index]
+                self.output[i, j] = x[index]
 
         if len(x.shape) == 3:
-            output[-1, -1, :] = x[-1, -1, :]
+            self.output[-1, -1, :] = x[-1, -1, :]
 
-        self.output: np.ndarray = output
-        return output
+        return self.output
 
     def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer]) -> np.ndarray:
         """Backpropagation algorithm for MaxPool2D layer. Note that it's not finished so it doesn't work properly
@@ -522,11 +523,8 @@ class MaxPool2D(Layer):
         Returns:
             np.ndarray: Output gradient
         """
-        input_gradient = np.ndarray((gradient.shape[0], *self.inputs.shape))
-
-        input_gradient[:] = self.mask
-
-        return input_gradient
+        delta = np.average(gradient * self.output)
+        return np.dot(delta, self.inputs)
 
 
 class Conv1D(LayerWithParams):
@@ -564,7 +562,7 @@ class Conv1D(LayerWithParams):
         formatted_output = f'(None, {", ".join(map(str, self.output_shape_value))})'
         return f"{self.name} (Conv1D){' ' * (28 - len(self.name) - 8)}{formatted_output}{' ' * (26-len(formatted_output))}{self.weights.size + self.biases.size}\n"
 
-    def __call__(self, x: np.ndarray, is_training: bool) -> np.ndarray:
+    def __call__(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
         self.inputs: np.ndarray = x
 
         weighted_sum = np.zeros(

@@ -7,22 +7,24 @@ from copy import deepcopy
 from time import time
 
 """
-TODO Overall:
-1. Change delta calculation in all of backpropagation algorthims except for Dense, Dropout
+TODO Before v1.0.0:
+1. Finish the doc strings
 """
 
 
 class NN:
-    def __init__(self, name: str = "NN"):
+    def __init__(self, layers: list[Layer] = [], name: str = "NN"):
         """NN init function. Simmilar to the keras.models.Sequential class. Simply add layers using NN.add(Layer)\n
         Note that the first layer is treated as the input layer so it's recommended to use layers.Input for it as you
         can modify the shape of the input data there
 
         Args:
+            layers (list[Layer], optional): List of all the layers you want in the model. Note that you don't need to specify \n
+            the layers here as you can use NN.add(Layer) to add another layer. Defaults to [].
             name (str, optional): Name of the model. Defaults to "NN".
         """
         self.name: str = name
-        self.layers: list[Layer] = []
+        self.layers: list[Layer] = layers
         self.loss: float = 1e50
         self.accuracy: float = 0
         self.val_loss: float = None
@@ -314,21 +316,20 @@ class NN:
         accuracy = 0
         if len(yTrue.shape) == 1:
             if len(yPreds) == 1:
-                accuracy = np.average(
+                return np.average(
                     np.abs(yTrue - yPreds) < min_accuracy_error)
+
+            return 1 if np.argmax(yTrue) == np.argmax(yPreds) else 0
+
+        for i in range(len(yTrue)):
+            if len(yPreds[i]) == 1:
+                accuracy += np.average(np.abs(yTrue[i] - yPreds[i])
+                                       < min_accuracy_error)
             else:
-                accuracy = 1 if np.argmax(yTrue) == np.argmax(yPreds) else 0
+                accuracy += 1 if np.argmax(yTrue[i]
+                                           ) == np.argmax(yPreds[i]) else 0
 
-        else:
-            for i in range(len(yTrue)):
-                if len(yPreds[i]) == 1:
-                    accuracy += np.average(np.abs(yTrue[i] - yPreds[i])
-                                           < min_accuracy_error)
-                else:
-                    accuracy += 1 if np.argmax(yTrue[i]
-                                               ) == np.argmax(yPreds[i]) else 0
-
-            accuracy /= len(yTrue)
+        accuracy /= len(yTrue)
 
         return accuracy
 

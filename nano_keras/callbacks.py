@@ -1,5 +1,5 @@
 import numpy as np
-from nano_keras.layers import Layer
+from nano_keras.layers import Layer, LayerWithParams
 
 
 class EarlyStopping:
@@ -30,9 +30,14 @@ class EarlyStopping:
         """
         self.weights = []
         self.biases = []
+        empty_array = np.array([])
         for layer in layers:
-            self.weights.append(layer.weights)
-            self.biases.append(layer.biases)
+            if isinstance(layer, LayerWithParams):
+                self.weights.append(layer.weights)
+                self.biases.append(layer.biases)
+                continue
+            self.weights.append(empty_array)
+            self.biases.append(empty_array)
 
     def set_weights(self, layers: list[Layer]) -> None:
         for i, layer in enumerate(layers):

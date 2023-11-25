@@ -5,7 +5,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 from nano_keras.models import NN
 from nano_keras.losses import MSE
-from nano_keras.layers import Dense, Input, Dropout
+from nano_keras.layers import Dense, Input
 from nano_keras.optimizers import NAdam
 from nano_keras.callbacks import EarlyStopping
 
@@ -52,13 +52,13 @@ X_train, X_test, y_train, y_test = load_data()
 
 np.random.seed(1337)
 
-model = NN("NN for titanic")
-model.add(Input(5))
-model.add(Dense(25, "relu"))
-model.add(Dense(10, "relu"))
-model.add(Dense(5, "relu"))
-# model.add(Dropout(5, "relu"))
-model.add(Dense(1, "sigmoid"))
+model = NN([
+    Input(5),
+    Dense(25, "relu"),
+    Dense(10, "relu"),
+    Dense(5, "relu"),
+    Dense(1, "sigmoid")
+], "NN for titanic")
 
 optimizer = NAdam()
 loss = MSE()

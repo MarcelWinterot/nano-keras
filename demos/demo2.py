@@ -1,7 +1,7 @@
 import numpy as np
 from nano_keras.optimizers import NAdam
 from nano_keras.models import NN
-from nano_keras.layers import Input, Flatten, Conv2D, Dropout
+from nano_keras.layers import Input, Flatten, Conv2D, Dropout, MaxPool2D
 
 
 def load_data() -> tuple:
@@ -21,23 +21,27 @@ def load_data() -> tuple:
     return X_train, X_test, y_train, y_test
 
 
+print(f"Started downloading the data. It might take a minute or two")
+
 X_train, X_test, y_train, y_test = load_data()
 
 np.random.seed(1337)
 
 print("\033c", end='')
 
-model = NN("NN for MNIST")
+model = NN(name="NN for MNIST")
 model.add(Input((28, 28, 1)))
-model.add(Conv2D(32, (2, 2), (2, 2), name="Conv 1"))
-model.add(Conv2D(64, (2, 2), (2, 2), name='Conv 2'))
+model.add(Conv2D(32, (3, 3), name="Conv 1"))
+model.add(MaxPool2D())
+model.add(Conv2D(64, (3, 3), name='Conv 2'))
+model.add(MaxPool2D())
 model.add(Flatten())
 model.add(Dropout(10, "relu", 0.5, "he", name='Dropout'))
 
 optimizer = NAdam(adjust_biases_shape=True)
 
 model.compile("bce", optimizer=optimizer, metrics="accuracy",
-              weight_data_type=np.float32)
+              weight_data_type=np.float64)
 
 model.summary()
 
