@@ -749,48 +749,7 @@ class Conv2D(LayerWithParams):
 
         return x[i, j, k]
 
-    def col2im(self, cols: np.ndarray, x_shape: tuple) -> np.ndarray:
-        """Support function to perform col2im operation for input columns in Conv2D backpropagate\n
-        We use this as it has been proven it's faster to use im2col and matrix multiplication then
-        manually sliding over the kernel and applying filters in feed forward, and because we are using
-        im2col in feed forward, we have to convert the columns we saved into images so we can update the weights
-
-
-        Args:
-            cols (np.ndarray): Input data our backpropagation function received and we need to turn it from columns to images
-            x_shape (tuple): Original shape of the iamges before we applied im2col on them
-
-        Returns:
-            np.ndarray: Columns converted to images
-        """
-        height = (x_shape[0] - self.kernel_size[0]) // self.strides[0] + 1
-        width = (x_shape[1] - self.kernel_size[1]) // self.strides[1] + 1
-        channels = x_shape[-1]
-
-        i0 = np.repeat(np.arange(self.kernel_size[0]), self.kernel_size[1])
-        i0 = np.tile(i0, channels)
-        i1 = self.strides[0] * np.repeat(np.arange(height), width)
-        j0 = np.tile(
-            np.arange(self.kernel_size[1]), self.kernel_size[0] * channels)
-        j1 = self.strides[1] * np.tile(np.arange(width), height)
-        i = i0.reshape(-1, 1) + i1.reshape(1, -1)
-        j = j0.reshape(-1, 1) + j1.reshape(1, -1)
-
-        k = np.repeat(
-            np.arange(channels), self.kernel_size[0] * self.kernel_size[1]).reshape(-1, 1)
-
-        cols_reshaped = cols.reshape(
-            channels * self.kernel_size[0] * self.kernel_size[1], -1)
-        cols_reshaped = cols_reshaped.transpose(1, 0)
-
-        # We create an image in the shape of x_shape and then we fill it
-        # with the calculated column values
-        x = np.zeros(
-            (x_shape[0], x_shape[1], x_shape[2]), dtype=cols.dtype)
-        np.add.at(x, (i, j, k), cols_reshaped)
-        return x
-
-    def __call__(self, x: np.ndarray, is_training: bool) -> np.ndarray:
+    def __call__(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
         """Call function also known as feed forward function for the Conv2D layer
 
         Args:
@@ -803,7 +762,7 @@ class Conv2D(LayerWithParams):
 
         self.inputs: np.ndarray = x
 
-        x = self.im2col(x)
+        self.x_col = self.im2col(x)
 
         height = (input_shape[0] -
                   self.kernel_size[0]) // self.strides[0] + 1
@@ -812,7 +771,7 @@ class Conv2D(LayerWithParams):
 
         weights_col = self.weights.reshape(self.number_of_filters, -1)
 
-        weighted_sum = np.dot(weights_col, x)
+        weighted_sum = np.dot(weights_col, self.x_col)
 
         weighted_sum = weighted_sum.reshape(
             self.number_of_filters, height, width).transpose(1, 2, 0)
@@ -836,29 +795,14 @@ class Conv2D(LayerWithParams):
             gradient = self.regulizer.update_gradient(
                 gradient, self.weights, self.biases)
 
-        delta = np.average(
-            gradient * self.activation.compute_derivative(self.output))
+        delta = (gradient * self.activation.compute_derivative(self.output)
+                 ).reshape(self.number_of_filters, -1)
 
-        weights_gradients = np.zeros(
-            (self.kernel_size[0], self.kernel_size[1], self.inputs.shape[-1], self.number_of_filters))
+        weights_gradients = (delta @ self.x_col.T).reshape(self.weights.shape)
 
-        delta_array = np.full_like(self.inputs, delta)
-
-        for i in range(0, self.inputs.shape[0], self.strides[0]):
-            for j in range(0, self.inputs.shape[1], self.strides[1]):
-                if i + self.kernel_size[0] > self.inputs.shape[0] or j + self.kernel_size[1] > self.inputs.shape[1]:
-                    break  # Reached the end of self.inputs
-
-                data_slice = tuple([slice(
-                    i, i + self.kernel_size[0]), slice(j, j + self.kernel_size[1]), slice(0, -1)])
-
-                for k in range(self.number_of_filters):
-                    weights_gradients[:, :, :, k] += np.tensordot(
-                        self.inputs[data_slice], delta_array[data_slice],  axes=([0, 1, 2], [0, 1, 2]))
+        averaged_delta = np.average(delta)
 
         self.weights, self.biases = optimizer[1].apply_gradients(
-            weights_gradients, delta, self.weights, self.biases)
+            weights_gradients, averaged_delta, self.weights, self.biases)
 
-        output_gradient = np.dot(delta, self.inputs)
-
-        return output_gradient
+        return np.dot(averaged_delta, self.inputs)
