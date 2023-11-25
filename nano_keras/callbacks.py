@@ -2,7 +2,24 @@ import numpy as np
 from nano_keras.layers import Layer, LayerWithParams
 
 
-class EarlyStopping:
+class Callback:
+    def __init__(self) -> None:
+        pass
+
+    def on_epoch_start(self, *args, **kwargs) -> None:
+        return
+
+    def on_epoch_end(self, *args, **kwargs) -> None:
+        return
+
+    def on_batch_start(self, *args, **kwargs) -> None:
+        return
+
+    def on_batch_end(self, *args, **kwargs) -> None:
+        return
+
+
+class EarlyStopping(Callback):
     def __init__(self, patience: int, value_to_monitor: str = "loss", min_delta: float = 0.0001, restore_best_weights: bool = False) -> None:
         """Early stopping implementation using just python and numpy
 
@@ -44,31 +61,28 @@ class EarlyStopping:
             layer.weights = self.weights[i]
             layer.biases = self.biases[i]
 
-    def watch(self, metric: np.ndarray, layers: list[Layer]) -> bool:
-        """Function to watch over the models metric to measure and see if it's getting better or worse
-
-        Args:
-            metric (np.ndarray): New metric
-            layers (list): List of all layers in a model
-
-        Returns:
-            bool: Retuns True if the training has finished and False if the training continoues
-        """
-        if metric is None:
-            if self.value_to_monitor.find("accuracy") != -1:
-                metric = 0
-            elif self.value_to_monitor.find("loss") != -1:
-                metric = 1e50
-            else:
-                raise "self.value_to_monitor must be either accuracy, val_accuracy, loss or val_loss"
+    def on_epoch_end(self, *args, **kwargs) -> None:
+        metric = kwargs['metrics'][self.value_to_monitor]
 
         if (abs(metric - self.metric) < self.min_delta and self.value_to_monitor.find("loss") != -1) or (metric > self.metric and self.value_to_monitor.find("accuracy") != -1):
             self.metric = metric
-            self.update_weights(layers)
-            return False
+            self.update_weights(kwargs['layers'])
+            return
 
         self.counter += 1
         if self.counter >= self.patience:
             if self.restore_best_weights:
-                self.set_weights(layers)
-            return True
+                self.set_weights(kwargs['layers'])
+            kwargs['training_active'][0] = False
+
+
+class LearningRateScheduler(Callback):
+    def __init__(self, schedule: callable) -> None:
+        self.schedule: callable = schedule
+
+    def on_epoch_start(self, *args, **kwargs) -> None:
+        lr = self.schedule(kwargs['epoch'], kwargs['lr'])
+
+        if 'optimizers' in kwargs:
+            kwargs['optimizers'][0].learning_rate = lr
+            kwargs['optimizers'][1].learning_rate = lr

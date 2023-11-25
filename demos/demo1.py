@@ -7,7 +7,7 @@ from nano_keras.models import NN
 from nano_keras.losses import MSE
 from nano_keras.layers import Dense, Input
 from nano_keras.optimizers import NAdam
-from nano_keras.callbacks import EarlyStopping
+from nano_keras.callbacks import LearningRateScheduler, EarlyStopping
 
 
 def load_data() -> tuple:

@@ -2,14 +2,9 @@ import numpy as np
 from nano_keras.losses import LOSS_FUNCTIONS, Loss
 from nano_keras.optimizers import OPTIMIZERS, Optimizer
 from nano_keras.layers import Layer, LayerWithParams
-from nano_keras.callbacks import EarlyStopping
+from nano_keras.callbacks import Callback
 from copy import deepcopy
 from time import time
-
-"""
-TODO Before v1.0.0:
-1. Finish the doc strings
-"""
 
 
 class NN:
@@ -242,17 +237,17 @@ class NN:
                     (i+1) if self.metrics == "accuracy" else None
                 time_taken = time() - start
                 # Note that we use (i + 1) as we want to divide the losses and accuracy by the amount of times they've been updated
-                self.print_progress(epoch+1, total_epochs, losses / (i+1),
+                self.print_progress(epoch, total_epochs, losses / (i+1),
                                     accuracy, i+1, length_of_x, time_taken)
 
-    def train(self, X: np.ndarray, y: np.ndarray, epochs: int, callbacks: EarlyStopping = None, verbose: int = 1, validation_split: float = 0, validation_data: tuple[np.ndarray, np.ndarray] = None) -> np.ndarray | tuple:
+    def train(self, X: np.ndarray, y: np.ndarray, epochs: int, callbacks: Callback = None, verbose: int = 1, validation_split: float = 0, validation_data: tuple[np.ndarray, np.ndarray] = None) -> np.ndarray | tuple:
         """Function to train the model. Remember to call the NN.compile() before calling this function as it won't work because we don't have weights. \n
 
         Args:
             X (np.ndarray): X dataset
             y (np.ndarray): y dataset
             epochs (int): number of iterations a model should do during training
-            callbacks (EarlyStopping, optional): One of the callbacks implemented in callbacks.py although currently there's only early stopping in there. Defaults to None.
+            callbacks (Callback, optional): One of the callbacks implemented in callbacks.py although currently there's only early stopping in there. Defaults to None.
             verbose (int, optional): Parameter to control what the model prints out during training. 0 - nothing, 1 - only epoch/epochs, 2 - all the useful information. Defaults to 1.
             validation_split (float, optional): How much of the training data do you want to split for validation. Only works if validation_data is not assigned any value. Remember that it must be between 0 and 1. Defaults to 0
             validation_data (tuple, optional): Validation data a model should use to check the validation loss and accuracy. It should be a tuple of X and y. Default to None.
@@ -272,7 +267,12 @@ class NN:
             y, y_val = y[:split_index], y[split_index:]
             validation_data = (X_val, y_val)
 
-        for epoch in range(epochs):
+        training_active: bool = [True]
+
+        for epoch in range(1, epochs+1):
+            callbacks.on_epoch_start(
+                epoch=epoch, lr=self.optimizer[0].learning_rate, optimizers=self.optimizer)
+
             self.backpropagate(X, y, verbose, epoch, epochs)
             self.loss, self.accuracy = self.evaluate(X, y)
 
@@ -287,10 +287,10 @@ class NN:
             else:
                 self._metrics = {"loss": self.loss, "accuracy": self.accuracy}
 
-            result = callbacks.watch(
-                self._metrics[callbacks.value_to_monitor], self.layers) if callbacks is not None else False
+            callbacks.on_epoch_end(
+                metrics=self._metrics, layers=self.layers, training_active=training_active)
 
-            if result:
+            if not training_active[0]:
                 break
 
             losses[epoch] = self.loss
