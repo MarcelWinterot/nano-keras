@@ -12,6 +12,20 @@
 
 ### - Customization: Allows for tinkering and understanding the core mechanics of neural network operations
 
+## What you can find in nano-keras
+
+### Layers: Input, Dense, Dropout, Flatten, Reshape, MaxPool1D/2D, Conv1D/2D
+
+### Optimizers: SGD, Adam, Adadelta, Adagrad, RMSProp, NAdam
+
+### Activation functions: Sigmoid, Tanh, ReLU, ELU, LeakyReLU, Softmax
+
+### Loss functions: MAE, MSE, BCE, CCE, Hinge, Huber
+
+### Callbacks: EarlyStopping, LearningRateScheduler, CSVLogger
+
+### And much more, you can find all the implemented items in [here](https://github.com/MarcelWinterot/nano-keras/wiki/Roadmap)
+
 ## Instalation
 
 ### **nano-keras** is available on [PyPI](https://pypi.org/project/nano-keras/) so in order to download it open a terminal and paste:

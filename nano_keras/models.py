@@ -231,13 +231,17 @@ class NN:
             for layer in self.layers[-1:0:-1]:
                 gradient = layer.backpropagate(gradient, self.optimizer)
 
+            losses += self.loss_function.compute_loss(y[i], yPred)
+            accuracy = total_accuracy / \
+                (i+1) if self.metrics == "accuracy" else None
+            time_taken = time() - start
+            loss = losses / (i + 1)
+
+            if self.callbacks:
+                self.callbacks.on_batch_end(epoch, i+1, accuracy, loss, time_taken)
+
             if verbose == 2:
-                losses += self.loss_function.compute_loss(y[i], yPred)
-                accuracy = total_accuracy / \
-                    (i+1) if self.metrics == "accuracy" else None
-                time_taken = time() - start
-                # Note that we use (i + 1) as we want to divide the losses and accuracy by the amount of times they've been updated
-                self.print_progress(epoch, total_epochs, losses / (i+1),
+                self.print_progress(epoch, total_epochs, loss,
                                     accuracy, i+1, length_of_x, time_taken)
 
     def train(self, X: np.ndarray, y: np.ndarray, epochs: int, callbacks: Callback = None, verbose: int = 1, validation_split: float = 0, validation_data: tuple[np.ndarray, np.ndarray] = None) -> np.ndarray | tuple:
@@ -257,6 +261,7 @@ class NN:
         """
         losses = np.ndarray((epochs))
         val_losses = np.ndarray((epochs))
+        self.callbacks = callbacks
 
         if len(X) != len(y):
             raise ValueError("X and y must have the same length")
@@ -270,8 +275,9 @@ class NN:
         training_active: bool = [True]
 
         for epoch in range(1, epochs+1):
-            callbacks.on_epoch_start(
-                epoch=epoch, lr=self.optimizer[0].learning_rate, optimizers=self.optimizer)
+            if callbacks:
+                callbacks.on_epoch_start(
+                    epoch=epoch, lr=self.optimizer[0].learning_rate, optimizers=self.optimizer)
 
             self.backpropagate(X, y, verbose, epoch, epochs)
             self.loss, self.accuracy = self.evaluate(X, y)
@@ -287,8 +293,9 @@ class NN:
             else:
                 self._metrics = {"loss": self.loss, "accuracy": self.accuracy}
 
-            callbacks.on_epoch_end(
-                metrics=self._metrics, layers=self.layers, training_active=training_active)
+            if callbacks:
+                callbacks.on_epoch_end(
+                    metrics=self._metrics, layers=self.layers, training_active=training_active)
 
             if not training_active[0]:
                 break
