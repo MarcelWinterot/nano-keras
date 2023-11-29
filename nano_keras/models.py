@@ -1,7 +1,7 @@
 import numpy as np
 from nano_keras.losses import LOSS_FUNCTIONS, Loss
 from nano_keras.optimizers import OPTIMIZERS, Optimizer
-from nano_keras.layers import Layer, LayerWithParams
+from nano_keras.layers import Layer, LayerWithParams, LSTM
 from nano_keras.callbacks import Callback
 from copy import deepcopy
 from time import time
@@ -148,6 +148,13 @@ class NN:
         for layer in self.layers:
             print(layer)
             if isinstance(layer, LayerWithParams):
+                if isinstance(layer, LSTM):
+                    totalParams += layer.input_weights.size + layer.recurrental_weights.size + \
+                        layer.input_biases.size + layer.recurrental_biases.size
+                    paramsWeight += layer.input_weights.nbytes + layer.recurrental_weights.nbytes + \
+                        layer.input_biases.nbytes + layer.recurrental_biases.nbytes
+                    continue
+
                 totalParams += layer.weights.size + layer.biases.size
                 paramsWeight += layer.weights.nbytes + layer.biases.nbytes
         print(f"{'='*line_length}")
@@ -238,7 +245,8 @@ class NN:
             loss = losses / (i + 1)
 
             if self.callbacks:
-                self.callbacks.on_batch_end(epoch, i+1, accuracy, loss, time_taken)
+                self.callbacks.on_batch_end(
+                    epoch, i+1, accuracy, loss, time_taken)
 
             if verbose == 2:
                 self.print_progress(epoch, total_epochs, loss,

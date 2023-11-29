@@ -805,18 +805,20 @@ class Conv2D(LayerWithParams):
 
 
 class LSTM(LayerWithParams):
-    def __init__(self, units: int, activation: Activation | str, recurrent_activation: Activation | str = "tanh", weight_initialization: str = "random", regulizer: Regularizer = None, name: str = "LSTM") -> None:
+    def __init__(self, units: int, activation: Activation | str, recurrent_activation: Activation | str = "tanh", weight_initialization: str = "random", recurrental_weight_initialization: str = "random", return_sequences: bool = False, regulizer: Regularizer = None, name: str = "LSTM") -> None:
         self.units = units
         self.activation = activation
         self.recurrent_activation = recurrent_activation
         self.weight_initialization = weight_initialization
+        self.recurrental_weight_initialization = recurrental_weight_initialization
         self.regulizer = regulizer
+        self.return_sequences = return_sequences
 
-        # Array containing 4 seperate weights matrices, as it's easier this way
-        # instead of creating 4 seperate variables
-        self.weights = np.array([])
-        # The same as with the weights, but these time with biases
-        self.biases = np.array([])
+        self.input_weights = np.array([])
+        self.recurrental_weights = np.array([])
+
+        self.input_biases = np.array([])
+        self.input_weights = np.array([])
 
         self.name = name
 
@@ -824,18 +826,17 @@ class LSTM(LayerWithParams):
         return self.units
 
     def generate_weights(self, layers: list[Layer], current_layer_index: int, weight_data_type: np.float_) -> None:
-        # weights shape: (units, features + units)
-        # biases shape: (units)
-        # For now it will be just simple random normal generation strategy
         input_shape = layers[current_layer_index -
                              1].output_shape(layers, current_layer_index-1)
+        input_weights_shape = (self.units, input_shape[0])
+        recurrental_weights_shape = (self.units, self.units)
 
-        # We use the 4 as LSTM layers have 4 weights and 4 biases
-        # And I have decided to use 1 big array instead of 4 smaller
-        # for both weights and biases
-        self.weights = np.random.randn(
-            4, self.units, input_shape[0] + self.units)
-        self.biases = np.random.randn(4, self.units)
+        self.input_weights = np.random.randn(4, *input_weights_shape)
+        self.recurrental_weights = np.random.randn(
+            4, *recurrental_weights_shape)
+
+        self.input_biases = np.random.randn(4, self.units)
+        self.recurrental_biases = np.random.randn(4, self.units)
 
     def __repr__(self) -> str:
-        return f"{self.name} (LSTM){' ' * (28 - len(self.name) - 6)}{(None, self.units)}{' ' * (26 - len(f'(None, {self.units})'))}{self.weights.size + self.biases.size}\n"
+        return f"{self.name} (LSTM){' ' * (28 - len(self.name) - 6)}{(None, self.units)}{' ' * (26 - len(f'(None, {self.units})'))}{self.input_weights.size + self.recurrental_weights.size + self.input_biases.size + self.recurrental_biases.size}\n"
