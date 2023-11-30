@@ -1,5 +1,5 @@
 import numpy as np
-from nano_keras.activations import ACTIVATIONS, Activation
+from nano_keras.activations import ACTIVATIONS, Activation, Sigmoid, Tanh
 from nano_keras.optimizers import Optimizer
 from nano_keras.regulizers import Regularizer
 import math
@@ -818,7 +818,13 @@ class LSTM(LayerWithParams):
         self.recurrental_weights = np.array([])
 
         self.input_biases = np.array([])
-        self.input_weights = np.array([])
+        self.recurrental_biases = np.array([])
+
+        self.hidden_state = np.zeros(self.units)
+        self.cell_state = np.zeros(self.units)
+
+        self.sigmoid: Sigmoid = Sigmoid()
+        self.tanh: Tanh = Tanh()
 
         self.name = name
 
@@ -840,3 +846,31 @@ class LSTM(LayerWithParams):
 
     def __repr__(self) -> str:
         return f"{self.name} (LSTM){' ' * (28 - len(self.name) - 6)}{(None, self.units)}{' ' * (26 - len(f'(None, {self.units})'))}{self.input_weights.size + self.recurrental_weights.size + self.input_biases.size + self.recurrental_biases.size}\n"
+
+    def __call__(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
+        self.inputs = x
+
+        # fₜ = σ(Wᵢ₁xₜ + Wᵣ₁hₜ₋₁ + bᵢ₁ + bᵣ₁)
+        self.f_t = self.sigmoid.apply_activation(self.input_weights[0]@x + self.recurrental_weights[0] @
+                                                 self.hidden_state + self.input_biases[0] + self.recurrental_biases[0])
+
+        # iₜ = σ(Wᵢ₂xₜ + Wᵣ₂hₜ₋₁ + bᵢ₂ + bᵣ₂)
+        self.i_t = self.sigmoid.apply_activation(self.input_weights[1]@x + self.recurrental_weights[1] @
+                                                 self.hidden_state + self.input_biases[1] + self.recurrental_biases[1])
+
+        # C'ₜ = tanh(Wᵢ₃xₜ + Wᵣ₃hₜ₋₁ + bᵢ₃ + bᵣ₃)
+        self.c_t = self.tanh.apply_activation(
+            self.input_weights[2]@x + self.recurrental_weights[2]@self.hidden_state + self.input_biases[2] + self.recurrental_biases[2])
+
+        # Cₜ = fₜ ⊙ Cₜ₋₁ + iₜ ⊙ C'ₜ₋₁
+        self.cell_state = self.f_t * self.cell_state + self.i_t * self.c_t
+
+        # oₜ = σ(Wᵢ₄xₜ + Wᵣ₄hₜ₋₁ + bᵢ₄ + bᵣ₄)
+        self.o_t = self.sigmoid.apply_activation(
+            self.input_weights[3]@x + self.recurrental_weights[3]@self.hidden_state + self.input_biases[3] + self.recurrental_biases[3])
+
+        # hₜ = oₜ ⊙ tanh(Cₜ)
+        self.hidden_state = self.o_t @ self.tanh.apply_activation(
+            self.cell_state)
+
+        return self.hidden_state
