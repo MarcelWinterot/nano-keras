@@ -150,9 +150,9 @@ class NN:
             if isinstance(layer, LayerWithParams):
                 if isinstance(layer, LSTM):
                     totalParams += layer.input_weights.size + layer.recurrental_weights.size + \
-                        layer.input_biases.size + layer.recurrental_biases.size
+                        layer.biases.size
                     paramsWeight += layer.input_weights.nbytes + layer.recurrental_weights.nbytes + \
-                        layer.input_biases.nbytes + layer.recurrental_biases.nbytes
+                        layer.biases.nbytes
                     continue
 
                 totalParams += layer.weights.size + layer.biases.size
