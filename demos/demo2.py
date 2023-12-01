@@ -40,7 +40,7 @@ model.add(Dropout(10, "relu", 0.5, "he", name='Dropout'))
 
 optimizer = NAdam(adjust_biases_shape=True)
 
-model.compile("bce", optimizer=optimizer, metrics="accuracy",
+model.compile("cce", optimizer=optimizer, metrics="accuracy",
               weight_data_type=np.float64)
 
 model.summary()

@@ -805,7 +805,7 @@ class Conv2D(LayerWithParams):
 
 
 class LSTM(LayerWithParams):
-    def __init__(self, units: int, activation: Activation | str = "sigmoid", recurrent_activation: Activation | str = "tanh", weight_initialization: str = "random", recurrental_weight_initialization: str = "random", return_sequences: bool = False, regulizer: Regularizer = None, name: str = "LSTM") -> None:
+    def __init__(self, units: int, activation: Activation | str = "sigmoid", recurrent_activation: Activation | str = "tanh", weight_initialization: str = "random", recurrental_weight_initialization: str = "random", return_sequences: bool = True, regulizer: Regularizer = None, name: str = "LSTM") -> None:
         self.units: int = units
         self.activation: Activation = ACTIVATIONS[activation] if type(
             activation) == str else activation
@@ -833,6 +833,10 @@ class LSTM(LayerWithParams):
         input_shape = layers[current_layer_index -
                              1].output_shape(layers, current_layer_index-1)
         self.output_shape_value = (self.units, input_shape[-1])
+
+        if not self.return_sequences:
+            self.output_shape_value = self.units
+
         return self.output_shape_value
 
     def generate_weights(self, layers: list[Layer], current_layer_index: int, weight_data_type: np.float_) -> None:
@@ -846,12 +850,16 @@ class LSTM(LayerWithParams):
             4, *recurrental_weights_shape)
 
         self.biases = np.random.randn(4, self.units, 1)
-        # self.biases = np.random.randn(4, self.units)
 
         self.output_shape_value = (self.units, input_shape[-1])
+        if not self.return_sequences:
+            self.output_shape_value = self.units
 
     def __repr__(self) -> str:
-        formatted_output = f'(None, {", ".join(map(str, self.output_shape_value))})'
+        formatted_output = f"(None, {self.output_shape_value})"
+        if type(self.output_shape_value) == tuple:
+            formatted_output = f'(None, {", ".join(map(str, self.output_shape_value))})'
+
         return f"{self.name} (LSTM){' ' * (28 - len(self.name) - 6)}{formatted_output}{' ' * (26 - len(formatted_output))}{self.input_weights.size + self.recurrental_weights.size + self.biases.size}\n"
 
     def __call__(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
@@ -859,7 +867,13 @@ class LSTM(LayerWithParams):
 
         if len(x.shape) != 2:
             raise Exception(
-                f"Input shape be must be 2d, received: {len(x.shape)}")
+                f"Input shape must be 2d, received: {len(x.shape)}d")
+
+        if len(self.hidden_state.shape) == 2:
+            self.hidden_state = np.average(self.hidden_state, axis=1)
+
+        if len(self.cell_state.shape) == 2:
+            self.cell_state = np.average(self.cell_state, axis=1)
 
         # fₜ = σ(Wᵢ₁xₜ + Wᵣ₁hₜ₋₁ + b₁)
         self.f_t = self.activation.apply_activation(
@@ -885,4 +899,12 @@ class LSTM(LayerWithParams):
         self.hidden_state = self.o_t * self.recurrent_activation.apply_activation(
             self.cell_state)
 
+        if self.return_sequences:
+            return self.hidden_state
+        self.hidden_state = np.average(self.hidden_state, axis=1)
+        self.cell_state = np.average(self.cell_state, axis=1)
         return self.hidden_state
+
+    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer]) -> np.ndarray:
+        raise NotImplementedError(
+            "The backpropagation for LSTM hasn't been implemented yet")
