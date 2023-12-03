@@ -40,7 +40,7 @@ class Sigmoid(Activation):
         Returns:
             np.ndarray: Data with activation function applied to them
         """
-        return 1 / (1 + np.exp(-X))
+        return 1 / (1 + np.exp(-X + 1e-7))
 
     def compute_derivative(self, X: np.ndarray) -> np.ndarray:
         """Function to apply derivative of sigmoid activation on given data

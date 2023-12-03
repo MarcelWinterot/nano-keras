@@ -805,106 +805,45 @@ class Conv2D(LayerWithParams):
 
 
 class LSTM(LayerWithParams):
-    def __init__(self, units: int, activation: Activation | str = "sigmoid", recurrent_activation: Activation | str = "tanh", weight_initialization: str = "random", recurrental_weight_initialization: str = "random", return_sequences: bool = True, regulizer: Regularizer = None, name: str = "LSTM") -> None:
-        self.units: int = units
-        self.activation: Activation = ACTIVATIONS[activation] if type(
-            activation) == str else activation
+    def __init__(self, units: int, activation: Activation | str = "sigmoid", recurrent_activation: Activation | str = "tanh", weight_initalization: str = "random", recurrent_weight_initalization: str = "random", return_sequences: bool = True, regulizer: Regularizer = None, name: str = "LSTM") -> None:
+        self.units = units
+        self.activation = activation if type(
+            activation) == Activation else ACTIVATIONS[activation]
+        self.recurrent_activation = recurrent_activation if type(
+            recurrent_activation) == Activation else ACTIVATIONS[recurrent_activation]
+        self.weight_initialization = weight_initalization
+        self.recurrent_weight_initalization = recurrent_weight_initalization
+        self.return_sequences = return_sequences
+        self.regulizer = Regularizer
+        self.name = name
 
-        self.recurrent_activation: Activation = ACTIVATIONS[recurrent_activation] if type(
-            recurrent_activation) == str else recurrent_activation
-
-        self.weight_initialization: str = weight_initialization
-        self.recurrental_weight_initialization: str = recurrental_weight_initialization
-
-        self.regulizer: Regularizer = regulizer
-        self.return_sequences: bool = return_sequences
-
-        self.input_weights: np.ndarray = np.array([])
-        self.recurrental_weights: np.ndarray = np.array([])
-
-        self.biases: np.ndarray = np.array([])
-
-        self.hidden_state: np.ndarray = np.zeros(self.units)
-        self.cell_state: np.ndarray = np.zeros(self.units)
-
-        self.name: str = name
-
-    def output_shape(self, layers: list, current_layer_index: int) -> tuple:
+    def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         input_shape = layers[current_layer_index -
                              1].output_shape(layers, current_layer_index-1)
-        self.output_shape_value = (self.units, input_shape[-1])
-
-        if not self.return_sequences:
-            self.output_shape_value = self.units
+        self.output_shape_value = (
+            input_shape[0], self.units) if self.return_sequences else self.units
 
         return self.output_shape_value
-
-    def generate_weights(self, layers: list[Layer], current_layer_index: int, weight_data_type: np.float_) -> None:
-        input_shape = layers[current_layer_index -
-                             1].output_shape(layers, current_layer_index-1)
-        input_weights_shape = (self.units, input_shape[0])
-        recurrental_weights_shape = (self.units, self.units)
-
-        self.input_weights = np.random.randn(4, *input_weights_shape)
-        self.recurrental_weights = np.random.randn(
-            4, *recurrental_weights_shape)
-
-        self.biases = np.random.randn(4, self.units, 1)
-
-        self.output_shape_value = (self.units, input_shape[-1])
-        if not self.return_sequences:
-            self.output_shape_value = self.units
 
     def __repr__(self) -> str:
         formatted_output = f"(None, {self.output_shape_value})"
         if type(self.output_shape_value) == tuple:
             formatted_output = f'(None, {", ".join(map(str, self.output_shape_value))})'
 
-        return f"{self.name} (LSTM){' ' * (28 - len(self.name) - 6)}{formatted_output}{' ' * (26 - len(formatted_output))}{self.input_weights.size + self.recurrental_weights.size + self.biases.size}\n"
+        return f"{self.name} (LSTM){' ' * (28 - len(self.name) - 6)}{formatted_output}{' ' * (26 - len(formatted_output))}{self.input_weights.size + self.recurrent_weights.size + self.biases.size}\n"
 
-    def __call__(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
-        self.inputs = x
+    def generate_weights(self, layers: list[Layer], current_layer_index: int, weight_data_type: np.float_) -> None:
+        input_shape = layers[current_layer_index -
+                             1].output_shape(layers, current_layer_index-1)
 
-        if len(x.shape) != 2:
-            raise Exception(
-                f"Input shape must be 2d, received: {len(x.shape)}d")
+        input_weights_shape = (self.units, self.units)
+        recurrent_weights_shape = (input_shape[1], self.units)
 
-        if len(self.hidden_state.shape) == 2:
-            self.hidden_state = np.average(self.hidden_state, axis=1)
+        self.input_weights = np.random.randn(
+            4, *input_weights_shape).astype(weight_data_type)
+        self.recurrent_weights = np.random.randn(
+            4, *recurrent_weights_shape).astype(weight_data_type)
 
-        if len(self.cell_state.shape) == 2:
-            self.cell_state = np.average(self.cell_state, axis=1)
+        self.biases = np.random.randn(4, 1, self.units)
 
-        # fₜ = σ(Wᵢ₁xₜ + Wᵣ₁hₜ₋₁ + b₁)
-        self.f_t = self.activation.apply_activation(
-            self.input_weights[0]@x + (self.recurrental_weights[0] @ self.hidden_state)[:, np.newaxis] + self.biases[0])
-
-        # iₜ = σ(Wᵢ₂xₜ + Wᵣ₂hₜ₋₁ + b₂)
-        self.i_t = self.activation.apply_activation(
-            self.input_weights[1]@x + (self.recurrental_weights[1] @  self.hidden_state)[:, np.newaxis] + self.biases[1])
-
-        # C'ₜ = tanh(Wᵢ₃xₜ + Wᵣ₃hₜ₋₁ L+ b₃)
-        self.c_t = self.recurrent_activation.apply_activation(
-            self.input_weights[2]@x + (self.recurrental_weights[2]@self.hidden_state)[:, np.newaxis] + self.biases[2])
-
-        # Cₜ = fₜ ⊙ Cₜ₋₁ + iₜ ⊙ C'ₜ₋₁
-        self.cell_state = (self.f_t.T * self.cell_state).T + \
-            self.i_t * self.c_t
-
-        # oₜ = σ(Wᵢ₄xₜ + Wᵣ₄hₜ₋₁ + b₄)
-        self.o_t = self.activation.apply_activation(
-            self.input_weights[3]@x + (self.recurrental_weights[3]@self.hidden_state)[:, np.newaxis] + self.biases[3])
-
-        # hₜ = oₜ ⊙ tanh(Cₜ)
-        self.hidden_state = self.o_t * self.recurrent_activation.apply_activation(
-            self.cell_state)
-
-        if self.return_sequences:
-            return self.hidden_state
-        self.hidden_state = np.average(self.hidden_state, axis=1)
-        self.cell_state = np.average(self.cell_state, axis=1)
-        return self.hidden_state
-
-    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer]) -> np.ndarray:
-        raise NotImplementedError(
-            "The backpropagation for LSTM hasn't been implemented yet")
+        return

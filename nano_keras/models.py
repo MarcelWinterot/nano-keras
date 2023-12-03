@@ -149,9 +149,9 @@ class NN:
             print(layer)
             if isinstance(layer, LayerWithParams):
                 if isinstance(layer, LSTM):
-                    totalParams += layer.input_weights.size + layer.recurrental_weights.size + \
+                    totalParams += layer.input_weights.size + layer.recurrent_weights.size + \
                         layer.biases.size
-                    paramsWeight += layer.input_weights.nbytes + layer.recurrental_weights.nbytes + \
+                    paramsWeight += layer.input_weights.nbytes + layer.recurrent_weights.nbytes + \
                         layer.biases.nbytes
                     continue
 
