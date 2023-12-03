@@ -61,7 +61,7 @@ model = NN([
 ], "NN for titanic")
 
 optimizer = NAdam()
-loss = ()
+loss = MSE()
 
 stop = EarlyStopping(5, "val_accuracy", restore_best_weights=True)
 
