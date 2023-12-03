@@ -37,17 +37,67 @@ class LSTM(LayerWithParams):
         input_shape = layers[current_layer_index -
                              1].output_shape(layers, current_layer_index-1)
 
-        input_weights_shape = (self.units, self.units)
-        recurrent_weights_shape = (input_shape[1], self.units)
+        input_weights_shape = (input_shape[1], self.units)
+        recurrent_weights_shape = (self.units, self.units)
 
         self.input_weights = np.random.randn(
             4, *input_weights_shape).astype(weight_data_type)
         self.recurrent_weights = np.random.randn(
             4, *recurrent_weights_shape).astype(weight_data_type)
 
-        self.biases = np.random.randn(4, 1, self.units)
+        self.biases = np.random.randn(4, self.units)
+
+        self.hidden_state = np.zeros((input_shape[0], self.units))
+        self.cell_state = np.zeros((input_shape[0], self.units))
 
         return
 
     def __call__(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
-        return super().__call__(x, is_training)
+        self.inputs = x
+
+        if len(x.shape) != 2:
+            raise ValueError(
+                f"Input shape in LSTM layer must be 2d, received: {x.shape}")
+
+        extra_dim = np.zeros((1, self.hidden_state.shape[1]))
+
+        self.hidden_state = np.vstack((extra_dim, self.hidden_state))
+        self.cell_state = np.vstack((extra_dim, self.cell_state))
+
+        for time_stamp in range(1, x.shape[0]+1):
+            # fₜ = σ(Wᵢ₁xₜ + Wᵣ₁hₜ₋₁ + b₁)
+            self.forget_gate = self.activation.apply_activation(
+                np.dot(self.input_weights[0].T, x[time_stamp-1]) + np.dot(self.recurrent_weights[0], self.hidden_state[time_stamp-1]) + self.biases[0])
+
+            # iₜ = σ(Wᵢ₂xₜ + Wᵣ₂hₜ₋₁ + b₂)
+            self.input_gate = self.activation.apply_activation(np.dot(
+                self.input_weights[1].T, x[time_stamp-1]) + np.dot(self.recurrent_weights[1], self.hidden_state[time_stamp-1]) + self.biases[1])
+
+            # C'ₜ = tanh(Wᵢ₃xₜ + Wᵣ₃hₜ₋₁ + b₃)
+            self.candidate_cell_state = self.recurrent_activation.apply_activation(np.dot(
+                self.input_weights[2].T, x[time_stamp-1]) + np.dot(self.recurrent_weights[2], self.hidden_state[time_stamp-1]) + self.biases[2])
+
+            # Cₜ = fₜ ⊙ Cₜ₋₁ + iₜ ⊙ C'ₜ₋₁
+            self.cell_state[time_stamp] = self.forget_gate * self.cell_state[time_stamp-1] + \
+                self.input_gate * self.candidate_cell_state
+
+            # oₜ = σ(Wᵢ₄xₜ + Wᵣ₄hₜ₋₁ + b₄)
+            self.output_gate = self.activation.apply_activation(np.dot(
+                self.input_weights[3].T, x[time_stamp-1]) + np.dot(self.recurrent_weights[3], self.hidden_state[time_stamp-1]) + self.biases[3])
+
+            # hₜ = oₜ ⊙ tanh(Cₜ)
+            self.hidden_state[time_stamp] = self.output_gate * \
+                self.recurrent_activation.apply_activation(
+                    self.cell_state[time_stamp])
+
+        self.hidden_state = self.hidden_state[1:]
+        self.cell_state = self.cell_state[1:]
+
+        if self.return_sequences:
+            return self.hidden_state
+
+        return self.hidden_state[-1]
+
+    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer]) -> np.ndarray:
+        raise NotImplementedError(
+            f"LSTM backpropagation is not implemented yet. Please be patient")
