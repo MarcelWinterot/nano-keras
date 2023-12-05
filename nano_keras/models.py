@@ -235,7 +235,7 @@ class NN:
             gradient = self.loss_function.compute_derivative(y[i], yPred)
 
             # We skip over the input layer, as it doesn't have any parameters to update
-            for layer in self.layers[-1:0:-1]:
+            for layer in self.layers[-1::-1]:
                 gradient = layer.backpropagate(gradient, self.optimizer)
 
             losses += self.loss_function.compute_loss(y[i], yPred)

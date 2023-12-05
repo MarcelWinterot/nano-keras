@@ -2,11 +2,13 @@
 
 ## Overview
 
-### **nano-keras** is a compact implementation of [Keras](https://keras.io/) using only Python and NumPy. It's designed with the primary aim of deepening understanding about neural network fundamentals and their implementation at a lower level. While it might not match the speed or feature-rich capabilities of Keras, it serves as an educational project to explore the inner workings of neural networks
+### **nano-keras** is a deep learning library written in Python using [NumPy](https://numpy.org/). It's designed to handle the creation and training process of most neural network types, allowing you for quick and easy prototyping and deployment.
+
+### The project is heavily inspired by [Keras](https://keras.io/), the most popular deep learning API in the world, as I'm trying to implement my library in simmilar style and functionality to Keras
 
 ## Key Features
 
-### - Simplicity: Built using fundamental Python and NumPy functionalities, emphasizing simplicity and readability
+### - Simplicity: Built using Python and NumPy, making it easy to read and understand each part
 
 ### - Educational: Intended as a learning tool to understand neural network components at a lower level
 
@@ -55,3 +57,11 @@ import nano_keras
 ## License
 
 ### This project is licensed under the MIT License - see the LICENSE file for details
+
+## Special thanks
+
+### I'd like to thank my teacher, [Mateusz Kozlowski](https://github.com/mattkozlowski/), who inspired me to start working on this project and kept me motivated to finish this
+
+### Everyone who showed support for me in real life and on LinkedIn
+
+### Without you this project would've never come to life
