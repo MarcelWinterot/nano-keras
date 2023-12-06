@@ -108,14 +108,12 @@ class LSTM(LayerWithParams):
         return self.hidden_state[-1]
 
     def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer]) -> np.ndarray:
-        raise NotImplementedError(
-            f"LSTM backpropagation is not implemented yet. Please be patient")
-    
         if self.regulizer:
             gradient = self.regulizer.update_gradient(
                 gradient, self.weights, self.biases)
 
         self.hidden_error = np.zeros_like(self.hidden_state)
+        self.d_x_error = np.zeros_like(self.hidden_state)
 
         self.d_hidden_state = np.zeros_like(self.hidden_state)
         self.d_cell_state = np.zeros(
@@ -154,8 +152,23 @@ class LSTM(LayerWithParams):
                 (1 - self.forget_gate[time_stamp])
 
             # δoₜ = δhₜ ⊙ tanh(Cₜ) ⊙ oₜ ⊙ (1-oₜ)
-            self.d_output_gate[time_stamp] = self.d_hidden_state * self.recurrent_activation.apply_activation(
+            self.d_output_gate[time_stamp] = self.d_hidden_state[time_stamp] * self.recurrent_activation.apply_activation(
                 self.cell_state[time_stamp]) * self.output_gate[time_stamp] * (1 - self.output_gate[time_stamp])
 
-            self.hidden_error[time_stamp -
-                              1] = self.recurrent_weights * self.d_gates
+            # Δhₜ₋₁ = Uᵗ * δgatesₜ
+            self.hidden_error[time_stamp-1] = np.dot(
+                self.recurrent_weights.T, self.d_gates[:, time_stamp]).sum((1, 2))
+
+            # δxₜ = Wᵗ * δgatesₜ
+            self.d_x_error[time_stamp] = np.dot(
+                self.input_weights.T, self.d_gates[:, time_stamp]).sum((1, 2))
+
+        # Weights update
+        raise NotImplementedError(
+            f"LSTM backpropagation is not implemented yet. Please be patient")
+
+        # $δW = ∑ t=0, T δgatesₜ ⨯ xₜ
+        delta_input_weights = np.dot(self.d_gates, self.inputs)
+        delta_recurrent_weights = np.dot(self.d_gates, self.hidden_state)
+        delta_biases = np.average(self.d_gates)
+
