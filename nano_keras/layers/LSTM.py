@@ -112,63 +112,74 @@ class LSTM(LayerWithParams):
             gradient = self.regulizer.update_gradient(
                 gradient, self.weights, self.biases)
 
-        self.hidden_error = np.zeros_like(self.hidden_state)
-        self.d_x_error = np.zeros_like(self.hidden_state)
+        if len(gradient.shape) == 1:
+            gradient = np.tile(gradient, (self.inputs.shape[0], 1))
 
-        self.d_hidden_state = np.zeros_like(self.hidden_state)
-        self.d_cell_state = np.zeros(
+        hidden_error = np.zeros_like(self.hidden_state)
+        d_x = np.zeros_like(self.inputs)
+
+        d_hidden_state = np.zeros_like(self.hidden_state)
+        d_cell_state = np.zeros(
             (self.cell_state.shape[0] + 1, self.cell_state.shape[1]))
-        self.d_cell_candidate = np.zeros_like(self.cell_state)
+        d_cell_candidate = np.zeros_like(self.cell_state)
 
-        self.d_input_gate = np.zeros_like(self.input_gate)
-        self.d_forget_gate = np.zeros_like(self.forget_gate)
-        self.d_output_gate = np.zeros_like(self.output_gate)
+        d_input_gate = np.zeros_like(self.input_gate)
+        d_forget_gate = np.zeros_like(self.forget_gate)
+        d_output_gate = np.zeros_like(self.output_gate)
 
-        self.d_gates = np.array(
-            [self.d_cell_candidate, self.d_input_gate, self.d_forget_gate, self.output_gate])
+        d_gates = np.array(
+            [d_cell_candidate, d_input_gate, d_forget_gate, self.output_gate])
 
         for time_stamp in range(self.inputs.shape[0])[-1::-1]:
             # δhₜ = Δt + Δhₜ
-            self.d_hidden_state[time_stamp] = gradient * \
-                self.hidden_error[time_stamp]
+            d_hidden_state[time_stamp] = gradient[time_stamp] + \
+                hidden_error[time_stamp]
 
             # δCₜ = δhₜ ⊙ oₜ ⊙ (1 - tanh²(Cₜ)) + δCₜ₊₁ ⊙ fₜ₊₁
-            self.d_cell_state[time_stamp] * self.output_gate[time_stamp] * \
+            d_cell_state[time_stamp] * self.output_gate[time_stamp] * \
                 self.recurrent_activation.compute_derivative(
-                self.cell_state[time_stamp]) + self.d_cell_state[time_stamp+1] * self.forget_gate[time_stamp]
+                self.cell_state[time_stamp]) + d_cell_state[time_stamp+1] * self.forget_gate[time_stamp]
 
             # δC' = δCₜ ⊙ iₜ ⊙ (1-C'ₜ²)
-            self.d_cell_candidate[time_stamp] = self.d_cell_candidate[time_stamp] * \
+            d_cell_candidate[time_stamp] = d_cell_candidate[time_stamp] * \
                 self.input_gate[time_stamp] * \
                 (1 - self.candidate_cell_state[time_stamp]**2)
 
             # δiₜ = δCₜ ⊙ C'ₜ ⊙ iₜ ⊙ (1-iₜ)
-            self.d_input_gate[time_stamp] = self.d_cell_state[time_stamp] * self.candidate_cell_state[time_stamp] * \
+            d_input_gate[time_stamp] = d_cell_state[time_stamp] * self.candidate_cell_state[time_stamp] * \
                 self.input_gate[time_stamp] * (1 - self.input_gate[time_stamp])
 
             # δfₜ = δCₜ ⊙ Cₜ₋₁ ⊙ fₜ ⊙ (1-fₜ)
-            self.d_forget_gate[time_stamp] = self.d_cell_state[time_stamp] * self.candidate_cell_state[time_stamp] * \
+            d_forget_gate[time_stamp] = d_cell_state[time_stamp] * self.candidate_cell_state[time_stamp] * \
                 self.forget_gate[time_stamp] * \
                 (1 - self.forget_gate[time_stamp])
 
             # δoₜ = δhₜ ⊙ tanh(Cₜ) ⊙ oₜ ⊙ (1-oₜ)
-            self.d_output_gate[time_stamp] = self.d_hidden_state[time_stamp] * self.recurrent_activation.apply_activation(
+            d_output_gate[time_stamp] = d_hidden_state[time_stamp] * self.recurrent_activation.apply_activation(
                 self.cell_state[time_stamp]) * self.output_gate[time_stamp] * (1 - self.output_gate[time_stamp])
 
             # Δhₜ₋₁ = Uᵗ * δgatesₜ
-            self.hidden_error[time_stamp-1] = np.dot(
-                self.recurrent_weights.T, self.d_gates[:, time_stamp]).sum((1, 2))
+            hidden_error[time_stamp-1] = np.average(np.dot(
+                self.recurrent_weights.T, d_gates[:, time_stamp]), axis=(1, 2))
 
             # δxₜ = Wᵗ * δgatesₜ
-            self.d_x_error[time_stamp] = np.dot(
-                self.input_weights.T, self.d_gates[:, time_stamp]).sum((1, 2))
+            d_x[time_stamp] = np.dot(self.input_weights.T,
+                                     d_gates[:, time_stamp])[-1, :, -1]
 
         # Weights update
-        raise NotImplementedError(
-            f"LSTM backpropagation is not implemented yet. Please be patient")
+        delta_input_weights = np.ndarray(self.inputs.shape)
+        delta_recurrent_weights = np.ndarray(
+            d_gates.shape).transpose(1, 0, 2)
+        for time_stamp in range(self.inputs.shape[0])[-1::-1]:
+            # delta_input_weights[time_stamp] = d_gates[:,
+            #    time_stamp] * self.inputs[time_stamp]
 
-        # $δW = ∑ t=0, T δgatesₜ ⨯ xₜ
-        delta_input_weights = np.dot(self.d_gates, self.inputs)
-        delta_recurrent_weights = np.dot(self.d_gates, self.hidden_state)
-        delta_biases = np.average(self.d_gates)
+            delta_recurrent_weights[time_stamp] = d_gates[:,
+                                                          time_stamp] * self.hidden_state[time_stamp]
 
+        delta_recurrent_weights = np.sum(delta_recurrent_weights, 0)
+        delta_biases = np.sum(d_gates, 1)
+
+        print(f"R_weights: {self.recurrent_weights.shape}, r_weights_delta: {delta_recurrent_weights.shape}, biases: {self.biases.shape}, delta_biases: {delta_biases.shape}")
+
+        return d_x
