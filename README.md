@@ -26,7 +26,7 @@
 
 ### Callbacks: EarlyStopping, LearningRateScheduler, CSVLogger
 
-### And much more, you can find all the implemented items in [here](https://github.com/MarcelWinterot/nano-keras/wiki/Roadmap)
+### And much more, you can find all the implemented items in [here](https://github.com/MarcelWinterot/nano-keras/wiki/Feature-list)
 
 ## Instalation
 
@@ -49,10 +49,6 @@ import nano_keras
 ### Documentation is under development and should be finished in the next few days
 
 ### You can access it [here](https://github.com/MarcelWinterot/nano-keras/wiki/Documentation)
-
-## Roadmap
-
-### Roadmap is now in the Wiki section of nano-keras and not in the source code. You can access it [here](https://github.com/MarcelWinterot/nano-keras/wiki/Roadmap)
 
 ## License
 
