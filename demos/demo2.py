@@ -1,7 +1,7 @@
 import numpy as np
-from nano_keras.optimizers import NAdam
+from nano_keras.optimizers import Adam
 from nano_keras.models import NN
-from nano_keras.layers import Input, Flatten, Conv2D, Dropout, MaxPool2D
+from nano_keras.layers import Input, Flatten, Conv2D, Dropout, MaxPool2D, Dense
 
 
 def load_data() -> tuple:
@@ -31,17 +31,15 @@ print("\033c", end='')
 
 model = NN(name="NN for MNIST")
 model.add(Input((28, 28, 1)))
-model.add(Conv2D(32, (3, 3), name="Conv 1"))
-model.add(MaxPool2D())
-model.add(Conv2D(64, (3, 3), name='Conv 2'))
-model.add(MaxPool2D())
+model.add(Conv2D(32, (3, 3), (2, 2), name="Conv 1"))
+model.add(Conv2D(64, (3, 3), (2, 2), name='Conv 2'))
 model.add(Flatten())
-model.add(Dropout(10, "relu", 0.5, "he", name='Dropout'))
+model.add(Dense(10, "relu", "he", name='Dropout'))
 
-optimizer = NAdam(adjust_biases_shape=True)
+optimizer = Adam(adjust_biases_shape=True)
 
-model.compile("cce", optimizer=optimizer, metrics="accuracy",
-              weight_data_type=np.float64)
+model.compile("mse", optimizer=optimizer, metrics="accuracy",
+              weight_data_type=np.float32)
 
 model.summary()
 

@@ -72,6 +72,9 @@ class LSTM(LayerWithParams):
         self.output_gate = np.ndarray((x.shape[0], self.units))
 
         for time_stamp in range(1, x.shape[0]+1):
+            # Note that we are using [time_stamp - 1] in most cases as otherwise we'd get an index of -1 at the first iteration
+            # And for elements like hidden state and cell state we assign it to the current timestamp and the remove the first element
+
             # fₜ = σ(Wᵢ₁xₜ + Wᵣ₁hₜ₋₁ + b₁)
             self.forget_gate[time_stamp-1] = self.activation.apply_activation(
                 np.dot(self.input_weights[0].T, x[time_stamp-1]) + np.dot(self.recurrent_weights[0], self.hidden_state[time_stamp-1]) + self.biases[0])
@@ -170,6 +173,7 @@ class LSTM(LayerWithParams):
         delta_input_weights = np.ndarray(self.inputs.shape)
         delta_recurrent_weights = np.ndarray(
             d_gates.shape).transpose(1, 0, 2)
+
         for time_stamp in range(self.inputs.shape[0])[-1::-1]:
             # delta_input_weights[time_stamp] = d_gates[:,
             #    time_stamp] * self.inputs[time_stamp]
@@ -177,9 +181,9 @@ class LSTM(LayerWithParams):
             delta_recurrent_weights[time_stamp] = d_gates[:,
                                                           time_stamp] * self.hidden_state[time_stamp]
 
-        delta_recurrent_weights = np.sum(delta_recurrent_weights, 0)
+        delta_recurrent_weights = delta_recurrent_weights.transpose(1, 0, 2)
         delta_biases = np.sum(d_gates, 1)
 
-        print(f"R_weights: {self.recurrent_weights.shape}, r_weights_delta: {delta_recurrent_weights.shape}, biases: {self.biases.shape}, delta_biases: {delta_biases.shape}")
+        print(f"input_weights: {self.input_weights.shape}, R_weights: {self.recurrent_weights.shape}, r_weights_delta: {delta_recurrent_weights.shape}, biases: {self.biases.shape}, delta_biases: {delta_biases.shape}")
 
         return d_x

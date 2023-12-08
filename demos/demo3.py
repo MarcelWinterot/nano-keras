@@ -10,16 +10,17 @@ import numpy as np
 
 model = NN()
 
-model.add(Input((12, 30)))
-model.add(LSTM(10, name="Lstm 1"))
-model.add(LSTM(30, name="Lstm 3"))
-model.add(LSTM(5, return_sequences=False, name="Lstm 2"))
+model.add(Input((5, 14)))
+model.add(LSTM(8, name="LSTM 1"))
+model.add(LSTM(6, name="LSTM 2"))
+model.add(LSTM(20, name="LSTM 3"))
+model.add(LSTM(4, return_sequences=False, name="LSTM 4"))
 
 model.compile()
 model.summary()
 
-x = np.random.randn(12, 30)
-y = np.random.randn(5)
+x = np.random.randn(5, 14)
+y = np.random.randn(4)
 
 output = model.feed_forward(x)
 
@@ -29,5 +30,5 @@ opt = SGD()
 gradient = loss.compute_derivative(y, output)
 
 for layer in model.layers[-1::-1]:
-    print(f"Gradient shape: {gradient.shape}")
+    print(f"\nGradient shape: {gradient.shape}")
     gradient = layer.backpropagate(gradient, opt)

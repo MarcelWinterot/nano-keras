@@ -195,18 +195,7 @@ class Conv2D(LayerWithParams):
         formatted_output = f'(None, {", ".join(map(str, self.output_shape_value))})'
         return f"{self.name} (Conv2D){' ' * (28 - len(self.name) - 8)}{formatted_output}{' ' * (26-len(formatted_output))}{self.weights.size + self.biases.size}\n"
 
-    def im2col(self, x: np.ndarray) -> np.ndarray:
-        """Support function to perform im2col operation for input data in Conv2D feed forward\n
-        We use this as resarch proved it's faster to use im2col and then a simple matrix multiplication
-        then sliding the kernel over the data and applying the filters manually
-
-        Args:
-            x (np.ndarray): Img we should perform the operation on. It should be 3d: height, width, channels
-
-        Returns:
-            np.ndarray: Columns calculated by the algorithm
-        """
-        inputs_shape = x.shape
+    def im2col_indices(self, inputs_shape: tuple) -> tuple[int]:
         height = (inputs_shape[0] - self.kernel_size[0]) // self.strides[0] + 1
         width = (inputs_shape[1] - self.kernel_size[1]) // self.strides[1] + 1
         channels = inputs_shape[-1]
@@ -223,6 +212,20 @@ class Conv2D(LayerWithParams):
         k = np.repeat(np.arange(channels),
                       self.kernel_size[0] * self.kernel_size[1]).reshape(-1, 1)
 
+        return (i, j, k)
+
+    def im2col(self, x: np.ndarray) -> np.ndarray:
+        """Support function to perform im2col operation for input data in Conv2D feed forward\n
+        We use this as resarch proved it's faster to use im2col and then a simple matrix multiplication
+        then sliding the kernel over the data and applying the filters manually
+
+        Args:
+            x (np.ndarray): Img we should perform the operation on. It should be 3d: height, width, channels
+
+        Returns:
+            np.ndarray: Columns calculated by the algorithm
+        """
+        i, j, k = self.im2col_indices(x.shape)
         return x[i, j, k]
 
     def __call__(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
@@ -245,9 +248,9 @@ class Conv2D(LayerWithParams):
         width = (input_shape[1] -
                  self.kernel_size[1]) // self.strides[1] + 1
 
-        weights_col = self.weights.reshape(self.number_of_filters, -1)
+        self.weights_col = self.weights.reshape(self.number_of_filters, -1)
 
-        weighted_sum = np.dot(weights_col, self.x_col)
+        weighted_sum = np.dot(self.weights_col, self.x_col)
 
         weighted_sum = weighted_sum.reshape(
             self.number_of_filters, height, width).transpose(1, 2, 0)
@@ -272,13 +275,12 @@ class Conv2D(LayerWithParams):
                 gradient, self.weights, self.biases)
 
         delta = (gradient * self.activation.compute_derivative(self.output)
-                 ).reshape(self.number_of_filters, -1)
+                 )
 
-        weights_gradients = (delta @ self.x_col.T).reshape(self.weights.shape)
-
-        averaged_delta = np.average(delta)
+        weights_gradients = (delta.reshape(
+            self.number_of_filters, -1) @ self.x_col.T).reshape(self.weights.shape)
 
         self.weights, self.biases = optimizer[1].apply_gradients(
-            weights_gradients, averaged_delta, self.weights, self.biases)
+            weights_gradients, np.average(delta, (0, 1)), self.weights, self.biases)
 
-        return np.dot(averaged_delta, self.inputs)
+        return np.dot(np.average(delta), self.inputs)
