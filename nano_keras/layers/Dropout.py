@@ -36,7 +36,9 @@ class Dropout(LayerWithParams):
         Returns:
             np.ndarray: Output of the model
         """
-        self.inputs: np.ndarray = x
+        self.is_training = is_training
+        if is_training:
+            self.inputs[self.current_batch] = x
 
         weighted_sum = np.dot(x, self.weights) + self.biases
 
@@ -46,10 +48,14 @@ class Dropout(LayerWithParams):
 
             weighted_sum /= (1 - self.dropout_rate)
 
-        self.output = self.activation.apply_activation(weighted_sum)
-        self.is_training = is_training
+            self.outputs[self.current_batch] = self.activation.apply_activation(
+                weighted_sum)
 
-        return self.output
+            self.current_batch += 1
+
+            return self.outputs[self.current_batch-1]
+
+        return self.activation.apply_activation(weighted_sum)
 
     def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer]) -> np.ndarray:
         """Backpropagation algorithm for the dropout layer
@@ -62,18 +68,23 @@ class Dropout(LayerWithParams):
         Returns:
             np.ndarray: Output gradient
         """
+        inputs = np.average(self.inputs, axis=0)
+        outputs = np.average(self.outputs, axis=0)
+
         if self.regulizer:
             gradient = self.regulizer.update_gradient(
                 gradient, self.weights, self.biases)
 
-        delta = gradient * self.activation.compute_derivative(self.output)
+        delta = gradient * self.activation.compute_derivative(outputs)
 
         if self.is_training:
             delta /= (1 - self.dropout_rate)
 
-        weights_gradients = np.outer(self.inputs, delta)
+        weights_gradients = np.outer(inputs, delta)
 
         self.weights, self.biases = optimizer[0].apply_gradients(
             weights_gradients, np.average(delta), self.weights, self.biases)
+
+        self.current_batch = 0
 
         return np.dot(delta, self.weights.T)

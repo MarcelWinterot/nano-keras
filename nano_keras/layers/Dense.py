@@ -21,15 +21,21 @@ class Dense(LayerWithParams):
         Returns:
             np.ndarray: Output gradient of the layer
         """
+        inputs = np.average(self.inputs, axis=0)
+        outputs = np.average(self.outputs, axis=0)
+
         if self.regulizer:
             gradient = self.regulizer.update_gradient(
                 gradient, self.weights, self.biases)
 
-        delta = gradient * self.activation.compute_derivative(self.output)
+        delta = gradient * self.activation.compute_derivative(outputs)
 
-        weights_gradients = np.outer(self.inputs, delta)
+        weights_gradients = np.outer(inputs, delta)
 
         self.weights, self.biases = optimizer[0].apply_gradients(
             weights_gradients, np.average(delta), self.weights, self.biases)
 
+        self.current_batch = 0
+
         return np.dot(delta, self.weights.T)
+

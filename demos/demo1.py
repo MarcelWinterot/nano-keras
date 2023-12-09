@@ -69,7 +69,7 @@ model.compile(loss, optimizer, metrics="accuracy")
 
 model.summary()
 
-model.train(X_train, y_train, 50, verbose=2,
+model.train(X_train, y_train, 1, 50, verbose=2,
             validation_data=(X_test, y_test), callbacks=stop)
 
 loss, accuracy = model.evaluate(X_test, y_test)

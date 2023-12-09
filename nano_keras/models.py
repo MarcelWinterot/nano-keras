@@ -225,39 +225,50 @@ class NN:
         length_of_x = len(X)
         total_accuracy = 0
         losses = 0
-        for i in range(length_of_x):
+        batches = length_of_x // self.batch_size
+        current_index = 0
+        for batch in range(batches):
             start = time()
-            yPred = self.feed_forward(X[i], True)
+            gradient = []
+            for _ in range(self.batch_size):
+                yPred = self.feed_forward(X[current_index], True)
 
-            if self.metrics == "accuracy":
-                total_accuracy += self.__calculate_accuracy(yPred, y[i])
+                if self.metrics == "accuracy":
+                    total_accuracy += self.__calculate_accuracy(
+                        yPred, y[current_index])
 
-            gradient = self.loss_function.compute_derivative(y[i], yPred)
+                gradient.append(self.loss_function.compute_derivative(
+                    y[current_index], yPred))
 
-            # We skip over the input layer, as it doesn't have any parameters to update
+                losses += self.loss_function.compute_loss(
+                    y[current_index], yPred)
+                current_index += 1
+
+            gradient = np.average(np.array(gradient), axis=0)
+
             for layer in self.layers[-1::-1]:
                 gradient = layer.backpropagate(gradient, self.optimizer)
 
-            losses += self.loss_function.compute_loss(y[i], yPred)
             accuracy = total_accuracy / \
-                (i+1) if self.metrics == "accuracy" else None
+                (current_index+1) if self.metrics == "accuracy" else None
             time_taken = time() - start
-            loss = losses / (i + 1)
+            loss = losses / (current_index + 1)
 
             if self.callbacks:
                 self.callbacks.on_batch_end(
-                    epoch, i+1, accuracy, loss, time_taken)
+                    epoch, batch+1, accuracy, loss, time_taken)
 
             if verbose == 2:
                 self.print_progress(epoch, total_epochs, loss,
-                                    accuracy, i+1, length_of_x, time_taken)
+                                    accuracy, batch+1, batches, time_taken)
 
-    def train(self, X: np.ndarray, y: np.ndarray, epochs: int, callbacks: Callback = None, verbose: int = 1, validation_split: float = 0, validation_data: tuple[np.ndarray, np.ndarray] = None) -> np.ndarray | tuple:
+    def train(self, X: np.ndarray, y: np.ndarray, batch_size: int, epochs: int, callbacks: Callback = None, verbose: int = 1, validation_split: float = 0, validation_data: tuple[np.ndarray, np.ndarray] = None) -> np.ndarray | tuple:
         """Function to train the model. Remember to call the NN.compile() before calling this function as it won't work because we don't have weights. \n
 
         Args:
             X (np.ndarray): X dataset
             y (np.ndarray): y dataset
+            batch_size (int): number of predictions the model should make before entering backpropagation
             epochs (int): number of iterations a model should do during training
             callbacks (Callback, optional): One of the callbacks implemented in callbacks.py although currently there's only early stopping in there. Defaults to None.
             verbose (int, optional): Parameter to control what the model prints out during training. 0 - nothing, 1 - only epoch/epochs, 2 - all the useful information. Defaults to 1.
@@ -270,6 +281,7 @@ class NN:
         losses = np.ndarray((epochs))
         val_losses = np.ndarray((epochs))
         self.callbacks = callbacks
+        self.batch_size = batch_size
 
         if len(X) != len(y):
             raise ValueError("X and y must have the same length")
@@ -281,6 +293,10 @@ class NN:
             validation_data = (X_val, y_val)
 
         training_active: bool = [True]
+
+        # Telling each layer what the batch size is
+        for i, layer in enumerate(self.layers):
+            layer.set_batch_size(batch_size, self.layers, i)
 
         for epoch in range(1, epochs+1):
             if callbacks:

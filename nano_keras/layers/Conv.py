@@ -121,6 +121,23 @@ class Conv2D(LayerWithParams):
         self.weights: np.ndarray = np.array([])
         self.biases: np.ndarray = np.array([])
 
+        self.current_batch = 0
+
+    def set_batch_size(self, batch_size: int, layers: list, index: int) -> None:
+        self.batch_size = batch_size
+
+        input_shape = layers[index-1].output_shape(layers, index-1)
+        output_shape = self.output_shape(layers, index)
+
+        self.inputs = np.ndarray((self.batch_size, *input_shape)) if type(
+            input_shape) == tuple else np.ndarray((self.batch_size, input_shape))
+        self.outputs = np.ndarray((self.batch_size, *output_shape)) if type(
+            output_shape) == tuple else np.ndarray((self.batch_size, output_shape))
+
+        x_col_indices = self.im2col_indices(input_shape)
+
+        self.x_col = np.ndarray((self.batch_size, *x_col_indices[0].shape))
+
     def random_initalization(self, weights: list, input_shape: tuple, weight_data_type: np.float_) -> tuple[np.ndarray, np.ndarray]:
         """Random intitalization strategy used for weights generation. Note that this works for layers that don't use units for weight generation like Conv1d and Conv2d
 
@@ -239,9 +256,10 @@ class Conv2D(LayerWithParams):
         """
         input_shape = x.shape
 
-        self.inputs: np.ndarray = x
+        if is_training:
+            self.inputs[self.current_batch] = x
 
-        self.x_col = self.im2col(x)
+        x_col = self.im2col(x)
 
         height = (input_shape[0] -
                   self.kernel_size[0]) // self.strides[0] + 1
@@ -250,14 +268,19 @@ class Conv2D(LayerWithParams):
 
         self.weights_col = self.weights.reshape(self.number_of_filters, -1)
 
-        weighted_sum = np.dot(self.weights_col, self.x_col)
+        weighted_sum = np.dot(self.weights_col, x_col)
 
         weighted_sum = weighted_sum.reshape(
             self.number_of_filters, height, width).transpose(1, 2, 0)
 
-        self.output = self.activation.apply_activation(weighted_sum)
+        output = self.activation.apply_activation(weighted_sum)
 
-        return self.output
+        if is_training:
+            self.outputs[self.current_batch] = output
+            self.x_col[self.current_batch] = x_col
+            self.current_batch += 1
+
+        return output
 
     def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer]) -> np.ndarray:
         """Backpropagate algorithm used for Conv2D layer. It's kinda slow right now so it's not recommended to use it but it will be faster in the future
@@ -270,17 +293,22 @@ class Conv2D(LayerWithParams):
         Returns:
             np.ndarray: Output gradient
         """
+        inputs = np.average(self.inputs, axis=0)
+        outputs = np.average(self.outputs, axis=0)
+        x_col = np.average(np.array(self.x_col), axis=0)
+
         if self.regulizer:
             gradient = self.regulizer.update_gradient(
                 gradient, self.weights, self.biases)
 
-        delta = (gradient * self.activation.compute_derivative(self.output)
-                 )
+        delta = (gradient * self.activation.compute_derivative(outputs))
 
         weights_gradients = (delta.reshape(
-            self.number_of_filters, -1) @ self.x_col.T).reshape(self.weights.shape)
+            self.number_of_filters, -1) @ x_col.T).reshape(self.weights.shape)
 
         self.weights, self.biases = optimizer[1].apply_gradients(
             weights_gradients, np.average(delta, (0, 1)), self.weights, self.biases)
 
-        return np.dot(np.average(delta), self.inputs)
+        self.current_batch = 0
+
+        return np.dot(np.average(delta), inputs)

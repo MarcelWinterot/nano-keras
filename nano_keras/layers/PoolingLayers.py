@@ -16,10 +16,18 @@ class PoolingLayey1D(Layer):
         self.pool_size: int = pool_size
         self.strides: int = strides
         self.name: str = name
+        self.current_batch: int = 0
+
+    def set_batch_size(self, batch_size: int, layers: list, index: int) -> None:
+        self.batch_size: int = batch_size
+
+        input_shape: tuple = layers[index-1].output_shape(layers, index-1)
+
+        self.mask: np.ndarray = np.ndarray((batch_size, *input_shape))
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         input_shape: tuple = layers[current_layer_index -
-                             1].output_shape(layers, current_layer_index-1)
+                                    1].output_shape(layers, current_layer_index-1)
         self.output_shape_value: tuple = math.ceil(
             (input_shape - self.kernel_size + 1) / self.strides)
         return self.output_shape_value
@@ -47,8 +55,8 @@ class PoolingLayey1D(Layer):
         height: int = (x_shape[0] - self.pool_size[0]) // self.strides[0] + 1
         channels: int = x_shape[1]
 
-        self.mask: np.ndarray = np.zeros_like(self.inputs)
-        self.output: np.ndarray = np.zeros((height, channels))
+        mask: np.ndarray = np.zeros_like(self.inputs)
+        output: np.ndarray = np.zeros((height, channels))
 
         for c in range(channels):
             for i in range(height):
@@ -61,16 +69,21 @@ class PoolingLayey1D(Layer):
 
                 index = np.unravel_index(index, subarray.shape)
 
-                self.mask[index[0], c] = 1
+                mask[index[0], c] = 1
 
-                self.output[i, c] = x[index[0], c]
+                output[i, c] = x[index[0], c]
 
-        return self.output
+        if is_training:
+            self.mask[self.current_batch] = mask
+            self.current_batch += 1
+
+        return output
 
     def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer]) -> np.ndarray:
         # Note that I haven't tested this code so I don't know if it works
         gradient_shape: tuple = gradient.shape
         gradient_expended: bool = False
+        mask = np.average(self.mask, 0)
 
         if (gradient_shape[0] * 2 < self.inputs.shape[0]):
             gradient_expended = True
@@ -84,7 +97,9 @@ class PoolingLayey1D(Layer):
         if gradient_expended:
             delta = delta[0:delta.shape[0]-1, :]
 
-        return delta * self.mask
+        self.current_batch = 0
+
+        return delta * mask
 
 
 class PoolingLayey2D(Layer):
@@ -99,6 +114,14 @@ class PoolingLayey2D(Layer):
         self.pool_size: tuple = pool_size
         self.strides: tuple = strides
         self.name: tuple = name
+        self.current_batch: int = 0
+
+    def set_batch_size(self, batch_size: int, layers: list, index: int) -> None:
+        self.batch_size: int = batch_size
+
+        input_shape: tuple = layers[index-1].output_shape(layers, index-1)
+
+        self.mask: np.ndarray = np.ndarray((batch_size, *input_shape))
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         input_shape = layers[current_layer_index -
@@ -141,8 +164,8 @@ class PoolingLayey2D(Layer):
         width: int = (x_shape[1] - self.pool_size[1]) // self.strides[1] + 1
         channels: int = x_shape[2]
 
-        self.mask: np.ndarray = np.zeros_like(self.inputs)
-        self.output: np.ndarray = np.zeros((height, width, channels))
+        mask: np.ndarray = np.zeros_like(self.inputs)
+        output: np.ndarray = np.zeros((height, width, channels))
 
         for c in range(channels):
             for i in range(height):
@@ -157,25 +180,30 @@ class PoolingLayey2D(Layer):
 
                     index: tuple = np.unravel_index(index, subarray.shape)
 
-                    self.mask[index[0], index[1], c] = 1
+                    mask[index[0], index[1], c] = 1
 
-                    self.output[i, j, c] = x[index[0], index[1], c]
+                    output[i, j, c] = x[index[0], index[1], c]
 
-        return self.output
+        if is_training:
+            self.mask[self.current_batch] = mask
+            self.current_batch += 1
+
+        return output
 
     def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer]) -> np.ndarray:
         gradient_shape: tuple = gradient.shape
         channels: int = gradient_shape[2]
         gradient_expended: bool = False
+        mask = np.average(self.mask, 0)
 
         if (gradient_shape[0] * 2 < self.inputs.shape[0]):
             gradient_expended = True
-            
+
             extra_dim_0: np.ndarray = np.zeros(
                 (1, gradient_shape[1], channels))
             extra_dim_1: np.ndarray = np.zeros(
                 (gradient_shape[0] + 1, 1, channels))
-            
+
             gradient = np.concatenate(
                 (extra_dim_1, np.concatenate((extra_dim_0, gradient), axis=0)), axis=1)
 
@@ -186,7 +214,9 @@ class PoolingLayey2D(Layer):
             d_shape: tuple = delta.shape
             delta = delta[0:d_shape[0]-1, 0:d_shape[1]-1, :]
 
-        return delta * self.mask
+        self.current_batch = 0
+
+        return delta * mask
 
 
 class MaxPool1D(PoolingLayey1D):
@@ -217,8 +247,8 @@ class AvgPool1D(PoolingLayey1D):
         height: int = (x_shape[0] - self.pool_size[0]) // self.strides[0] + 1
         channels: int = x_shape[1]
 
-        self.mask: np.ndarray = np.zeros_like(self.inputs)
-        self.output: np.ndarray = np.zeros((height, channels))
+        mask: np.ndarray = np.zeros_like(self.inputs)
+        output: np.ndarray = np.zeros((height, channels))
 
         for c in range(channels):
             for i in range(height):
@@ -229,12 +259,16 @@ class AvgPool1D(PoolingLayey1D):
 
                 subarray_sum: np.float_ = np.sum(subarray)
 
-                self.mask[i_start:i_end, c] = subarray / \
+                mask[i_start:i_end, c] = subarray / \
                     subarray_sum if subarray_sum != 0 else 0
 
-                self.output[i, c] = subarray_sum / subarray.size
+                output[i, c] = subarray_sum / subarray.size
 
-        return self.output
+        if is_training:
+            self.mask[self.current_batch] = mask
+            self.current_batch += 1
+
+        return output
 
 
 class AvgPool2D(PoolingLayey2D):
@@ -246,8 +280,8 @@ class AvgPool2D(PoolingLayey2D):
         width: int = (x_shape[1] - self.pool_size[1]) // self.strides[1] + 1
         channels: int = x_shape[2]
 
-        self.mask: np.ndarray = np.zeros_like(self.inputs)
-        self.output: np.ndarray = np.zeros((height, width, channels))
+        mask: np.ndarray = np.zeros_like(self.inputs)
+        output: np.ndarray = np.zeros((height, width, channels))
 
         for c in range(channels):
             for i in range(height):
@@ -260,9 +294,13 @@ class AvgPool2D(PoolingLayey2D):
 
                     subarray_sum: np.float_ = np.sum(subarray)
 
-                    self.mask[i_start:i_end, j_start:j_end,
-                              c] = subarray / subarray_sum if subarray_sum != 0 else 0
+                    mask[i_start:i_end, j_start:j_end,
+                         c] = subarray / subarray_sum if subarray_sum != 0 else 0
 
-                    self.output[i, j, c] = subarray_sum / subarray.size
+                    output[i, j, c] = subarray_sum / subarray.size
 
-        return self.output
+        if is_training:
+            self.mask[self.current_batch] = mask
+            self.current_batch += 1
+
+        return output

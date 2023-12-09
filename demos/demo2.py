@@ -1,7 +1,7 @@
 import numpy as np
 from nano_keras.optimizers import Adam
 from nano_keras.models import NN
-from nano_keras.layers import Input, Flatten, Conv2D, AvgPool2D, Dense
+from nano_keras.layers import Input, Flatten, Conv2D, MaxPool2D, Dense
 
 
 def load_data() -> tuple:
@@ -25,6 +25,7 @@ print(f"Started downloading the data. It might take a minute or two")
 
 X_train, X_test, y_train, y_test = load_data()
 
+
 np.random.seed(1337)
 
 print("\033c", end='')
@@ -32,7 +33,9 @@ print("\033c", end='')
 model = NN(name="NN for MNIST")
 model.add(Input((28, 28, 1)))
 model.add(Conv2D(32, (3, 3), (2, 2), name="Conv 1"))
+# model.add(MaxPool2D())
 model.add(Conv2D(64, (3, 3), (2, 2), name='Conv 2'))
+# model.add(MaxPool2D())
 model.add(Flatten())
 model.add(Dense(10, "relu", "he", name='Dropout'))
 
@@ -43,4 +46,4 @@ model.compile("mse", optimizer=optimizer, metrics="accuracy",
 
 model.summary()
 
-model.train(X_train, y_train, 100, verbose=2)
+model.train(X_train, y_train, 25, 100, verbose=2)

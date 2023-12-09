@@ -21,6 +21,20 @@ class Layer:
         self.activation: Activation = ACTIVATIONS[activation] if type(
             activation) == str else activation
         self.regulizer: Regularizer = regulizer
+        self.batch_size: int = 1
+        # Going from 0 to batch_size as it represent the index of self.inputs and self.outputs
+        self.current_batch: int = 0
+
+    def set_batch_size(self, batch_size: int, layers: list, index: int) -> None:
+        self.batch_size = batch_size
+
+        input_shape = layers[index-1].output_shape(layers, index-1)
+        output_shape = self.output_shape(layers, index)
+
+        self.inputs = np.ndarray((self.batch_size, *input_shape)) if type(
+            input_shape) == tuple else np.ndarray((self.batch_size, input_shape))
+        self.outputs = np.ndarray((self.batch_size, *output_shape)) if type(
+            output_shape) == tuple else np.ndarray((self.batch_size, output_shape))
 
     @staticmethod
     def random_initalization(previous_units: int, current_units: int, weight_data_type: np.float_) -> tuple[np.ndarray, np.ndarray]:
@@ -84,6 +98,7 @@ class Layer:
 
         previous_units = layers[current_layer_index -
                                 1].output_shape(layers, current_layer_index-1)
+
         self.weights, self.biases = LAYER_INTIALIZATIONS[self.weight_initialization](
             previous_units, self.units, weight_data_type)
 
@@ -119,10 +134,16 @@ class Layer:
         Returns:
             np.ndarray: output of the model
         """
-        self.inputs: np.ndarray = x
         weighted_sum = np.dot(x, self.weights) + self.biases
-        self.output = self.activation.apply_activation(weighted_sum)
-        return self.output
+        output = self.activation.apply_activation(
+            weighted_sum)
+
+        if is_training:
+            self.inputs[self.current_batch] = x
+            self.outputs[self.current_batch] = output
+            self.current_batch += 1
+
+        return output
 
     def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer]) -> np.ndarray:
         """Backpropagation algorithm base implementation for all the layers that don't have any parameters to update
