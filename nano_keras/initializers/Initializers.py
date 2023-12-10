@@ -3,31 +3,31 @@ import numpy as np
 
 class Initializer:
     def __init__(self) -> None:
-        """_summary_
+        """Initializer for base class Initializer class
         """
         pass
 
     def __call__(self, shape: tuple, datatype: np.float_) -> np.ndarray:
-        """_summary_
+        """Base implementation of generating parameters for Initializer class
 
         Args:
-            shape (tuple): _description_
-            fan_in (int): _description_
-            datatype (np.float_): _description_
+            shape (tuple): Shape of the parameters you want to generate
+            datatype (np.float_): Data type you want to use to store the parameters, for example np.float32 or np.float64
 
         Returns:
-            np.ndarray: _description_
+            np.ndarray: Generated parameters
         """
         pass
 
 
 class RandomInitializer(Initializer):
     def __init__(self, mu: float = 0, sigma: float = 0.1) -> None:
-        """_summary_
+        """Initalizer for all the initializers which use some randomness in them like Random Normal, He Uniform, Xavier Normal, etc.
 
         Args:
-            mu (float, optional): _description_. Defaults to 0.
-            sigma (float, optional): _description_. Defaults to 0.1.
+            mu (float, optional): mean of the uniform distribution. Defaults to 0.
+            sigma (float, optional): standard deviation, half-width of the distribution. Defaults to 0.1.
+            The generated number will be between mu and mu + selfsigma.
         """
         self.mu = mu
         self.sigma = sigma
@@ -61,9 +61,9 @@ class RandomInitializer(Initializer):
 
 class ConstantInitializer(Initializer):
     def __init__(self, constant: float) -> None:
-        """_summary_
+        """Initializer for all Initializers which use a constant variable as the parameter.
 
         Args:
-            constant (float): _description_
+            constant (float): The value you want the parameters to be set to.
         """
         self.constant = constant
