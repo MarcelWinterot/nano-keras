@@ -3,6 +3,7 @@ from nano_keras.layers import Layer, LayerWithParams
 from nano_keras.optimizers import Optimizer
 from nano_keras.regulizers import Regularizer
 from nano_keras.activations import Activation, ACTIVATIONS
+from nano_keras.initializers import Initializer, INITIALIZERS
 
 
 class Conv1D(LayerWithParams):
@@ -98,7 +99,7 @@ class Conv1D(LayerWithParams):
 
 
 class Conv2D(LayerWithParams):
-    def __init__(self, filters: int = 1, kernel_size: tuple = (2, 2), strides: tuple = (1, 1), activation: Activation | str = "relu", weight_initaliziton: str = "he", regulizer: Regularizer = None, name: str = "Conv2D") -> None:
+    def __init__(self, filters: int = 1, kernel_size: tuple = (2, 2), strides: tuple = (1, 1), activation: Activation | str = "relu", weight_initialization: Initializer | str = "he_normal", bias_initialization: Initializer | str = "zeros", regulizer: Regularizer = None, name: str = "Conv2D") -> None:
         """Intializer for the Conv2D layer
 
         Args:
@@ -106,7 +107,8 @@ class Conv2D(LayerWithParams):
             kernel_size (tuple, optional): Kernel size the layer should use. Defaults to (2, 2).
             strides (tuple, optional): By how much should the kernel move. Defaults to (1, 1).
             activation (Activation | str, optional): Activation function of the layer. Defaults to "relu".
-            weight_initaliziton (str, optional): Weights intialization strategy you want to use to generate weights of the layer. Your options are: random, xavier, he. Defalut to "he"
+            weight_initialization (str, optional): Weights intialization strategy you want to use to generate weights of the layer. Your options are: random_normal, xavier_normal, he_normal. Defalut to "he_normal"
+            bias_initialization (str, optional): Bias intialization strategy you want to use to generate biases of the layer. Your options are: random_normal, xavier_normal, he_normal. Defalut to "random_normal"
             regulizer (Regularizer, optional): Regulizer for the layer. Defaults to None.
             name (str, optional): Name of the layer. Defaults to "Conv2D".
         """
@@ -115,7 +117,12 @@ class Conv2D(LayerWithParams):
         self.strides: tuple = strides
         self.activation: Activation = ACTIVATIONS[activation] if type(
             activation) == str else activation
-        self.weight_initialization = weight_initaliziton
+
+        self.weight_initialization: Initializer = weight_initialization if type(
+            weight_initialization) == Initializer else INITIALIZERS[weight_initialization]
+        self.bias_initialization: Initializer = bias_initialization if type(
+            bias_initialization) == Initializer else INITIALIZERS[bias_initialization]
+
         self.regulizer: Regularizer = regulizer
         self.name: str = name
         self.weights: np.ndarray = np.array([])
@@ -138,64 +145,18 @@ class Conv2D(LayerWithParams):
 
         self.x_col = np.ndarray((self.batch_size, *x_col_indices[0].shape))
 
-    def random_initalization(self, weights: list, input_shape: tuple, weight_data_type: np.float_) -> tuple[np.ndarray, np.ndarray]:
-        """Random intitalization strategy used for weights generation. Note that this works for layers that don't use units for weight generation like Conv1d and Conv2d
-
-        Args:
-            weights (list): Weights shape of the layer
-            input_shape (tuple): Input shape of the layer, it's here as it's in the 2 other intialization startegies and it saves as an if
-            weight_data_type (np.float_): Data type of the weights. Remember to use np.float32 or np.float64
-
-        Returns:
-            tuple[np.ndarray, np.ndarray]: Weights of the layer
-        """
-        return np.random.randn(*weights).astype(weight_data_type), np.random.randn(self.number_of_filters).astype(weight_data_type)
-
-    def xavier_intialization(self, weights: list, input_shape: tuple, weight_data_type: np.float_) -> tuple[np.ndarray, np.ndarray]:
-        """Xavier intitalization strategy used for weights generation. Note that this works for layers that don't use units for weight generation like Conv1d and Conv2d
-
-        Args:
-            weights (list): Weights shape of the layer
-            input_shape (tuple): Input shape of the layer, which we use to calculate fan_in
-            weight_data_type (np.float_): Data type of the weights. Remember to use np.float32 or np.float64
-
-        Returns:
-            tuple[np.ndarray, np.ndarray]: Weights of the layer
-        """
-        weights = np.random.randn(*weights).astype(weight_data_type)
-        weights = 2 * weights - 1
-        fan_in = input_shape[-1] * self.kernel_size[0] * self.kernel_size[1]
-        weights *= np.sqrt(6/(fan_in + self.number_of_filters))
-        return weights, np.zeros(self.number_of_filters).astype(weight_data_type)
-
-    def he_intialization(self, weights: list, input_shape: tuple, weight_data_type: np.float_) -> tuple[np.ndarray, np.ndarray]:
-        """He intitalization strategy used for weights generation. Note that this works for layers that don't use units for weight generation like Conv1d and Conv2d
-
-        Args:
-            weights (list): Weights shape of the layer
-            input_shape (tuple): Input shape of the layer, which we use to calculate fan_in
-            weight_data_type (np.float_): Data type of the weights. Remember to use np.float32 or np.float64
-
-        Returns:
-            tuple[np.ndarray, np.ndarray]: Weights of the layer
-        """
-        weights = np.random.randn(*weights).astype(weight_data_type)
-        fan_in = input_shape[-1] * self.kernel_size[0] * self.kernel_size[1]
-        weights *= np.sqrt(2. / fan_in)
-        return weights, np.zeros(self.number_of_filters).astype(weight_data_type)
-
-    def generate_weights(self, layers: list[Layer], current_layer_index: int, weight_data_type: np.float_) -> None:
-        LAYER_INTIALIZATIONS = {"random": self.random_initalization,
-                                "xavier": self.xavier_intialization, "he": self.he_intialization}
-
+    def generate_weights(self, layers: list[Layer], current_layer_index: int, weight_data_type: np.float_, bias_data_type: np.float_) -> None:
         input_shape = layers[current_layer_index -
                              1].output_shape(layers, current_layer_index-1)
 
-        weights = (self.kernel_size[0], self.kernel_size[1],
-                   input_shape[-1], self.number_of_filters)
+        weights_shape = (self.kernel_size[0], self.kernel_size[1],
+                         input_shape[-1], self.number_of_filters)
 
-        self.weights, self.biases = LAYER_INTIALIZATIONS[self.weight_initialization](
-            weights, input_shape, weight_data_type)
+        self.weights = self.weight_initialization(
+            weights_shape, weight_data_type)
+
+        self.biases = self.bias_initialization(
+            self.number_of_filters, bias_data_type)
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         self.input_shape: tuple = layers[current_layer_index -

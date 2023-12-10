@@ -37,9 +37,9 @@ model.add(Conv2D(32, (3, 3), (2, 2), name="Conv 1"))
 model.add(Conv2D(64, (3, 3), (2, 2), name='Conv 2'))
 # model.add(MaxPool2D())
 model.add(Flatten())
-model.add(Dense(10, "relu", "he", name='Dropout'))
+model.add(Dense(10, "relu", "he_normal", name='Dropout'))
 
-optimizer = Adam(adjust_biases_shape=True)
+optimizer = Adam(adjust_biases_shape=True, learningRate=0.01)
 
 model.compile("mse", optimizer=optimizer, metrics="accuracy",
               weight_data_type=np.float32)

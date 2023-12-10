@@ -162,23 +162,24 @@ class NN:
             f"Total params: {totalParams} ({self.__convert_size(paramsWeight)})")
         print(f"{'_'*line_length}")
 
-    def generate_weights(self, weight_data_type: np.float_) -> None:
+    def generate_weights(self, weight_data_type: np.float_, bias_data_type: np.float_) -> None:
         """Support function used in the compile function to generate model's weights.
 
         Args:
             weight_data_type (np.float_): numpy data type in which the models weights should be stored. Use only np.float_ data types.
-        """
+            bias_data_type (np.float_): numpy data type in which the models biases should be stored. Use only np.float_ data types.
+                    """
         for i in range(1, len(self.layers)):
             if isinstance(self.layers[i], LayerWithParams):
                 try:
                     self.layers[i].generate_weights(
-                        self.layers, i, weight_data_type)
+                        self.layers, i, weight_data_type, bias_data_type)
                 except Exception as e:
                     print(
                         f"Exception encountered when creating weights: {e}\nChange your achitecture and try again. If you think it's an error post an issue on github")
                     exit(1)
 
-    def compile(self, loss_function: Loss | str = "mse", optimizer: Optimizer | str = "adam", metrics: str = "", weight_data_type: np.float_ = np.float64) -> None:
+    def compile(self, loss_function: Loss | str = "mse", optimizer: Optimizer | str = "adam", metrics: str = "", weight_data_type: np.float_ = np.float64, bias_data_type: np.float_ = np.float64) -> None:
         """Function you should call before starting training the model, as we generate the weights in here, set the loss function and optimizer.
 
         Args:
@@ -186,6 +187,7 @@ class NN:
             optimizer (Optimizer | str, optional): Optimizer the model should use when updating it's params. You can pass either the name of it as a str or initalized class. Defaults to "adam"
             metrics (str, optional): Paramter that specifies what metrics should the model use. Possible metrics are: accuracy. Defaults to "".
             weight_data_type (np.float_, optional): Data type you want the models weights to be. Use np.float_ types like np.float32 or np.float64. Defaults to np.float64.
+            bias_data_type (np.float_, optional): Data type you want the models biases to be. Use np.float_ types like np.float32 or np.float64. Defaults to np.float64.
         """
         self.loss_function: Loss = LOSS_FUNCTIONS[loss_function] if type(
             loss_function) == str else loss_function
@@ -196,7 +198,7 @@ class NN:
         self.optimizer: list[Optimizer] = [self.optimizer, optimizer4d]
 
         self.metrics: str = metrics
-        self.generate_weights(weight_data_type)
+        self.generate_weights(weight_data_type, bias_data_type)
 
     def feed_forward(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
         """Feed forward for the whole model

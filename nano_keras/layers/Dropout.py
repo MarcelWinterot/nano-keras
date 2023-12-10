@@ -3,21 +3,24 @@ from nano_keras.layers import Layer, LayerWithParams
 from nano_keras.activations import Activation
 from nano_keras.regulizers import Regularizer
 from nano_keras.optimizers import Optimizer
+from nano_keras.initializers import Initializer
 
 
 class Dropout(LayerWithParams):
-    def __init__(self, units: int, activation: Activation | str, dropout_rate: float = 0.2, weight_initialization: str = "random", regulizer: Regularizer | None = None, name: str = "Dropout") -> None:
+    def __init__(self, units: int, activation: Activation | str, dropout_rate: float = 0.2, weight_initialization: Initializer | str = "random_normal", bias_initialization: Initializer | str = "random_normal", regulizer: Regularizer | None = None, name: str = "Dropout") -> None:
         """Intializer for the dropout layer. Note that dropout layer acts the same as Dense but also drops connections between neurons
 
         Args:
             units (int): Number of neurons in the layer
             activation (Activation | str): ACtivation function the model should use
             dropout_rate (float, optional): The pecentage of connections dropped. Note that the number after the dot is the percentage. Defaults to 0.2.
-            weight_initaliziton (str, optional): Weights intialization strategy you want to use to generate weights of the layer. Your options are: random, xavier, he. Defalut to "random"
+            weight_initaliziton (Initializer | str, optional): Weights intialization strategy you want to use to generate weights of the layer. Defalut to "random_normal"
+            bias_initaliziton (Initializer | str, optional): Bias intialization strategy you want to use to generate biases of the layer. Defalut to "random_normal"
             regulizer (Regularizer | None, optional): Regulizer the model should use. Defaults to None.
             name (str, optional): Name of the layer. Defaults to "Layer".
         """
-        super().__init__(units, activation, weight_initialization, regulizer, name)
+        super().__init__(units, activation, weight_initialization,
+                         bias_initialization, regulizer, name)
         self.dropout_rate: float = dropout_rate
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:

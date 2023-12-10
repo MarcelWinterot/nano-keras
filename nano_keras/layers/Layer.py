@@ -2,22 +2,29 @@ import numpy as np
 from nano_keras.activations import Activation, ACTIVATIONS
 from nano_keras.regulizers import Regularizer
 from nano_keras.optimizers import Optimizer
+from nano_keras.initializers import Initializer, INITIALIZERS
 
 
 class Layer:
-    def __init__(self, units: int, activation: Activation | str, weight_initialization: str = "random", regulizer: Regularizer = None, name: str = "Dense") -> None:
+    def __init__(self, units: int, activation: Activation | str, weight_initialization: Initializer | str = "random_normal", bias_initialization: Initializer | str = "random_normal", regulizer: Regularizer = None, name: str = "Dense") -> None:
         """Intializer for the layer class. 
 
         Args:
             units (int): Number of neurons the layer should have
             activation (Activation | str): Activation function the model should use. You can find them all in the activations.py.
-            weight_initaliziton (str, optional): Weights intialization strategy you want to use to generate weights of the layer. Your options are: random, xavier, he. Defalut to "random"
+            weight_initaliziton (str, optional): Weights intialization strategy you want to use to generate weights of the layer. Your options are: random_normal, xavier_normal, he_normal. Defalut to "random_normal"
+            bias_initialization (Initalizer | str, optional): Weights intialization strategy you want to use to generate biases of the layer. Your options are: random_normal, xavier_normal, he_normal. Defalut to "random_normal"
             regulizer (Regularizer, optional): Regulizer the model should use. You can find them all in the regulizers.py file. You must pass the already intialized class. Defaults to None.
             name (str, optional): Name of the layer. Helpful for debugging. Defaults to "Dense".
         """
         self.units: int = units
         self.name: str = name
-        self.weight_initialization: str = weight_initialization
+
+        self.weight_initialization: Initializer = weight_initialization if type(
+            weight_initialization) == Initializer else INITIALIZERS[weight_initialization]
+        self.bias_initialization: Initializer = bias_initialization if type(
+            bias_initialization) == Initializer else INITIALIZERS[bias_initialization]
+
         self.activation: Activation = ACTIVATIONS[activation] if type(
             activation) == str else activation
         self.regulizer: Regularizer = regulizer
@@ -36,71 +43,24 @@ class Layer:
         self.outputs = np.ndarray((self.batch_size, *output_shape)) if type(
             output_shape) == tuple else np.ndarray((self.batch_size, output_shape))
 
-    @staticmethod
-    def random_initalization(previous_units: int, current_units: int, weight_data_type: np.float_) -> tuple[np.ndarray, np.ndarray]:
-        """Random intitalization strategy used for weights generation. Note that this works for 2d layers that use units for weight generation and not layers like Conv1d and Conv2d
-
-        Args:
-            previous_units (int): Number of units in the previous layer
-            current_units (int): Number of units in the current layer in which we want the weights generated
-            weight_data_type (np.float_): In what data type do we want the weights stored
-
-        Returns:
-            tuple[np.ndarray, np.ndarray]: Weights and biases of the layer
-        """
-        return np.random.randn(previous_units, current_units).astype(weight_data_type), np.random.randn(current_units).astype(weight_data_type)
-
-    @staticmethod
-    def xavier_intialization(previous_units: int, current_units: int, weight_data_type: np.float_) -> tuple[np.ndarray, np.ndarray]:
-        """Xavier intitalization strategy used for weights generation. Note that this works for 2d layers that use units for weight generation and not layers like Conv1d and Conv2d
-
-        Args:
-            previous_units (int): Number of units in the previous layer
-            current_units (int): Number of units in the current layer in which we want the weights generated
-            weight_data_type (np.float_): In what data type do we want the weights stored
-
-        Returns:
-            tuple[np.ndarray, np.ndarray]: Weights and biases of the layer
-        """
-        weights = np.random.randn(
-            previous_units, current_units).astype(weight_data_type)
-        weights = 2 * weights - 1
-        weights *= np.sqrt(6/(previous_units+current_units))
-        return weights, np.zeros(current_units).astype(weight_data_type)
-
-    @staticmethod
-    def he_intialization(previous_units: int, current_units: int, weight_data_type: np.float_) -> tuple[np.ndarray, np.ndarray]:
-        """He intitalization strategy used for weights generation. Note that this works for 2d layers that use units for weight generation and not layers like Conv1d and Conv2d
-
-        Args:
-            previous_units (int): Number of units in the previous layer
-            current_units (int): Number of units in the current layer in which we want the weights generated
-            weight_data_type (np.float_): In what data type do we want the weights stored
-
-        Returns:
-            tuple[np.ndarray, np.ndarray]: Weights and biases of the layer
-        """
-        weights = np.random.randn(
-            previous_units, current_units).astype(weight_data_type)
-        weights *= np.sqrt(2./previous_units)
-        return weights, np.zeros(current_units).astype(weight_data_type)
-
-    def generate_weights(self, layers: list, current_layer_index: int, weight_data_type: np.float_) -> None:
+    def generate_weights(self, layers: list, current_layer_index: int, weight_data_type: np.float_, bias_data_type: np.float_) -> None:
         """Function used for weights generation for layers with 2d weights generated by looking at current layer and previous layers amount of neurons
 
         Args:
             layers (list): All layers in the model
             current_layer_index (int): For what layer do we want to generate the weights
             weight_data_type (np.float_): In what data type do you want to store the weights. Only use datatypes like np.float32 and np.float64
+            bias_data_type (np.float_): In what data type do you want to store the biases. Only use datatypes like np.float32 and np.float64
         """
-        LAYER_INTIALIZATIONS = {"random": self.random_initalization,
-                                "xavier": self.xavier_intialization, "he": self.he_intialization}
-
         previous_units = layers[current_layer_index -
                                 1].output_shape(layers, current_layer_index-1)
 
-        self.weights, self.biases = LAYER_INTIALIZATIONS[self.weight_initialization](
-            previous_units, self.units, weight_data_type)
+        weights_shape = (previous_units, self.units)
+
+        self.weights = self.weight_initialization(
+            weights_shape, weight_data_type)
+
+        self.biases = self.bias_initialization(self.units, bias_data_type)
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
         """Function to generate the output shape of a layer

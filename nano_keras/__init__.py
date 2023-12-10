@@ -5,3 +5,4 @@ import nano_keras.losses
 import nano_keras.models
 import nano_keras.optimizers
 import nano_keras.regulizers
+import nano_keras.initializers

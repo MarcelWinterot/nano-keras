@@ -9,13 +9,13 @@ with codecs.open(os.path.join(here, "README.md"), encoding="utf-8") as fh:
 
 setup(
     name='nano-keras',
-    version='1.1.0',
+    version='1.1.1',
     packages=find_packages(),
     url='https://github.com/MarcelWinterot/nano-keras',
     license='MIT',
     author='Marcel Winterot',
     author_email='m.winterot1@gmail.com',
-    description='Compact implementation of keras made for educational purposes. Written in python using numpy',
+    description='Deep learning library made with numpy in the style of Keras API',
     long_description=long_description,
     long_description_content_type='text/markdown',
     classifiers=[
