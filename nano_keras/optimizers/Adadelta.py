@@ -19,6 +19,9 @@ class Adadelta(Optimizer):
         self.v_w_a: np.ndarray = np.array([])
         self.v_b_a: np.ndarray = np.array([])
 
+        # Doing this as we don't want an error when calling callbacks
+        self.learning_rate = 0
+
     def apply_gradients(self, weights_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Function that updates models weights and biases using the Adadelta algorithm. 
 

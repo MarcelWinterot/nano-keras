@@ -2,22 +2,25 @@ import numpy as np
 from nano_keras.optimizers import Optimizer
 
 
-class Adam(Optimizer):
-    def __init__(self, learning_rate: float = 0.001, beta1: float = 0.9, beta2: float = 0.999, epsilon: float = 1e-7, adjust_biases_shape: bool = False) -> None:
-        """Intializer to the Adam(Adaptive Moment Estimator) optimizer.
+class AdamW(Optimizer):
+    def __init__(self, learning_rate: float = 0.001, beta1: float = 0.9, beta2: float = 0.999, epsilon: float = 1e-7, weight_decay: float = 1e-2, adjust_biases_shape: bool = False) -> None:
+        """Intializer to the AdamW(Adaptive Moment Estimator with Weights Decay) optimizer.
 
         Args:
             learning_rate (float, optional): Paramter that specifies how fast the model will learn. Defaults to 0.001.
             beta1 (float, optional): Paramter that controls the exponential moving average of the first moment of the gradient. Defaults to 0.9.
             beta2 (float, optional): Paramter that contorls the exponential moving average of the second moment of the gradient. Defaults to 0.999.
             epsilon (float, optional): Paramter that ensures we don't divide by 0 and adds numerical stability to learning rate. Defaults to 1e-7.
+            weight_decay (float, optional): Parameter that controls the decay of they weights. Defaults to 1e-2
             adjust_biases_shape (bool, optional): Paramter that controles wheter we adjuts the bias gradients and moving averages for biases shapes. Default to False.
         """
         self.learning_rate: float = learning_rate
         self.beta1: float = beta1
         self.beta2: float = beta2
         self.e: float = epsilon
+        self.weight_decay: float = weight_decay
         self.adjust_biases_shape: bool = adjust_biases_shape
+
         self.m_w: np.ndarray = np.array([])
         self.v_w: np.ndarray = np.array([])
         self.m_b: np.ndarray = np.array([])
@@ -25,8 +28,8 @@ class Adam(Optimizer):
         self.t: int = 0
 
     def apply_gradients(self, weightGradients: np.ndarray, biasGradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """Function that updates params using provided gradients and Adam algorithm. You can read more about it
-        at https://arxiv.org/pdf/1412.6980.pdf
+        """Function that updates params using provided gradients and AdamW algorithm. You can read more about it
+        at https://arxiv.org/pdf/1711.05101v3.pdf
 
         Args:
             weights_gradients (np.ndarray): Weight gradients you've calculated
@@ -62,6 +65,7 @@ class Adam(Optimizer):
             self.v_b = self._fill_array(self.v_b, target_shape)[
                 :target_shape[0]]
 
+        # Calculations
         self.m_w = self.beta1 * self.m_w + (1 - self.beta1) * weightGradients
         self.v_w = self.beta2 * self.v_w + \
             (1 - self.beta2) * weightGradients ** 2
@@ -76,7 +80,10 @@ class Adam(Optimizer):
         m_hat_b = self.m_b / (1 - beta1T)
         v_hat_b = self.v_b / (1 - beta2T)
 
-        weights += self.learning_rate * m_hat_w / (np.sqrt(v_hat_w) + self.e)
-        biases += self.learning_rate * m_hat_b / (np.sqrt(v_hat_b) + self.e)
+        weights += (self.learning_rate * m_hat_w /
+                    (np.sqrt(v_hat_w) + self.e)) - (self.weight_decay * self.learning_rate * weights)
+
+        biases += (self.learning_rate * m_hat_b / (np.sqrt(v_hat_b) +
+                   self.e)) - (self.weight_decay * self.learning_rate * biases)
 
         return (weights, biases)
