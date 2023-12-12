@@ -7,6 +7,7 @@ from nano_keras.optimizers.RMSProp import RMSProp
 from nano_keras.optimizers.SGD import SGD
 from nano_keras.optimizers.AdamW import AdamW
 from nano_keras.optimizers.AdaMax import AdaMax
+from nano_keras.optimizers.Adafactor import Adafactor
 
 OPTIMIZERS = {"adam": Adam(), "sgd": SGD(), "adagrad": Adagrad(
-), "adadelta": Adadelta(), "rmsprop": RMSProp(), "nadam": NAdam(), "adamw": AdamW(), "adamax": AdaMax()}
+), "adadelta": Adadelta(), "rmsprop": RMSProp(), "nadam": NAdam(), "adamw": AdamW(), "adamax": AdaMax(), "adafactor": Adafactor()}

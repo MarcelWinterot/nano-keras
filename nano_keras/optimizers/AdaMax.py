@@ -4,7 +4,7 @@ from nano_keras.optimizers import Optimizer
 
 class AdaMax(Optimizer):
     def __init__(self, learning_rate: float = 0.001, beta1: float = 0.9, beta2: float = 0.999, epsilon: float = 1e-7, adjust_biases_shape: bool = False) -> None:
-        """Intializer to the Adam(Adaptive Moment Estimator) optimizer.
+        """Intializer to the AdaMax(Infinite Norm Adaptive Moment Estimation) optimizer.
 
         Args:
             learning_rate (float, optional): Paramter that specifies how fast the model will learn. Defaults to 0.001.
@@ -26,8 +26,8 @@ class AdaMax(Optimizer):
         self.t: int = 0
 
     def apply_gradients(self, weightGradients: np.ndarray, biasGradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """Function that updates params using provided gradients and Adam algorithm. You can read more about it
-        at https://arxiv.org/pdf/1412.6980.pdf
+        """Function that updates params using provided gradients and AdaMax algorithm. You can read more about it
+        at https://paperswithcode.com/method/adamax
 
         Args:
             weights_gradients (np.ndarray): Weight gradients you've calculated
@@ -74,3 +74,4 @@ class AdaMax(Optimizer):
             (self.m_b / (self.u_b + self.e))
 
         return (weights, biases)
+    

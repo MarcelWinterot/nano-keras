@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.lib.stride_tricks import as_strided
 import math
 from nano_keras.layers import Layer
 from nano_keras.optimizers import Optimizer
@@ -175,6 +176,7 @@ class PoolingLayey2D(Layer):
                         self.pool_size[0], j_start + self.pool_size[1]
 
                     subarray: np.ndarray = x[i_start:i_end, j_start:j_end, c]
+
                     index: np.int_ = np.argmax(
                         subarray) if option == "max" else np.argmin(subarray)
 
@@ -187,6 +189,29 @@ class PoolingLayey2D(Layer):
         if is_training:
             self.mask[self.current_batch] = mask
             self.current_batch += 1
+
+        return output
+
+    def call_prototype(self, x: np.ndarray, option: str, is_training: bool = False) -> np.ndarray:
+        shape = x.shape
+        height = (shape[0] - self.pool_size[0]) // self.strides[0] + 1
+        width = (shape[1] - self.pool_size[1]) // self.strides[1] + 1
+
+        output = np.ndarray((height, width, shape[2]))
+
+        out_shape = ((shape[0] - self.pool_size[0])//self.strides[0] + 1,
+                     (shape[1] - self.pool_size[1])//self.strides[1] + 1) + self.pool_size
+
+        for channel in range(shape[2]):
+            subarray = x[:, :, channel]
+
+            out_strides = (self.strides[0]*subarray.strides[0], self.strides[1]
+                           * subarray.strides[1]) + subarray.strides
+
+            x_s = as_strided(subarray, shape=out_shape, strides=out_strides)
+
+            output[:, :, channel] = np.max(
+                x_s, axis=(-1, -2)) if option == "max" else np.min(x_s, axis=(-1, -2))
 
         return output
 

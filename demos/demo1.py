@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 from nano_keras.models import NN
 from nano_keras.losses import MSE
 from nano_keras.layers import Dense, Input
-from nano_keras.optimizers import AdamW
+from nano_keras.optimizers import Adafactor
 from nano_keras.callbacks import EarlyStopping
 
 
@@ -60,7 +60,7 @@ model = NN([
     Dense(1, "sigmoid")
 ], "NN for titanic")
 
-optimizer = AdamW()
+optimizer = Adafactor()
 loss = MSE()
 
 stop = EarlyStopping(5, "val_accuracy", restore_best_weights=True)
