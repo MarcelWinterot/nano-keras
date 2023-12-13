@@ -139,7 +139,7 @@ class PoolingLayey2D(Layer):
         formatted_output = f'(None, {", ".join(map(str, self.output_shape_value))})'
         return f"{self.name} (MaxPool2D){' ' * (28 - len(self.name) - 11)}{formatted_output}{' ' * (26-len(formatted_output))}0\n"
 
-    def __call__(self, x: np.ndarray, option: str, is_training: bool = False) -> np.ndarray:
+    def old_call(self, x: np.ndarray, option: str, is_training: bool = False) -> np.ndarray:
         """Call function for the MaxPool2D layer. It reduces the size of an array by how much the kernel_size and strides is set to.
         For example let's say we have those parameters:\n
         array X:\n
@@ -192,26 +192,52 @@ class PoolingLayey2D(Layer):
 
         return output
 
-    def call_prototype(self, x: np.ndarray, option: str, is_training: bool = False) -> np.ndarray:
+    def __call__(self, x: np.ndarray, option: str, is_training: bool = False) -> np.ndarray:
         shape = x.shape
         height = (shape[0] - self.pool_size[0]) // self.strides[0] + 1
         width = (shape[1] - self.pool_size[1]) // self.strides[1] + 1
 
         output = np.ndarray((height, width, shape[2]))
+        mask = np.zeros_like(x)
 
         out_shape = ((shape[0] - self.pool_size[0])//self.strides[0] + 1,
                      (shape[1] - self.pool_size[1])//self.strides[1] + 1) + self.pool_size
 
+        out_strides = (self.strides[0]*x.strides[0], self.strides[1]
+                       * x.strides[1]) + (x.strides[0], x.strides[1])
+
         for channel in range(shape[2]):
             subarray = x[:, :, channel]
 
-            out_strides = (self.strides[0]*subarray.strides[0], self.strides[1]
-                           * subarray.strides[1]) + subarray.strides
-
             x_s = as_strided(subarray, shape=out_shape, strides=out_strides)
 
-            output[:, :, channel] = np.max(
-                x_s, axis=(-1, -2)) if option == "max" else np.min(x_s, axis=(-1, -2))
+            vals = np.max(x_s, axis=(-1, -2)
+                          ) if option == "max" else np.min(x_s, axis=(-1, -2))
+
+            output[:, :, channel] = vals
+
+            vals: np.ndarray = np.repeat(
+                np.repeat(vals, 2, axis=0), 2, axis=1)
+
+            # Handlign the shape of vals and mask
+            if subarray.shape[0] != vals.shape[0]:
+                if subarray.shape[0] != mask.shape[0]:
+                    subarray = subarray[:-1, :-1]
+                else:
+                    extra_dim_0: np.ndarray = np.zeros(
+                        (1, vals.shape[1]))
+                    extra_dim_1: np.ndarray = np.zeros(
+                        (vals.shape[0] + 1, 1))
+
+                    vals = np.concatenate(
+                        (extra_dim_1, np.concatenate((extra_dim_0, vals), axis=0)), axis=1)
+
+            mask[:, :, channel] = (subarray == vals)
+
+        if is_training:
+            self.mask[self.current_batch] = mask
+            self.inputs = x
+            self.current_batch += 1
 
         return output
 
