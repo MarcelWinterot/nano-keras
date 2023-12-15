@@ -3,17 +3,24 @@ from nano_keras.layers import Layer, LayerWithParams
 from nano_keras.activations import Activation, ACTIVATIONS
 from nano_keras.optimizers import Optimizer
 from nano_keras.regulizers import Regularizer
+from nano_keras.initializers import Initializer, INITIALIZERS
 
 
 class LSTM(LayerWithParams):
-    def __init__(self, units: int, activation: Activation | str = "sigmoid", recurrent_activation: Activation | str = "tanh", weight_initalization: str = "random", recurrent_weight_initalization: str = "random", return_sequences: bool = True, regulizer: Regularizer = None, name: str = "LSTM") -> None:
+    def __init__(self, units: int, activation: Activation | str = "sigmoid", recurrent_activation: Activation | str = "tanh", weight_initalization: Initializer | str = "random", recurrent_weight_initalization: Initializer | str = "random", bias_initalization: Initializer | str = "zeros", return_sequences: bool = True, regulizer: Regularizer = None, name: str = "LSTM") -> None:
         self.units: int = units
         self.activation: Activation = activation if type(
             activation) == Activation else ACTIVATIONS[activation]
         self.recurrent_activation: Activation = recurrent_activation if type(
             recurrent_activation) == Activation else ACTIVATIONS[recurrent_activation]
-        self.weight_initialization: str = weight_initalization
-        self.recurrent_weight_initalization: str = recurrent_weight_initalization
+
+        self.weight_initialization: Initializer = weight_initalization if type(
+            weight_initalization) == Initializer else INITIALIZERS[weight_initalization]
+        self.recurrent_weight_initalization: Initializer = recurrent_weight_initalization if type(
+            recurrent_weight_initalization) == Initializer else INITIALIZERS[recurrent_weight_initalization]
+        self.bias_initialization: Initializer = bias_initalization if type(
+            bias_initalization) == Initializer else INITIALIZERS[bias_initalization]
+
         self.return_sequences: bool = return_sequences
         self.regulizer: Regularizer = regulizer
         self.name: str = name

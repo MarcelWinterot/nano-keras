@@ -8,3 +8,4 @@ from nano_keras.layers.PoolingLayers import MaxPool1D, MaxPool2D, MinPool1D, Min
 from nano_keras.layers.Reshape import Reshape
 from nano_keras.layers.LSTM import LSTM
 from nano_keras.layers.Flatten import Flatten
+from nano_keras.layers.GRU import GRU

@@ -1,7 +1,7 @@
 import numpy as np
 from nano_keras.losses import LOSS_FUNCTIONS, Loss
 from nano_keras.optimizers import OPTIMIZERS, Optimizer
-from nano_keras.layers import Layer, LayerWithParams, LSTM
+from nano_keras.layers import Layer, LayerWithParams, LSTM, GRU
 from nano_keras.callbacks import Callback
 from copy import deepcopy
 from time import time
@@ -148,7 +148,7 @@ class NN:
         for layer in self.layers:
             print(layer)
             if isinstance(layer, LayerWithParams):
-                if isinstance(layer, LSTM):
+                if isinstance(layer, (LSTM, GRU)):
                     totalParams += layer.input_weights.size + layer.recurrent_weights.size + \
                         layer.biases.size
                     paramsWeight += layer.input_weights.nbytes + layer.recurrent_weights.nbytes + \
