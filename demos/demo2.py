@@ -1,5 +1,5 @@
 import numpy as np
-from nano_keras.optimizers import AdamW
+from nano_keras.optimizers import Adagrad
 from nano_keras.models import NN
 from nano_keras.layers import Input, Flatten, Conv2D, MaxPool2D, Dense
 
@@ -39,7 +39,7 @@ model.add(MaxPool2D())
 model.add(Flatten())
 model.add(Dense(10, "relu", "he_normal", name='Dropout'))
 
-optimizer = AdamW(adjust_biases_shape=True, learning_rate=0.01)
+optimizer = Adagrad(adjust_biases_shape=True)
 
 model.compile("mse", optimizer=optimizer, metrics="accuracy",
               weight_data_type=np.float32)
