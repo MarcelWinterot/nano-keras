@@ -7,7 +7,7 @@ from nano_keras.initializers import Initializer, INITIALIZERS
 
 
 class LSTM(LayerWithParams):
-    def __init__(self, units: int, activation: Activation | str = "sigmoid", recurrent_activation: Activation | str = "tanh", weight_initalization: Initializer | str = "random", recurrent_weight_initalization: Initializer | str = "random", bias_initalization: Initializer | str = "zeros", return_sequences: bool = True, regulizer: Regularizer = None, name: str = "LSTM") -> None:
+    def __init__(self, units: int, activation: Activation | str = "sigmoid", recurrent_activation: Activation | str = "tanh", weight_initalization: Initializer | str = "random_normal", recurrent_weight_initalization: Initializer | str = "random_normal", bias_initalization: Initializer | str = "zeros", return_sequences: bool = True, regulizer: Regularizer = None, name: str = "LSTM") -> None:
         self.units: int = units
         self.activation: Activation = activation if type(
             activation) == Activation else ACTIVATIONS[activation]

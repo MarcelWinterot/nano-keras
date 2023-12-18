@@ -13,22 +13,24 @@ https://towardsdatascience.com/understanding-gru-networks-2ef37df6c9be
 
 class GRU(LayerWithParams):
     def __init__(self, units: int, activation: Activation | str = "tanh", recurrent_actvation: Activation | str = "sigmoid", weight_initialization: Initializer | str = "random_normal", recurrent_weight_initialization: Initializer | str = "random_normal", bias_initalization: Initializer | str = "zeros", return_sequences: bool = True, regulizer: Regularizer = None, name: str = "GRU") -> None:
-        self.units = units
-        self.activation = activation if type(
+        self.units: int = units
+        self.activation: Activation = activation if type(
             activation) == Activation else ACTIVATIONS[activation]
-        self.recurrent_activation = recurrent_actvation if type(
+        self.recurrent_activation: Activation = recurrent_actvation if type(
             recurrent_actvation) == Activation else ACTIVATIONS[recurrent_actvation]
 
-        self.weight_initialization = weight_initialization if type(
+        self.weight_initialization: Initializer = weight_initialization if type(
             weight_initialization) == Initializer else INITIALIZERS[weight_initialization]
-        self.recurrent_weight_initialization = recurrent_weight_initialization if type(
+        self.recurrent_weight_initialization: Initializer = recurrent_weight_initialization if type(
             recurrent_weight_initialization) == Initializer else INITIALIZERS[recurrent_weight_initialization]
         self.bias_initialization: Initializer = bias_initalization if type(
             bias_initalization) == Initializer else INITIALIZERS[bias_initalization]
 
-        self.return_sequences = return_sequences
-        self.regulizer = regulizer
-        self.name = name
+        self.return_sequences: bool = return_sequences
+        self.regulizer: Regularizer = regulizer
+        self.name: str = name
+
+        self.hidden_state: np.ndarray = np.array([])
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         input_shape = layers[current_layer_index -
@@ -66,9 +68,42 @@ class GRU(LayerWithParams):
             input_shape[0], self.units) if self.return_sequences else self.units
 
     def __call__(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
-        raise NotImplementedError(
-            "GRU layer is not yet finished, please be patient")
+        if len(x.shape) != 2:
+            raise ValueError(
+                f"Input shape in GRU layer must be 2d, received: {x.shape}")
 
-    def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer]) -> np.ndarray:
+        extra_dim = np.zeros((1, self.hidden_state.shape[1]))
+
+        self.hidden_state = np.vstack((extra_dim, self.hidden_state))
+
+        self.update_gate = np.ndarray((x.shape[0], self.units))
+        self.reset_gate = np.ndarray((x.shape[0], self.units))
+        self.current_memory_content = np.zeros((x.shape[0] + 1, self.units))
+
+        for time_stamp in range(1, x.shape[0]+1):
+            self.update_gate[time_stamp-1] = self.recurrent_activation.apply_activation(
+                np.dot(self.input_weights[0].T, x[time_stamp-1]) + np.dot(self.recurrent_weights[0],
+                                                                          self.hidden_state[time_stamp-1]) + self.biases[0, 0] + self.biases[1, 0])
+
+            self.reset_gate[time_stamp-1] = self.recurrent_activation.apply_activation(
+                np.dot(self.input_weights[0].T, x[time_stamp-1]) + np.dot(self.recurrent_weights[0],
+                                                                          self.hidden_state[time_stamp-1]) + self.biases[0, 0] + self.biases[1, 0])
+
+            self.current_memory_content[time_stamp] = self.activation.apply_activation(
+                np.dot(self.input_weights[2].T, x[time_stamp-1]) + np.dot(self.recurrent_weights[2],
+                                                                          (self.hidden_state[time_stamp-1] * self.reset_gate[time_stamp-1])) + self.biases[0, 2] + self.biases[1, 2])
+
+            self.hidden_state[time_stamp] = self.update_gate[time_stamp-1] * self.hidden_state[time_stamp - 1] + (
+                1 - self.update_gate[time_stamp-1]) * self.current_memory_content[time_stamp]
+
+        self.hidden_state = self.hidden_state[1:]
+        self.current_memory_content = self.current_memory_content[1:]
+
+        if self.return_sequences:
+            return self.hidden_state
+
+        return self.hidden_state[-1]
+
+    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer]) -> np.ndarray:
         raise NotImplementedError(
-            "GRU layer is not yet finished, please be patient")
+            "Backpropagation for GRU layer is not implemented yet")
