@@ -18,9 +18,6 @@ class Optimizer:
         """
         arr_shape = arr.shape
 
-        # if len(arr_shape) > len(target_shape):
-        #     return arr
-
         padding_needed = [max(0, target - current)
                           for target, current in zip(target_shape, arr_shape)]
         pad_width = [(0, padding) for padding in padding_needed]
@@ -28,5 +25,5 @@ class Optimizer:
         result = np.pad(arr, pad_width, mode='constant')
         return result
 
-    def apply_gradients(self, weights_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def apply_gradients(self, weights_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray, update_biases: bool = True) -> tuple[np.ndarray, np.ndarray]:
         pass

@@ -11,7 +11,7 @@ class SGD(Optimizer):
         """
         self.learning_rate: float = learning_rate
 
-    def apply_gradients(self, weight_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple:
+    def apply_gradients(self, weight_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray, update_biases: bool = True) -> tuple:
         """Function that updates params using provided gradients and SGD algorithm.
 
         Args:
@@ -19,10 +19,12 @@ class SGD(Optimizer):
             biasGradients (np.ndarray): calculated bias gradients
             weights (np.ndarray): weights of the layer
             biases (np.ndarray): biases of the layer
+            update_biases (bool): Parameter that controls whether the biases should be updated. Defaults to True
 
         Returns:
             tuple: a tuple containing new weights and biases
         """
         weights += self.learning_rate * weight_gradients
-        biases += self.learning_rate * bias_gradients
+        if update_biases:
+            biases += self.learning_rate * bias_gradients
         return (weights, biases)

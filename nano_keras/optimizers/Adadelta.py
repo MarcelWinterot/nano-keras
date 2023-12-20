@@ -22,7 +22,7 @@ class Adadelta(Optimizer):
         # Doing this as we don't want an error when calling callbacks
         self.learning_rate = 0
 
-    def apply_gradients(self, weights_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def apply_gradients(self, weights_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray, update_biases: bool = True) -> tuple[np.ndarray, np.ndarray]:
         """Function that updates models weights and biases using the Adadelta algorithm. 
 
         Args:
@@ -30,6 +30,7 @@ class Adadelta(Optimizer):
             bias_gradients (np.ndarray): Bias gradients you've calculated
             weights (np.ndarray): Model or layers weights you want to update
             biases (np.ndarray): Model or layers biases you want to update
+            update_biases (bool): Parameter that controls whether the biases should be updated. Defaults to True
 
         Returns:
             tuple[np.ndarray, np.ndarray]: Updated weights and biases. First element are the weights and second are the biases.
@@ -47,28 +48,33 @@ class Adadelta(Optimizer):
         self.v_w = self._fill_array(self.v_w, target_shape)[tuple(slices)]
         self.v_w_a = self._fill_array(self.v_w_a, target_shape)[tuple(slices)]
 
-        if self.adjust_biases_shape:
-            target_shape = biases.shape
-            self.v_b = self._fill_array(self.v_b, target_shape)[
-                :target_shape[0]]
-            self.v_b_a = self._fill_array(self.v_b_a, target_shape)[
-                :target_shape[0]]
-
         self.v_w = self.rho * self.v_w + \
             (1 - self.rho) * weights_gradients ** 2
-        self.v_b = self.rho * self.v_b + (1 - self.rho) + bias_gradients**2
 
         # It should be -np.sqrt() but I've found that it works better without the minus probably because I'm calculating the gradient incorrectly
         weights_update = np.sqrt(self.v_w_a + self.e) / \
             np.sqrt(self.v_w + self.e) * weights_gradients
-        bias_update = np.sqrt(self.v_b_a + self.e) / \
-            np.sqrt(self.v_b + self.e) * bias_gradients
 
         weights += weights_update
-        biases += bias_update
 
         self.v_w_a = self.rho * self.v_w_a + \
             (1 - self.rho) * weights_update ** 2
-        self.v_b_a = self.rho * self.v_b_a + (1 - self.rho) * bias_update ** 2
+
+        if update_biases:
+            if self.adjust_biases_shape:
+                target_shape = biases.shape
+                self.v_b = self._fill_array(self.v_b, target_shape)[
+                    :target_shape[0]]
+                self.v_b_a = self._fill_array(self.v_b_a, target_shape)[
+                    :target_shape[0]]
+
+            self.v_b = self.rho * self.v_b + (1 - self.rho) + bias_gradients**2
+
+            bias_update = np.sqrt(self.v_b_a + self.e) / \
+                np.sqrt(self.v_b + self.e) * bias_gradients
+            biases += bias_update
+
+            self.v_b_a = self.rho * self.v_b_a + \
+                (1 - self.rho) * bias_update ** 2
 
         return (weights, biases)

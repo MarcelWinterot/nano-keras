@@ -17,7 +17,7 @@ class Adagrad(Optimizer):
         self.v_w: np.ndarray = np.array([])
         self.v_b: np.ndarray = np.array([])
 
-    def apply_gradients(self, weights_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def apply_gradients(self, weights_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray, update_biases: bool = True) -> tuple[np.ndarray, np.ndarray]:
         """Function that updates models weights and biases using the Adagrad algorithm. 
 
         Args:
@@ -25,6 +25,7 @@ class Adagrad(Optimizer):
             bias_gradients (np.ndarray): Bias gradients you've calculated
             weights (np.ndarray): Model or layers weights you want to update
             biases (np.ndarray): Model or layers biases you want to update
+            update_biases (bool): Parameter that controls whether the biases should be updated. Defaults to True
 
         Returns:
             tuple[np.ndarray, np.ndarray]: Updated weights and biases. First element are the weights and second are the biases.
@@ -40,17 +41,19 @@ class Adagrad(Optimizer):
 
         self.v_w = self._fill_array(self.v_w, target_shape)[tuple(slices)]
 
-        if self.adjust_biases_shape:
-            target_shape = biases.shape
-            self.v_b = self._fill_array(self.v_b, target_shape)[
-                :target_shape[0]]
-
         self.v_w += weights_gradients ** 2
-        self.v_b += bias_gradients ** 2
 
         weights += (self.learning_rate /
                     (np.sqrt(self.v_w) + self.e)) * weights_gradients
-        biases += (self.learning_rate /
-                   (np.sqrt(self.v_b) + self.e)) * bias_gradients
+
+        if update_biases:
+            if self.adjust_biases_shape:
+                target_shape = biases.shape
+                self.v_b = self._fill_array(self.v_b, target_shape)[
+                    :target_shape[0]]
+
+            self.v_b += bias_gradients ** 2
+            biases += (self.learning_rate /
+                       (np.sqrt(self.v_b) + self.e)) * bias_gradients
 
         return (weights, biases)

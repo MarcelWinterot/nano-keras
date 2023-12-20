@@ -31,4 +31,4 @@ gradient = loss.compute_derivative(y, output)
 
 for layer in model.layers[-1::-1]:
     print(f"\nGradient shape: {gradient.shape}")
-    gradient = layer.backpropagate(gradient, opt)
+    gradient = layer.backpropagate(gradient, [opt, opt])

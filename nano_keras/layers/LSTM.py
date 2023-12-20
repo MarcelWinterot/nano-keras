@@ -167,4 +167,9 @@ class LSTM(LayerWithParams):
 
                 biases_gradient[i] += gate_gradient[i]
 
+        self.input_weights, self.biases = optimizer[0].apply_gradients(
+            input_weights_gradient, biases_gradient, self.input_weights, self.biases)
+        self.recurrent_weights, _ = optimizer[0].apply_gradients(
+            recurrent_weights_gradient, [], self.recurrent_weights, [], False)
+
         return np.dot(forget_gate_gradient, self.input_weights[0].T) + np.dot(input_gate_gradient, self.input_weights[1].T) + np.dot(candidate_cell_state_gradient, self.input_weights[2].T) + np.dot(output_gate_gradient, self.input_weights[3].T)

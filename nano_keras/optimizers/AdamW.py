@@ -27,7 +27,7 @@ class AdamW(Optimizer):
         self.v_b: np.ndarray = np.array([])
         self.t: int = 0
 
-    def apply_gradients(self, weightGradients: np.ndarray, biasGradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def apply_gradients(self, weightGradients: np.ndarray, biasGradients: np.ndarray, weights: np.ndarray, biases: np.ndarray, update_biases: bool = True) -> tuple[np.ndarray, np.ndarray]:
         """Function that updates params using provided gradients and AdamW algorithm. You can read more about it
         at https://arxiv.org/pdf/1711.05101v3.pdf
 
@@ -36,6 +36,7 @@ class AdamW(Optimizer):
             bias_gradients (np.ndarray): Bias gradients you've calculated
             weights (np.ndarray): Model or layers weights you want to update
             biases (np.ndarray): Model or layers biases you want to update
+            update_biases (bool): Parameter that controls whether the biases should be updated. Defaults to True
 
         Returns:
             tuple[np.ndarray, np.ndarray]: Updated weights and biases. First element are the weights and second are the biases.
@@ -58,32 +59,33 @@ class AdamW(Optimizer):
         self.m_w = self._fill_array(self.m_w, target_shape)[tuple(slices)]
         self.v_w = self._fill_array(self.v_w, target_shape)[tuple(slices)]
 
-        if self.adjust_biases_shape:
-            target_shape = biases.shape
-            self.m_b = self._fill_array(self.m_b, target_shape)[
-                :target_shape[0]]
-            self.v_b = self._fill_array(self.v_b, target_shape)[
-                :target_shape[0]]
-
         # Calculations
         self.m_w = self.beta1 * self.m_w + (1 - self.beta1) * weightGradients
         self.v_w = self.beta2 * self.v_w + \
             (1 - self.beta2) * weightGradients ** 2
 
-        self.m_b = self.beta1 * self.m_b + (1 - self.beta1) * biasGradients
-        self.v_b = self.beta2 * self.v_b + \
-            (1 - self.beta2) * biasGradients ** 2
-
         m_hat_w = self.m_w / (1 - beta1T)
         v_hat_w = self.v_w / (1 - beta2T)
-
-        m_hat_b = self.m_b / (1 - beta1T)
-        v_hat_b = self.v_b / (1 - beta2T)
 
         weights += (self.learning_rate * m_hat_w /
                     (np.sqrt(v_hat_w) + self.e)) - (self.weight_decay * self.learning_rate * weights)
 
-        biases += (self.learning_rate * m_hat_b / (np.sqrt(v_hat_b) +
-                   self.e)) - (self.weight_decay * self.learning_rate * biases)
+        if update_biases:
+            if self.adjust_biases_shape:
+                target_shape = biases.shape
+                self.m_b = self._fill_array(self.m_b, target_shape)[
+                    :target_shape[0]]
+                self.v_b = self._fill_array(self.v_b, target_shape)[
+                    :target_shape[0]]
+
+            self.m_b = self.beta1 * self.m_b + (1 - self.beta1) * biasGradients
+            self.v_b = self.beta2 * self.v_b + \
+                (1 - self.beta2) * biasGradients ** 2
+
+            m_hat_b = self.m_b / (1 - beta1T)
+            v_hat_b = self.v_b / (1 - beta2T)
+
+            biases += (self.learning_rate * m_hat_b / (np.sqrt(v_hat_b) +
+                                                       self.e)) - (self.weight_decay * self.learning_rate * biases)
 
         return (weights, biases)

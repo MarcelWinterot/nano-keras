@@ -5,11 +5,6 @@ from nano_keras.layers import Layer, LayerWithParams
 from nano_keras.optimizers import Optimizer
 from nano_keras.regulizers import Regularizer
 
-"""Useful materials:
-https://en.wikipedia.org/wiki/Gated_recurrent_unit
-https://towardsdatascience.com/understanding-gru-networks-2ef37df6c9be
-"""
-
 
 class GRU(LayerWithParams):
     def __init__(self, units: int, activation: Activation | str = "tanh", recurrent_actvation: Activation | str = "sigmoid", weight_initialization: Initializer | str = "random_normal", recurrent_weight_initialization: Initializer | str = "random_normal", bias_initalization: Initializer | str = "zeros", return_sequences: bool = True, regulizer: Regularizer = None, name: str = "GRU") -> None:
@@ -146,5 +141,12 @@ class GRU(LayerWithParams):
                     self.hidden_state[time_stamp-1], gate_gradient)
 
                 biases_gradient[:, i] += gate_gradient[i]
+
+        # Input weights and biases
+        self.input_weights, self.biases[0] = optimizer[0].apply_gradients(
+            input_weights_gradient, biases_gradient[0], self.input_weights, self.biases[0])
+
+        self.recurrent_weights, self.biases[1] = optimizer[0].apply_gradients(
+            recurrent_weights_gradient, biases_gradient[1], self.recurrent_weights, self.biases[1])
 
         return np.dot(update_gate_gradient, self.input_weights[0].T) + np.dot(reset_gate_gradient, self.input_weights[1].T) + np.dot(current_memory_content_gradient, self.input_weights[2].T)

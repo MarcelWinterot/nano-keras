@@ -24,7 +24,7 @@ class NAdam(Optimizer):
         self.v_b: np.ndarray = np.array([])
         self.t: int = 0
 
-    def apply_gradients(self, weights_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def apply_gradients(self, weights_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray, update_biases: bool = True) -> tuple[np.ndarray, np.ndarray]:
         """Function that updates models weights and biases using the Adadelta algorithm.
 
         Args:
@@ -32,6 +32,7 @@ class NAdam(Optimizer):
             bias_gradients (np.ndarray): Bias gradients you've calculated
             weights (np.ndarray): Model or layers weights you want to update
             biases (np.ndarray): Model or layers biases you want to update
+            update_biases (bool): Parameter that controls whether the biases should be updated. Defaults to True
 
         Returns:
             tuple[np.ndarray, np.ndarray]: Updated weights and biases. First element are the weights and second are the biases.
@@ -52,20 +53,10 @@ class NAdam(Optimizer):
         self.m_w = self._fill_array(self.m_w, target_shape)[tuple(slices)]
         self.v_w = self._fill_array(self.v_w, target_shape)[tuple(slices)]
 
-        if self.adjust_biases_shape:
-            target_shape = biases.shape
-            self.m_b = self._fill_array(self.m_b, target_shape)[
-                :target_shape[0]]
-            self.v_b = self._fill_array(self.v_b, target_shape)[
-                :target_shape[0]]
-
         # Calculations
         self.m_w = self.beta1 * self.m_w + (1 - self.beta1) * weights_gradients
         self.v_w = self.beta2 * self.v_w + \
             (1 - self.beta2) * weights_gradients ** 2
-
-        self.m_b = self.beta1 * self.m_b + (1 - self.beta1) * bias_gradients
-        self.v_b = self.beta2 * self.v_b + (1 - self.beta2) * bias_gradients**2
 
         beta1T = self.beta1 ** self.t
         beta2T = self.beta2 ** self.t
@@ -74,11 +65,25 @@ class NAdam(Optimizer):
             ((1 - self.beta1) * weights_gradients / (1 - beta1T))
         v_hat_w = self.beta2 * self.v_w / (1 - beta2T)
 
-        m_hat_b = (self.beta1 * self.m_b / (1 - beta1T)) + \
-            ((1 - self.beta1) * bias_gradients / (1 - beta1T))
-        v_hat_b = self.beta2 * self.v_b / (1 - beta2T)
-
         weights += self.learning_rate / np.sqrt(v_hat_w + self.e) * m_hat_w
-        biases += self.learning_rate / np.sqrt(v_hat_b + self.e) * m_hat_b
+
+        if update_biases:
+            if self.adjust_biases_shape:
+                target_shape = biases.shape
+                self.m_b = self._fill_array(self.m_b, target_shape)[
+                    :target_shape[0]]
+                self.v_b = self._fill_array(self.v_b, target_shape)[
+                    :target_shape[0]]
+
+            self.m_b = self.beta1 * self.m_b + \
+                (1 - self.beta1) * bias_gradients
+            self.v_b = self.beta2 * self.v_b + \
+                (1 - self.beta2) * bias_gradients**2
+
+            m_hat_b = (self.beta1 * self.m_b / (1 - beta1T)) + \
+                ((1 - self.beta1) * bias_gradients / (1 - beta1T))
+            v_hat_b = self.beta2 * self.v_b / (1 - beta2T)
+
+            biases += self.learning_rate / np.sqrt(v_hat_b + self.e) * m_hat_b
 
         return (weights, biases)

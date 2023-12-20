@@ -35,7 +35,7 @@ class Adafactor(Optimizer):
 
         return np.sqrt(np.abs(output))
 
-    def apply_gradients(self, weightGradients: np.ndarray, biasGradients: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def apply_gradients(self, weightGradients: np.ndarray, biasGradients: np.ndarray, weights: np.ndarray, biases: np.ndarray, update_biases: bool = True) -> tuple[np.ndarray, np.ndarray]:
         """Function that updates params using provided gradients and Adafactor algorithm. You can read more about it
         at https://arxiv.org/pdf/1804.04235.pdf
 
@@ -44,6 +44,7 @@ class Adafactor(Optimizer):
             bias_gradients (np.ndarray): Bias gradients you've calculated
             weights (np.ndarray): Model or layers weights you want to update
             biases (np.ndarray): Model or layers biases you want to update
+            update_biases (bool): Parameter that controls whether the biases should be updated. Defaults to True
 
         Returns:
             tuple[np.ndarray, np.ndarray]: Updated weights and biases. First element are the weights and second are the biases.
@@ -62,11 +63,6 @@ class Adafactor(Optimizer):
         self.R_w = self._fill_array(self.R_w, target_shape)[tuple(slices)]
         self.C_w = self._fill_array(self.C_w, target_shape)[tuple(slices)]
 
-        if self.adjust_biases_shape:
-            target_shape = biases.shape
-            self.V_b = self._fill_array(self.V_b, target_shape)[
-                :target_shape[0]]
-
         self.learning_rate = max(self.e_2, self.RMS(
             self.R_w, weightGradients)) * self.p
 
@@ -83,17 +79,22 @@ class Adafactor(Optimizer):
 
         weights += self.learning_rate * U_w
 
-        # Biases
-        self.learning_rate = max(self.e_2, self.RMS(
-            biases, biasGradients)) * self.p
+        if update_biases:
+            if self.adjust_biases_shape:
+                target_shape = biases.shape
+                self.V_b = self._fill_array(self.V_b, target_shape)[
+                    :target_shape[0]]
 
-        self.V_b = self.beta_2 * self.V_b + \
-            (1 - self.beta_2) * (biasGradients ** 2)
+            self.learning_rate = max(self.e_2, self.RMS(
+                biases, biasGradients)) * self.p
 
-        U_b = biasGradients / np.sqrt(self.V_b + self.e_1)
+            self.V_b = self.beta_2 * self.V_b + \
+                (1 - self.beta_2) * (biasGradients ** 2)
 
-        U_b = U_b / np.maximum(1.0, self.RMS(U_b, biasGradients) / self.d)
+            U_b = biasGradients / np.sqrt(self.V_b + self.e_1)
 
-        biases += self.learning_rate * U_b
+            U_b = U_b / np.maximum(1.0, self.RMS(U_b, biasGradients) / self.d)
+
+            biases += self.learning_rate * U_b
 
         return weights, biases
