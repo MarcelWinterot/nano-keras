@@ -16,9 +16,9 @@
 
 ## What you can find in nano-keras
 
-### Layers: Input, Dense, Dropout, Flatten, Reshape, MaxPool1D/2D, Conv1D/2D
+### Layers: Dense, Dropout, Reshaping layers, Convolutional layers, Pooling layers and Recurrental Layers
 
-### Optimizers: SGD, Adam, Adadelta, Adagrad, RMSProp, NAdam
+### Optimizers: SGD, Adam, Adadelta, Adagrad, RMSProp, NAdam and much more
 
 ### Activation functions: Sigmoid, Tanh, ReLU, ELU, LeakyReLU, Softmax
 
