@@ -72,6 +72,8 @@ class GRU(LayerWithParams):
             raise ValueError(
                 f"Input shape in GRU layer must be 2d, received: {x.shape}")
 
+        self.inputs = x
+
         extra_dim = np.zeros((1, self.hidden_state.shape[1]))
 
         self.hidden_state = np.vstack((extra_dim, self.hidden_state))
@@ -105,5 +107,44 @@ class GRU(LayerWithParams):
         return self.hidden_state[-1]
 
     def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer]) -> np.ndarray:
-        raise NotImplementedError(
-            "Backpropagation for GRU layer is not implemented yet")
+        if self.regulizer:
+            gradient = self.regulizer.update_gradient(
+                gradient, self.weights, self.biases)
+
+        if len(gradient.shape) == 1:
+            gradient = np.tile(gradient, (self.inputs.shape[0], 1))
+
+        update_gate_gradient = np.ndarray((gradient.shape[0], self.units))
+        reset_gate_gradient = np.ndarray((gradient.shape[0], self.units))
+        current_memory_content_gradient = np.ndarray(
+            (gradient.shape[0], self.units))
+
+        input_weights_gradient = np.ndarray(self.input_weights.shape)
+        recurrent_weights_gradient = np.ndarray(
+            self.recurrent_weights.shape)
+        biases_gradient = np.ndarray(self.biases.shape)
+
+        for time_stamp in range(gradient.shape[0]-1, -1, -1):
+            update_gate_gradient[time_stamp] = gradient[time_stamp] * (
+                self.current_memory_content[time_stamp] - self.hidden_state[time_stamp])
+
+            current_memory_content_gradient[time_stamp] = gradient[time_stamp] * \
+                self.update_gate[time_stamp]
+
+            reset_gate_gradient[time_stamp] = gradient[time_stamp] * \
+                self.hidden_state[time_stamp] * \
+                self.current_memory_content[time_stamp]
+
+            gate_gradients = [update_gate_gradient[time_stamp], reset_gate_gradient[time_stamp],
+                              current_memory_content_gradient[time_stamp]]
+
+            for i, gate_gradient in enumerate(gate_gradients):
+                input_weights_gradient[i] += np.outer(
+                    self.inputs[time_stamp], gate_gradient)
+
+                recurrent_weights_gradient[i] += np.outer(
+                    self.hidden_state[time_stamp-1], gate_gradient)
+
+                biases_gradient[:, i] += gate_gradient[i]
+
+        return np.dot(update_gate_gradient, self.input_weights[0].T) + np.dot(reset_gate_gradient, self.input_weights[1].T) + np.dot(current_memory_content_gradient, self.input_weights[2].T)

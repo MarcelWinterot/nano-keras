@@ -125,72 +125,46 @@ class LSTM(LayerWithParams):
         if len(gradient.shape) == 1:
             gradient = np.tile(gradient, (self.inputs.shape[0], 1))
 
-        hidden_error = np.zeros_like(self.hidden_state)
-        d_x = np.zeros_like(self.inputs)
+        forget_gate_gradient = np.ndarray((gradient.shape[0], self.units))
+        input_gate_gradient = np.ndarray((gradient.shape[0], self.units))
+        candidate_cell_state_gradient = np.ndarray(
+            (gradient.shape[0], self.units))
+        output_gate_gradient = np.ndarray((gradient.shape[0], self.units))
 
-        d_hidden_state = np.zeros_like(self.hidden_state)
-        d_cell_state = np.zeros(
-            (self.cell_state.shape[0] + 1, self.cell_state.shape[1]))
-        d_cell_candidate = np.zeros_like(self.cell_state)
+        input_weights_gradient = np.ndarray(self.input_weights.shape)
+        recurrent_weights_gradient = np.ndarray(
+            self.recurrent_weights.shape)
+        biases_gradient = np.ndarray(self.biases.shape)
 
-        d_input_gate = np.zeros_like(self.input_gate)
-        d_forget_gate = np.zeros_like(self.forget_gate)
-        d_output_gate = np.zeros_like(self.output_gate)
+        for time_stamp in range(gradient.shape[0]-1, -1, -1):
+            output_gate_gradient[time_stamp] = gradient[time_stamp] * \
+                self.recurrent_activation.apply_activation(
+                    self.cell_state[time_stamp])
 
-        d_gates = np.array(
-            [d_cell_candidate, d_input_gate, d_forget_gate, self.output_gate])
-
-        for time_stamp in range(self.inputs.shape[0])[-1::-1]:
-            # δhₜ = Δt + Δhₜ
-            d_hidden_state[time_stamp] = gradient[time_stamp] + \
-                hidden_error[time_stamp]
-
-            # δCₜ = δhₜ ⊙ oₜ ⊙ (1 - tanh²(Cₜ)) + δCₜ₊₁ ⊙ fₜ₊₁
-            d_cell_state[time_stamp] * self.output_gate[time_stamp] * \
-                self.recurrent_activation.compute_derivative(
-                self.cell_state[time_stamp]) + d_cell_state[time_stamp+1] * self.forget_gate[time_stamp]
-
-            # δC' = δCₜ ⊙ iₜ ⊙ (1-C'ₜ²)
-            d_cell_candidate[time_stamp] = d_cell_candidate[time_stamp] * \
-                self.input_gate[time_stamp] * \
-                (1 - self.candidate_cell_state[time_stamp]**2)
-
-            # δiₜ = δCₜ ⊙ C'ₜ ⊙ iₜ ⊙ (1-iₜ)
-            d_input_gate[time_stamp] = d_cell_state[time_stamp] * self.candidate_cell_state[time_stamp] * \
-                self.input_gate[time_stamp] * (1 - self.input_gate[time_stamp])
-
-            # δfₜ = δCₜ ⊙ Cₜ₋₁ ⊙ fₜ ⊙ (1-fₜ)
-            d_forget_gate[time_stamp] = d_cell_state[time_stamp] * self.candidate_cell_state[time_stamp] * \
+            forget_gate_gradient[time_stamp] = gradient[time_stamp] * \
+                self.cell_state[time_stamp] * \
                 self.forget_gate[time_stamp] * \
                 (1 - self.forget_gate[time_stamp])
 
-            # δoₜ = δhₜ ⊙ tanh(Cₜ) ⊙ oₜ ⊙ (1-oₜ)
-            d_output_gate[time_stamp] = d_hidden_state[time_stamp] * self.recurrent_activation.apply_activation(
-                self.cell_state[time_stamp]) * self.output_gate[time_stamp] * (1 - self.output_gate[time_stamp])
+            input_gate_gradient[time_stamp] = gradient[time_stamp] * \
+                self.candidate_cell_state[time_stamp] * \
+                self.input_gate[time_stamp] * (1 - self.input_gate[time_stamp])
 
-            # Δhₜ₋₁ = Uᵗ * δgatesₜ
-            hidden_error[time_stamp-1] = np.average(np.dot(
-                self.recurrent_weights.T, d_gates[:, time_stamp]), axis=(1, 2))
+            candidate_cell_state_gradient[time_stamp] = gradient[time_stamp] * \
+                self.input_gate[time_stamp] * \
+                self.recurrent_activation.apply_activation(
+                    self.candidate_cell_state[time_stamp]) * (1 - self.candidate_cell_state[time_stamp]**2)
 
-            # δxₜ = Wᵗ * δgatesₜ
-            d_x[time_stamp] = np.dot(self.input_weights.T,
-                                     d_gates[:, time_stamp])[-1, :, -1]
+            gate_gradients = [forget_gate_gradient[time_stamp], input_gate_gradient[time_stamp],
+                              candidate_cell_state_gradient[time_stamp], output_gate_gradient[time_stamp]]
 
-        # Weights update
-        delta_input_weights = np.ndarray(self.inputs.shape)
-        delta_recurrent_weights = np.ndarray(
-            d_gates.shape).transpose(1, 0, 2)
+            for i, gate_gradient in enumerate(gate_gradients):
+                input_weights_gradient[i] += np.outer(
+                    self.inputs[time_stamp], gate_gradient)
 
-        for time_stamp in range(self.inputs.shape[0])[-1::-1]:
-            # delta_input_weights[time_stamp] = d_gates[:,
-            #    time_stamp] * self.inputs[time_stamp]
+                recurrent_weights_gradient[i] += np.outer(
+                    self.hidden_state[time_stamp-1], gate_gradient)
 
-            delta_recurrent_weights[time_stamp] = d_gates[:,
-                                                          time_stamp] * self.hidden_state[time_stamp]
+                biases_gradient[i] += gate_gradient[i]
 
-        delta_recurrent_weights = delta_recurrent_weights.transpose(1, 0, 2)
-        delta_biases = np.sum(d_gates, 1)
-
-        print(f"input_weights: {self.input_weights.shape}, R_weights: {self.recurrent_weights.shape}, r_weights_delta: {delta_recurrent_weights.shape}, biases: {self.biases.shape}, delta_biases: {delta_biases.shape}")
-
-        return d_x
+        return np.dot(forget_gate_gradient, self.input_weights[0].T) + np.dot(input_gate_gradient, self.input_weights[1].T) + np.dot(candidate_cell_state_gradient, self.input_weights[2].T) + np.dot(output_gate_gradient, self.input_weights[3].T)
