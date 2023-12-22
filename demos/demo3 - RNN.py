@@ -8,8 +8,8 @@ from nano_keras.optimizers import SGD
 from nano_keras.losses import MSE
 import numpy as np
 
+# Initalizing the model
 model = NN()
-
 model.add(Embedding(10, 20, input_length=14))
 model.add(LSTM(8, name="LSTM 1"))
 model.add(GRU(6, name="GRU 1"))
@@ -19,14 +19,26 @@ model.add(LSTM(4, return_sequences=False, name="LSTM 2"))
 model.compile(optimizer="sgd")
 model.summary()
 
-x = np.random.randint(0, 10, size=(14,))
-y = np.random.randn(4)
+# Creating random data for training
+x = np.random.randint(0, 10, size=(2, 14,))
+y = np.random.randn(2, 4,)
 
-output = model.feed_forward(x)
+# Setting batch size for all layers
+for layer in model.layers:
+    layer.set_batch_size(2, model.layers, model.layers.index(layer))
 
-print(f"Output shape: {output.shape}")
+# Feed forward
+outputs = []
 
-gradient = MSE().compute_derivative(y, output)
+for batch in range(2):
+    outputs.append(model.feed_forward(x[batch], is_training=True))
+
+print(f"Output shape: {outputs[0].shape}")
+
+# Backpropagation
+gradient = MSE().compute_derivative(y, outputs)
+
+gradient = np.average(gradient, axis=0)
 
 opt = SGD()
 

@@ -25,7 +25,7 @@ class GRU(LayerWithParams):
         self.regulizer: Regularizer = regulizer
         self.name: str = name
 
-        self.hidden_state: np.ndarray = np.array([])
+        self.current_batch: int = 0
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         input_shape = layers[current_layer_index -
@@ -35,6 +35,21 @@ class GRU(LayerWithParams):
             input_shape[0], self.units) if self.return_sequences else self.units
 
         return self.output_shape_value
+
+    def set_batch_size(self, batch_size: int, layers: list, index: int) -> None:
+        self.batch_size = batch_size
+
+        input_shape = layers[index-1].output_shape(layers, index-1)
+        input_shape = tuple(input_shape)
+
+        self.inputs = np.zeros((batch_size, *input_shape))
+        self.hidden_state = np.zeros(
+            (batch_size, input_shape[0] + 1, self.units))
+
+        self.update_gate = np.zeros((batch_size, input_shape[0], self.units))
+        self.reset_gate = np.zeros((batch_size, input_shape[0], self.units))
+        self.current_memory_content = np.zeros(
+            (batch_size, input_shape[0] + 1, self.units))
 
     def __repr__(self) -> str:
         formatted_output = f"(None, {self.output_shape_value})"
@@ -58,8 +73,6 @@ class GRU(LayerWithParams):
         self.biases = self.bias_initialization(
             (2, 3, self.units), bias_data_type)
 
-        self.hidden_state = np.zeros((input_shape[0], self.units))
-
         self.output_shape_value = (
             input_shape[0], self.units) if self.return_sequences else self.units
 
@@ -68,39 +81,32 @@ class GRU(LayerWithParams):
             raise ValueError(
                 f"Input shape in GRU layer must be 2d, received: {x.shape}")
 
-        self.inputs = x
-
-        extra_dim = np.zeros((1, self.hidden_state.shape[1]))
-
-        self.hidden_state = np.vstack((extra_dim, self.hidden_state))
-
-        self.update_gate = np.ndarray((x.shape[0], self.units))
-        self.reset_gate = np.ndarray((x.shape[0], self.units))
-        self.current_memory_content = np.zeros((x.shape[0] + 1, self.units))
+        self.inputs[self.current_batch] = x
 
         for time_stamp in range(1, x.shape[0]+1):
-            self.update_gate[time_stamp-1] = self.recurrent_activation.apply_activation(
+            self.update_gate[self.current_batch, time_stamp-1] = self.recurrent_activation.apply_activation(
                 np.dot(self.input_weights[0].T, x[time_stamp-1]) + np.dot(self.recurrent_weights[0],
-                                                                          self.hidden_state[time_stamp-1]) + self.biases[0, 0] + self.biases[1, 0])
+                                                                          self.hidden_state[self.current_batch, time_stamp-1]) + self.biases[0, 0] + self.biases[1, 0])
 
-            self.reset_gate[time_stamp-1] = self.recurrent_activation.apply_activation(
+            self.reset_gate[self.current_batch, time_stamp-1] = self.recurrent_activation.apply_activation(
                 np.dot(self.input_weights[0].T, x[time_stamp-1]) + np.dot(self.recurrent_weights[0],
-                                                                          self.hidden_state[time_stamp-1]) + self.biases[0, 0] + self.biases[1, 0])
+                                                                          self.hidden_state[self.current_batch, time_stamp-1]) + self.biases[0, 0] + self.biases[1, 0])
 
-            self.current_memory_content[time_stamp] = self.activation.apply_activation(
+            self.current_memory_content[self.current_batch, time_stamp] = self.activation.apply_activation(
                 np.dot(self.input_weights[2].T, x[time_stamp-1]) + np.dot(self.recurrent_weights[2],
-                                                                          (self.hidden_state[time_stamp-1] * self.reset_gate[time_stamp-1])) + self.biases[0, 2] + self.biases[1, 2])
+                                                                          (self.hidden_state[self.current_batch, time_stamp-1] * self.reset_gate[self.current_batch, time_stamp-1])) + self.biases[0, 2] + self.biases[1, 2])
 
-            self.hidden_state[time_stamp] = self.update_gate[time_stamp-1] * self.hidden_state[time_stamp - 1] + (
-                1 - self.update_gate[time_stamp-1]) * self.current_memory_content[time_stamp]
+            self.hidden_state[self.current_batch, time_stamp] = self.update_gate[self.current_batch, time_stamp-1] * self.hidden_state[self.current_batch, time_stamp - 1] + (
+                1 - self.update_gate[self.current_batch, time_stamp-1]) * self.current_memory_content[self.current_batch, time_stamp]
 
-        self.hidden_state = self.hidden_state[1:]
-        self.current_memory_content = self.current_memory_content[1:]
+        index = self.current_batch
+        if is_training:
+            self.current_batch += 1
 
         if self.return_sequences:
-            return self.hidden_state
+            return self.hidden_state[index, 1:]
 
-        return self.hidden_state[-1]
+        return self.hidden_state[index, -1]
 
     def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer]) -> np.ndarray:
         if self.regulizer:
@@ -120,26 +126,33 @@ class GRU(LayerWithParams):
             self.recurrent_weights.shape)
         biases_gradient = np.ndarray(self.biases.shape)
 
+        inputs = np.average(self.inputs, axis=0)
+        current_memory_content = np.average(
+            self.current_memory_content[:, 1:], axis=0)
+        hidden_state = np.average(self.hidden_state[:, 1:], axis=0)
+        update_gate = np.average(self.update_gate, axis=0)
+        reset_gate = np.average(self.reset_gate, axis=0)
+
         for time_stamp in range(gradient.shape[0]-1, -1, -1):
             update_gate_gradient[time_stamp] = gradient[time_stamp] * (
-                self.current_memory_content[time_stamp] - self.hidden_state[time_stamp])
+                current_memory_content[time_stamp] - hidden_state[time_stamp])
 
             current_memory_content_gradient[time_stamp] = gradient[time_stamp] * \
-                self.update_gate[time_stamp]
+                update_gate[time_stamp]
 
             reset_gate_gradient[time_stamp] = gradient[time_stamp] * \
-                self.hidden_state[time_stamp] * \
-                self.current_memory_content[time_stamp]
+                hidden_state[time_stamp] * \
+                current_memory_content[time_stamp]
 
             gate_gradients = [update_gate_gradient[time_stamp], reset_gate_gradient[time_stamp],
                               current_memory_content_gradient[time_stamp]]
 
             for i, gate_gradient in enumerate(gate_gradients):
                 input_weights_gradient[i] += np.outer(
-                    self.inputs[time_stamp], gate_gradient)
+                    inputs[time_stamp], gate_gradient)
 
                 recurrent_weights_gradient[i] += np.outer(
-                    self.hidden_state[time_stamp-1], gate_gradient)
+                    hidden_state[time_stamp-1], gate_gradient)
 
                 biases_gradient[:, i] += gate_gradient[i]
 
@@ -149,5 +162,7 @@ class GRU(LayerWithParams):
 
         self.recurrent_weights, self.biases[1] = optimizer[0].apply_gradients(
             recurrent_weights_gradient, biases_gradient[1], self.recurrent_weights, self.biases[1])
+
+        self.current_batch = 0
 
         return np.dot(update_gate_gradient, self.input_weights[0].T) + np.dot(reset_gate_gradient, self.input_weights[1].T) + np.dot(current_memory_content_gradient, self.input_weights[2].T)
