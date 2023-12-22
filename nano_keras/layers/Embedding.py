@@ -18,6 +18,7 @@ class Embedding(LayerWithParams):
         self.name = name
 
         self.weights = np.array([])
+        # Added biases as I don't want to add a new class for this
         self.biases = np.array([])
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
@@ -51,12 +52,20 @@ class Embedding(LayerWithParams):
         self.output_shape_value = (input_shape, self.output_dim)
 
     def __call__(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
-        if is_training:
-            self.inputs = x
+        self.inputs = x
 
         self.output = self.weights[x]
 
         return self.output
 
     def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer]) -> np.ndarray:
-        raise NotImplementedError("Embedding layer is not finished yet")
+        if self.regulizer:
+            self.regulizer.regulize(self.weights)
+
+        weights_gradients = np.zeros_like(self.weights)
+        np.add.at(weights_gradients, self.inputs, gradient)
+
+        self.weights, _ = optimizer[0].apply_gradients(
+            weights_gradients, [], self.weights, [], False)
+
+        return gradient
