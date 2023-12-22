@@ -12,7 +12,9 @@ class Tanh(Activation):
         Returns:
             np.ndarray: Data with activation function applied to them
         """
-        return (np.exp(X) - np.exp(-X)) / (np.exp(X) + np.exp(-X))
+        output = (np.exp(X) - np.exp(-X)) / \
+            np.nan_to_num(np.exp(X) + np.exp(-X) + 1e-7, copy=False)
+        return output
 
     def compute_derivative(self, X: np.ndarray) -> np.ndarray:
         """Function to apply derivative of tanh activation on given data

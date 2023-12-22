@@ -46,8 +46,8 @@ class Embedding(LayerWithParams):
             input_shape = layers[current_layer_index -
                                  1].output_shape(layers, current_layer_index-1)
 
-        self.weights = np.random.randn(
-            self.input_dim, self.output_dim).astype(weight_data_type)
+        self.weights = self.embedding_initalizer(
+            (self.input_dim, self.output_dim), weight_data_type)
 
         self.output_shape_value = (input_shape, self.output_dim)
 

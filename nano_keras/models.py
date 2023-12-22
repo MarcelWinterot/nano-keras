@@ -326,10 +326,9 @@ class NN:
             if not training_active[0]:
                 break
 
-            losses[epoch] = self.loss
+            losses[epoch-1] = self.loss
             if verbose == 1:
-                self.print_progress(epoch+1, epochs, self.loss, self.accuracy,
-                                    val_loss=self.val_loss, val_accuracy=self.val_accuracy)
+                self.print_progress(epoch, epochs, self.loss, self.accuracy)
         if validation_data is not None:
             return losses, val_losses
         return losses

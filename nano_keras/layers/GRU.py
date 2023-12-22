@@ -47,15 +47,16 @@ class GRU(LayerWithParams):
         input_shape = layers[current_layer_index -
                              1].output_shape(layers, current_layer_index-1)
 
-        input_weights_shape = (input_shape[1], self.units)
-        recurrent_weights_shape = (self.units, self.units)
+        input_weights_shape = (3, input_shape[1], self.units)
+        recurrent_weights_shape = (3, self.units, self.units)
 
-        self.input_weights = np.random.randn(
-            3, *input_weights_shape).astype(weight_data_type)
-        self.recurrent_weights = np.random.randn(
-            3, *recurrent_weights_shape).astype(weight_data_type)
+        self.input_weights = self.weight_initialization(
+            input_weights_shape, weight_data_type)
+        self.recurrent_weights = self.recurrent_weight_initialization(
+            recurrent_weights_shape, weight_data_type)
 
-        self.biases = np.random.randn(2, 3, self.units)
+        self.biases = self.bias_initialization(
+            (2, 3, self.units), bias_data_type)
 
         self.hidden_state = np.zeros((input_shape[0], self.units))
 
