@@ -51,7 +51,12 @@ class Embedding(LayerWithParams):
         self.output_shape_value = (input_shape, self.output_dim)
 
     def __call__(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
-        raise NotImplementedError("Embedding layer is not finished yet")
+        if is_training:
+            self.inputs = x
+
+        self.output = self.weights[x]
+
+        return self.output
 
     def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer]) -> np.ndarray:
         raise NotImplementedError("Embedding layer is not finished yet")
