@@ -9,3 +9,4 @@ from nano_keras.layers.Reshape import Reshape
 from nano_keras.layers.LSTM import LSTM
 from nano_keras.layers.Flatten import Flatten
 from nano_keras.layers.GRU import GRU
+from nano_keras.layers.Embedding import Embedding

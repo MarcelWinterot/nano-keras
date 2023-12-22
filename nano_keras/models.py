@@ -169,7 +169,7 @@ class NN:
             weight_data_type (np.float_): numpy data type in which the models weights should be stored. Use only np.float_ data types.
             bias_data_type (np.float_): numpy data type in which the models biases should be stored. Use only np.float_ data types.
                     """
-        for i in range(1, len(self.layers)):
+        for i in range(len(self.layers)):
             if isinstance(self.layers[i], LayerWithParams):
                 try:
                     self.layers[i].generate_weights(
