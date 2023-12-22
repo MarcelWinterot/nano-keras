@@ -56,8 +56,6 @@ import nano_keras
 
 ## Special thanks
 
-### I'd like to thank my teacher, [Mateusz Kozlowski](https://github.com/mattkozlowski/), who inspired me to start working on this project and kept me motivated to finish this
-
-### Everyone who showed support for me in real life and on LinkedIn
+### I'd like to thank my teacher, [Mateusz Kozlowski](https://github.com/mattkozlowski/), who inspired me to start working on this project and kept me motivated to finish this and evryone who showed support for me
 
 ### Without you this project would've never come to life
