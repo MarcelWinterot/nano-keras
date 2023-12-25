@@ -1,7 +1,7 @@
 import numpy as np
 from nano_keras.losses import LOSS_FUNCTIONS, Loss
 from nano_keras.optimizers import OPTIMIZERS, Optimizer
-from nano_keras.layers import Layer, LayerWithParams, LSTM, GRU
+from nano_keras.layers import Layer, LayerWithParams, LSTM, GRU, MultiHeadAttention
 from nano_keras.callbacks import Callback
 from copy import deepcopy
 from time import time
@@ -154,6 +154,12 @@ class NN:
                     paramsWeight += layer.input_weights.nbytes + layer.recurrent_weights.nbytes + \
                         layer.biases.nbytes
                     continue
+                if isinstance(layer, MultiHeadAttention):
+                    totalParams += sum([weight.size for weight in layer.weights]
+                                       ) + layer.biases.size
+                    paramsWeight += sum([weight.nbytes for weight in layer.weights]
+                                        ) + layer.biases.nbytes
+                    continue
 
                 totalParams += layer.weights.size + layer.biases.size
                 paramsWeight += layer.weights.nbytes + layer.biases.nbytes
@@ -179,15 +185,15 @@ class NN:
                         f"Exception encountered when creating weights: {e}\nChange your achitecture and try again. If you think it's an error post an issue on github")
                     exit(1)
 
-    def compile(self, loss_function: Loss | str = "mse", optimizer: Optimizer | str = "adam", metrics: str = "", weight_data_type: np.float_ = np.float64, bias_data_type: np.float_ = np.float64) -> None:
+    def compile(self, loss_function: Loss | str = "mse", optimizer: Optimizer | str = "adam", metrics: str = "", weight_data_type: np.float_ = np.float32, bias_data_type: np.float_ = np.float32) -> None:
         """Function you should call before starting training the model, as we generate the weights in here, set the loss function and optimizer.
 
         Args:
             loss_function (Loss | str, optional): Loss function the model should use. You can pass either the name of it as a str or intialized class. Defaults to "mse".
             optimizer (Optimizer | str, optional): Optimizer the model should use when updating it's params. You can pass either the name of it as a str or initalized class. Defaults to "adam"
             metrics (str, optional): Paramter that specifies what metrics should the model use. Possible metrics are: accuracy. Defaults to "".
-            weight_data_type (np.float_, optional): Data type you want the models weights to be. Use np.float_ types like np.float32 or np.float64. Defaults to np.float64.
-            bias_data_type (np.float_, optional): Data type you want the models biases to be. Use np.float_ types like np.float32 or np.float64. Defaults to np.float64.
+            weight_data_type (np.float_, optional): Data type you want the models weights to be. Use np.float_ types like np.float32 or np.float64. Defaults to np.float32.
+            bias_data_type (np.float_, optional): Data type you want the models biases to be. Use np.float_ types like np.float32 or np.float64. Defaults to np.float32.
         """
         self.loss_function: Loss = LOSS_FUNCTIONS[loss_function] if type(
             loss_function) == str else loss_function

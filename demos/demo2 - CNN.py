@@ -32,17 +32,14 @@ print("\033c", end='')
 
 model = NN(name="NN for MNIST")
 model.add(Input((28, 28, 1)))
-model.add(Conv2D(32, (3, 3), name="Conv 1"))
-model.add(MaxPool2D())
-model.add(Conv2D(64, (3, 3), name='Conv 2'))
-model.add(MaxPool2D())
+model.add(Conv2D(32, (3, 3), (2, 2), name="Conv 1"))
+model.add(Conv2D(64, (3, 3), (2, 2), name='Conv 2'))
 model.add(Flatten())
 model.add(Dense(10, "relu", "he_normal", name='Dropout'))
 
 optimizer = Adagrad(adjust_biases_shape=True)
 
-model.compile("mse", optimizer=optimizer, metrics="accuracy",
-              weight_data_type=np.float32)
+model.compile("mse", optimizer=optimizer, metrics="accuracy")
 
 model.summary()
 
