@@ -1,24 +1,22 @@
 import numpy as np
-from nano_keras.layers import Layer, LayerWithParams
+from nano_keras.layers import Layer, LayerWithParams, Dense
 from nano_keras.activations import ACTIVATIONS
 from nano_keras.optimizers import Optimizer
 from nano_keras.initializers import INITIALIZERS, Initializer
 
 
 class MultiHeadAttention(LayerWithParams):
-    def __init__(self, num_heads: int, key_dim: int, weight_initalizer: Initializer | str = "random_normal", bias_initalizer: Initializer | str = "zeros", name: str = "MultiHeadAttention") -> None:
+    def __init__(self, num_heads: int, key_dim: int, value_dim: int = None, weight_initialization: Initializer | str = "random_normal", bias_initialization: Initializer | str = "zeros", name: str = "MultiHeadAttention") -> None:
         self.num_heads: int = num_heads
         self.key_dim: int = key_dim
+        self.value_dim: int = value_dim if value_dim else key_dim
 
-        self.weight_initalizer: Initializer = INITIALIZERS[weight_initalizer] if type(
-            weight_initalizer) == str else weight_initalizer
-        self.bias_initalizer: Initializer = INITIALIZERS[bias_initalizer] if type(
-            bias_initalizer) == str else bias_initalizer
+        self.weight_initialization: Initializer = INITIALIZERS[weight_initialization] if type(
+            weight_initialization) == str else weight_initialization
+        self.bias_initialization: Initializer = INITIALIZERS[bias_initialization] if type(
+            bias_initialization) == str else bias_initialization
 
         self.name: str = name
-
-        self.weights: np.ndarray = np.array([])
-        self.biases: np.ndarray = np.array([])
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         self.output_shape_value = tuple(layers[current_layer_index -
@@ -27,8 +25,7 @@ class MultiHeadAttention(LayerWithParams):
         return self.output_shape_value
 
     def __repr__(self) -> str:
-        params_number = sum([
-            weight.size for weight in self.weights]) + self.biases.size
+        params_number = self.get_number_of_params()
 
         formatted_output = f"(None, {self.output_shape_value})"
         if type(self.output_shape_value) == tuple:
@@ -40,16 +37,50 @@ class MultiHeadAttention(LayerWithParams):
         input_shape = tuple(layers[current_layer_index -
                                    1].output_shape(layers, current_layer_index-1))
 
-        self.weights = self.weight_initalizer(
-            (3, *input_shape), weight_data_type)
+        self.query_weights = np.random.randn(
+            input_shape[-1], self.num_heads, self.key_dim).astype(weight_data_type)
+        self.query_biases = np.random.randn(
+            self.num_heads, self.key_dim).astype(bias_data_type)
 
-        self.biases = self.bias_initalizer(input_shape[-1], bias_data_type)
+        self.key_weights = np.random.randn(
+            input_shape[-1], self.num_heads, self.key_dim).astype(weight_data_type)
+        self.key_biases = np.random.randn(
+            self.num_heads, self.key_dim).astype(bias_data_type)
+
+        self.value_weights = np.random.randn(
+            input_shape[-1], self.num_heads, self.value_dim).astype(weight_data_type)
+        self.value_biases = np.random.randn(
+            self.num_heads, self.value_dim).astype(bias_data_type)
+
+        self.output_weights = np.random.randn(
+            self.num_heads, self.value_dim, input_shape[-1]).astype(weight_data_type)
+        self.output_biases = np.random.randn(
+            input_shape[-1]).astype(bias_data_type)
 
         self.output_shape_value = tuple(layers[current_layer_index -
                                                1].output_shape(layers, current_layer_index-1))
 
+    def get_number_of_params(self) -> int:
+        params_number = self.query_weights.size + self.query_biases.size + \
+            self.key_weights.size + self.key_biases.size + \
+            self.value_weights.size + self.value_biases.size + \
+            self.output_weights.size + self.output_biases.size
+
+        return params_number
+
+    def get_params_size(self) -> int:
+        params_size = self.query_weights.nbytes + self.query_biases.nbytes + \
+            self.key_weights.nbytes + self.key_biases.nbytes + \
+            self.value_weights.nbytes + self.value_biases.nbytes + \
+            self.output_weights.nbytes + self.output_biases.nbytes
+
+        return params_size
+
+    def get_weights(self) -> list[np.ndarray]:
+        return [self.query_weights, self.query_biases, self.key_weights, self.key_biases, self.value_weights, self.value_biases, self.output_weights, self.output_biases]
+
     def attention(self, q: np.ndarray, k: np.ndarray, v: np.ndarray, *args, **kwargs) -> np.ndarray:
-        matmul_qk = np.matmul(q, k.T)
+        matmul_qk = np.matmul(q, k.transpose(0, 2, 1))
 
         dk = np.array(k.shape[-1])
         scaled_attention_logits = matmul_qk / np.sqrt(dk)
@@ -59,30 +90,29 @@ class MultiHeadAttention(LayerWithParams):
 
         attended_values = np.matmul(attention_weights, v)
 
-        try:
-            index = kwargs["index"]
-            attended_values += self.biases_split[index]
-        except KeyError:
-            pass
-
         return attended_values
 
     def __call__(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
-        Q, K, V = np.copy(x), np.copy(x), np.copy(x)
+        Q = np.dot(x, self.query_weights.transpose(1, 0, 2)) + \
+            self.query_biases
+        K = np.dot(x, self.key_weights.transpose(1, 0, 2)) + self.key_biases
+        V = np.dot(x, self.value_weights.transpose(1, 0, 2)) + \
+            self.value_biases
 
-        Q = Q * self.weights[0]
-        K = K * self.weights[1]
-        V = V * self.weights[2]
+        Q = np.array(np.split(Q.transpose(0, 2, 1),
+                     self.num_heads, axis=-1))[:, :, :, 0]
+        K = np.array(np.split(K.transpose(0, 2, 1),
+                     self.num_heads, axis=-1))[:, :, :, 0]
+        V = np.array(np.split(V.transpose(0, 2, 1),
+                     self.num_heads, axis=-1))[:, :, :, 0]
 
-        Q_split = np.array_split(Q, self.num_heads, axis=-1)
-        K_split = np.array_split(K, self.num_heads, axis=-1)
-        V_split = np.array_split(V, self.num_heads, axis=-1)
+        attention = self.attention(Q, K, V)
 
-        self.biases_split = np.array_split(self.biases, self.num_heads)
+        attention = np.concatenate(attention, axis=-1)
 
-        output = [self.attention(q, k, v, index=i) for i, (q, k, v) in enumerate(
-            zip(Q_split, K_split, V_split))]
+        output_weights = self.output_weights.transpose(1, 0, 2)
 
-        output = np.concatenate(output, axis=-1)
+        output = np.dot(attention, output_weights.reshape(-1,
+                        output_weights.shape[-1])) + self.output_biases
 
         return output

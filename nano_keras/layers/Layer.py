@@ -20,10 +20,10 @@ class Layer:
         self.units: int = units
         self.name: str = name
 
-        self.weight_initialization: Initializer = weight_initialization if type(
-            weight_initialization) == Initializer else INITIALIZERS[weight_initialization]
-        self.bias_initialization: Initializer = bias_initialization if type(
-            bias_initialization) == Initializer else INITIALIZERS[bias_initialization]
+        self.weight_initialization: Initializer = INITIALIZERS[weight_initialization] if type(
+            weight_initialization) == str else weight_initialization
+        self.bias_initialization: Initializer = INITIALIZERS[bias_initialization] if type(
+            bias_initialization) == str else bias_initialization
 
         self.activation: Activation = ACTIVATIONS[activation] if type(
             activation) == str else activation

@@ -155,10 +155,8 @@ class NN:
                         layer.biases.nbytes
                     continue
                 if isinstance(layer, MultiHeadAttention):
-                    totalParams += sum([weight.size for weight in layer.weights]
-                                       ) + layer.biases.size
-                    paramsWeight += sum([weight.nbytes for weight in layer.weights]
-                                        ) + layer.biases.nbytes
+                    totalParams += layer.get_number_of_params()
+                    paramsWeight += layer.get_params_size()
                     continue
 
                 totalParams += layer.weights.size + layer.biases.size
