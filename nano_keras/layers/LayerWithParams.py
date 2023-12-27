@@ -11,3 +11,16 @@ class LayerWithParams(Layer):
                          bias_initalization, regulizer, name)
         self.weights = np.array([])
         self.biases = np.array([])
+
+    def get_number_of_params(self) -> int:
+        return self.weights.size + self.biases.size
+
+    def get_params_size(self) -> int:
+        return self.weights.nbytes + self.biases.nbytes
+
+    def get_weights(self) -> list[np.ndarray]:
+        return [self.weights, self.biases]
+
+    def set_weights(self, weights: np.ndarray, biases: np.ndarray) -> None:
+        self.weights = weights
+        self.biases = biases

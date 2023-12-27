@@ -147,20 +147,8 @@ class NN:
         totalParams = 0
         for layer in self.layers:
             print(layer)
-            if isinstance(layer, LayerWithParams):
-                if isinstance(layer, (LSTM, GRU)):
-                    totalParams += layer.input_weights.size + layer.recurrent_weights.size + \
-                        layer.biases.size
-                    paramsWeight += layer.input_weights.nbytes + layer.recurrent_weights.nbytes + \
-                        layer.biases.nbytes
-                    continue
-                if isinstance(layer, MultiHeadAttention):
-                    totalParams += layer.get_number_of_params()
-                    paramsWeight += layer.get_params_size()
-                    continue
-
-                totalParams += layer.weights.size + layer.biases.size
-                paramsWeight += layer.weights.nbytes + layer.biases.nbytes
+            totalParams += layer.get_number_of_params()
+            paramsWeight += layer.get_params_size()
         print(f"{'='*line_length}")
         print(
             f"Total params: {totalParams} ({self.__convert_size(paramsWeight)})")
@@ -402,14 +390,8 @@ class NN:
             file_path (str): File path where to save the model. Don't put the file extension as it is alredy handled by numpy.
             For example if you want to save the model at './saved_model' put that as the file_path, and numpy will add the extension
         """
-        array_to_save = []
-        for layer in self.layers:
-            if not isinstance(layer, LayerWithParams):
-                array_to_save.append([])
-                continue
-            array_to_save.append([layer.weights, layer.biases])
-
-        array_to_save = np.array(array_to_save, dtype=object)
+        array_to_save = np.array([layer.get_weights()
+                                 for layer in self.layers], dtype=object)
 
         np.save(file_path, array_to_save)
 
@@ -423,12 +405,8 @@ class NN:
             file_path (str): File path to the saved weights and biases. You have to also specify the file extension.
             For example if the path to the file looks like this: './saved_model.npy' you have to put that path to the file.
         """
-        array = np.load(file_path, allow_pickle=True)
-        for i in range(len(array)):
-            if len(array[i]) == 0:
-                # We've encountered a layer without params so we continue
-                continue
-            self.layers[i].weights = array[i][0]
-            self.layers[i].biases = array[i][1]
+        weights = np.load(file_path, allow_pickle=True)
+        for i in range(len(weights)):
+            self.layers[i].set_weights(*weights[i])
 
         return
