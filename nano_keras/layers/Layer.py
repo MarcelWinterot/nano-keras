@@ -66,11 +66,11 @@ class Layer:
     def get_weights(self) -> list[np.ndarray]:
         return [np.array([]), np.array([])]
 
-    def get_number_of_params(self) -> int:
-        return 0
+    def get_number_of_params(self) -> tuple:
+        return (0, 0)  # Trainable, non-trainable
 
-    def get_params_size(self) -> int:
-        return 0
+    def get_params_size(self) -> tuple:
+        return (0, 0)  # Trainable, non-trainable
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
         """Function to generate the output shape of a layer

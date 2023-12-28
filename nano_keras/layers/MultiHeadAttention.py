@@ -67,15 +67,19 @@ class MultiHeadAttention(LayerWithParams):
             self.value_weights.size + self.value_biases.size + \
             self.output_weights.size + self.output_biases.size
 
-        return params_number
+        if self.trainable:
+            return (params_number, 0)
+        return (0, params_number)
 
-    def get_params_size(self) -> int:
+    def get_params_size(self) -> tuple:
         params_size = self.query_weights.nbytes + self.query_biases.nbytes + \
             self.key_weights.nbytes + self.key_biases.nbytes + \
             self.value_weights.nbytes + self.value_biases.nbytes + \
             self.output_weights.nbytes + self.output_biases.nbytes
 
-        return params_size
+        if self.trainable:
+            return (params_size, 0)
+        return (0, params_size)
 
     def get_weights(self) -> list[np.ndarray]:
         return [self.query_weights, self.query_biases, self.key_weights, self.key_biases, self.value_weights, self.value_biases, self.output_weights, self.output_biases]

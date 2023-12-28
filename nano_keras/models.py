@@ -143,15 +143,30 @@ class NN:
         print(f"Model: {self.name}\n{'_'*line_length}")
         print(
             f"Layer (type)                Output Shape              Param #\n{'='*line_length}")
-        paramsWeight = 0
-        totalParams = 0
+
+        trainable_params = 0
+        trainable_params_weight = 0
+        non_trainable_params = 0
+        non_trainable_params_weight = 0
+
         for layer in self.layers:
             print(layer)
-            totalParams += layer.get_number_of_params()
-            paramsWeight += layer.get_params_size()
+            trainable, non_trainable = layer.get_number_of_params()
+            trainable_params += trainable
+            non_trainable_params += non_trainable
+
+            trainable, non_trainable = layer.get_params_size()
+            trainable_params_weight += trainable
+            non_trainable_params_weight += non_trainable
+
         print(f"{'='*line_length}")
         print(
-            f"Total params: {totalParams} ({self.__convert_size(paramsWeight)})")
+            f"Total params: {trainable_params + non_trainable_params} ({self.__convert_size(trainable_params_weight + non_trainable_params_weight)})")
+        print(
+            f"Trainable params: {trainable_params} ({self.__convert_size(trainable_params_weight)})")
+        print(
+            f"Non-trainable params: {non_trainable_params} ({self.__convert_size(non_trainable_params_weight)})")
+
         print(f"{'_'*line_length}")
 
     def generate_weights(self, weight_data_type: np.float_, bias_data_type: np.float_) -> None:

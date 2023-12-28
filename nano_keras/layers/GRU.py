@@ -77,11 +77,15 @@ class GRU(LayerWithParams):
         self.output_shape_value = (
             input_shape[0], self.units) if self.return_sequences else self.units
 
-    def get_number_of_params(self) -> int:
-        return self.input_weights.size + self.recurrent_weights.size + self.biases.size
+    def get_number_of_params(self) -> tuple:
+        if self.trainable:
+            return (self.input_weights.size + self.recurrent_weights.size + self.biases.size, 0)
+        return (0, self.input_weights.size + self.recurrent_weights.size + self.biases.size)
 
-    def get_params_size(self) -> int:
-        return self.input_weights.nbytes + self.recurrent_weights.nbytes + self.biases.nbytes
+    def get_params_size(self) -> tuple:
+        if self.trainable:
+            return (self.input_weights.nbytes + self.recurrent_weights.nbytes + self.biases.nbytes, 0)
+        return (0, self.input_weights.nbytes + self.recurrent_weights.nbytes + self.biases.nbytes)
 
     def get_weights(self) -> list[np.ndarray, np.ndarray]:
         return [self.input_weights, self.recurrent_weights, self.biases]
