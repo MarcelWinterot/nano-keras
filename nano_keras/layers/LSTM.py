@@ -8,7 +8,7 @@ from nano_keras.initializers import Initializer, INITIALIZERS
 
 
 class LSTM(LayerWithParams):
-    def __init__(self, units: int, activation: Activation | str = "sigmoid", recurrent_activation: Activation | str = "tanh", weight_initalization: Initializer | str = "random_normal", recurrent_weight_initalization: Initializer | str = "random_normal", bias_initalization: Initializer | str = "zeros", return_sequences: bool = True, regulizer: Regularizer = None, name: str = "LSTM") -> None:
+    def __init__(self, units: int, activation: Activation | str = "sigmoid", recurrent_activation: Activation | str = "tanh", weight_initalization: Initializer | str = "random_normal", recurrent_weight_initalization: Initializer | str = "random_normal", bias_initalization: Initializer | str = "zeros", return_sequences: bool = True, regulizer: Regularizer = None, trainable: bool = True, name: str = "LSTM") -> None:
         self.units: int = units
         self.activation: Activation = activation if type(
             activation) == Activation else ACTIVATIONS[activation]
@@ -24,6 +24,7 @@ class LSTM(LayerWithParams):
 
         self.return_sequences: bool = return_sequences
         self.regulizer: Regularizer = regulizer
+        self.trainable = trainable
         self.name: str = name
 
         self.current_batch = 0
@@ -63,7 +64,7 @@ class LSTM(LayerWithParams):
 
     def get_number_of_params(self) -> int:
         return self.input_weights.size + self.recurrent_weights.size + self.biases.size
-    
+
     def get_params_size(self) -> int:
         return self.input_weights.nbytes + self.recurrent_weights.nbytes + self.biases.nbytes
 
@@ -197,10 +198,11 @@ class LSTM(LayerWithParams):
 
                 biases_gradient[i] += gate_gradient[i]
 
-        self.input_weights, self.biases = optimizer[0].apply_gradients(
-            input_weights_gradient, biases_gradient, self.input_weights, self.biases)
-        self.recurrent_weights, _ = optimizer[0].apply_gradients(
-            recurrent_weights_gradient, [], self.recurrent_weights, [], False)
+        if self.trainable:
+            self.input_weights, self.biases = optimizer[0].apply_gradients(
+                input_weights_gradient, biases_gradient, self.input_weights, self.biases)
+            self.recurrent_weights, _ = optimizer[0].apply_gradients(
+                recurrent_weights_gradient, [], self.recurrent_weights, [], False)
 
         self.current_batch = 0
 

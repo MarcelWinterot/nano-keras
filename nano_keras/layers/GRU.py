@@ -7,7 +7,7 @@ from nano_keras.regulizers import Regularizer
 
 
 class GRU(LayerWithParams):
-    def __init__(self, units: int, activation: Activation | str = "tanh", recurrent_actvation: Activation | str = "sigmoid", weight_initialization: Initializer | str = "random_normal", recurrent_weight_initialization: Initializer | str = "random_normal", bias_initalization: Initializer | str = "zeros", return_sequences: bool = True, regulizer: Regularizer = None, name: str = "GRU") -> None:
+    def __init__(self, units: int, activation: Activation | str = "tanh", recurrent_actvation: Activation | str = "sigmoid", weight_initialization: Initializer | str = "random_normal", recurrent_weight_initialization: Initializer | str = "random_normal", bias_initalization: Initializer | str = "zeros", return_sequences: bool = True, regulizer: Regularizer = None, trainable: bool = True, name: str = "GRU") -> None:
         self.units: int = units
         self.activation: Activation = activation if type(
             activation) == Activation else ACTIVATIONS[activation]
@@ -23,6 +23,7 @@ class GRU(LayerWithParams):
 
         self.return_sequences: bool = return_sequences
         self.regulizer: Regularizer = regulizer
+        self.trainable: bool = trainable
         self.name: str = name
 
         self.current_batch: int = 0
@@ -171,11 +172,12 @@ class GRU(LayerWithParams):
                 biases_gradient[:, i] += gate_gradient[i]
 
         # Input weights and biases
-        self.input_weights, self.biases[0] = optimizer[0].apply_gradients(
-            input_weights_gradient, biases_gradient[0], self.input_weights, self.biases[0])
+        if self.trainable:
+            self.input_weights, self.biases[0] = optimizer[0].apply_gradients(
+                input_weights_gradient, biases_gradient[0], self.input_weights, self.biases[0])
 
-        self.recurrent_weights, self.biases[1] = optimizer[0].apply_gradients(
-            recurrent_weights_gradient, biases_gradient[1], self.recurrent_weights, self.biases[1])
+            self.recurrent_weights, self.biases[1] = optimizer[0].apply_gradients(
+                recurrent_weights_gradient, biases_gradient[1], self.recurrent_weights, self.biases[1])
 
         self.current_batch = 0
 

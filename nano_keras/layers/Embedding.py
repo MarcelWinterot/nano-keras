@@ -6,7 +6,7 @@ from nano_keras.initializers import Initializer, INITIALIZERS
 
 
 class Embedding(LayerWithParams):
-    def __init__(self, input_dim: int, output_dim: int, embedding_initalizer: Initializer | str = "random_normal", regulizer: Regularizer = None, input_length: int = None, name: str = "Embedding") -> None:
+    def __init__(self, input_dim: int, output_dim: int, embedding_initalizer: Initializer | str = "random_normal", regulizer: Regularizer = None, input_length: int = None, trainable: bool = True, name: str = "Embedding") -> None:
         self.input_dim: int = input_dim
         self.output_dim: int = output_dim
         self.input_length: int = input_length
@@ -15,6 +15,7 @@ class Embedding(LayerWithParams):
             embedding_initalizer) == Initializer else INITIALIZERS[embedding_initalizer]
 
         self.regulizer: Regularizer = regulizer
+        self.trainable: bool = trainable
         self.name: str = name
 
         self.weights: np.ndarray = np.array([])
@@ -79,8 +80,9 @@ class Embedding(LayerWithParams):
         weights_gradients = np.zeros_like(self.weights)
         np.add.at(weights_gradients, inputs, gradient)
 
-        self.weights, _ = optimizer[0].apply_gradients(
-            weights_gradients, [], self.weights, [], False)
+        if self.trainable:
+            self.weights, _ = optimizer[0].apply_gradients(
+                weights_gradients, [], self.weights, [], False)
 
         self.current_batch = 0
 

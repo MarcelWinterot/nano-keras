@@ -6,7 +6,7 @@ from nano_keras.initializers import Initializer, INITIALIZERS
 
 
 class Layer:
-    def __init__(self, units: int, activation: Activation | str, weight_initialization: Initializer | str = "random_normal", bias_initialization: Initializer | str = "random_normal", regulizer: Regularizer = None, name: str = "Dense") -> None:
+    def __init__(self, units: int, activation: Activation | str, weight_initialization: Initializer | str = "random_normal", bias_initialization: Initializer | str = "random_normal", regulizer: Regularizer = None, trainable: bool = True, name: str = "Dense") -> None:
         """Intializer for the layer class. 
 
         Args:
@@ -28,6 +28,7 @@ class Layer:
         self.activation: Activation = ACTIVATIONS[activation] if type(
             activation) == str else activation
         self.regulizer: Regularizer = regulizer
+        self.trainable: bool = trainable
         self.batch_size: int = 1
         # Going from 0 to batch_size as it represent the index of self.inputs and self.outputs
         self.current_batch: int = 0

@@ -6,7 +6,7 @@ from nano_keras.initializers import INITIALIZERS, Initializer
 
 
 class MultiHeadAttention(LayerWithParams):
-    def __init__(self, num_heads: int, key_dim: int, value_dim: int = None, weight_initialization: Initializer | str = "random_normal", bias_initialization: Initializer | str = "zeros", name: str = "MultiHeadAttention") -> None:
+    def __init__(self, num_heads: int, key_dim: int, value_dim: int = None, weight_initialization: Initializer | str = "random_normal", bias_initialization: Initializer | str = "zeros", trainable: bool = True, name: str = "MultiHeadAttention") -> None:
         self.num_heads: int = num_heads
         self.key_dim: int = key_dim
         self.value_dim: int = value_dim if value_dim else key_dim
@@ -16,6 +16,7 @@ class MultiHeadAttention(LayerWithParams):
         self.bias_initialization: Initializer = INITIALIZERS[bias_initialization] if type(
             bias_initialization) == str else bias_initialization
 
+        self.trainable = trainable
         self.name: str = name
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:

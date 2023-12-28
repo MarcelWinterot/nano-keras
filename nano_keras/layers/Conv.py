@@ -7,7 +7,7 @@ from nano_keras.initializers import Initializer, INITIALIZERS
 
 
 class Conv1D(LayerWithParams):
-    def __init__(self, filters: int = 1, kernel_size: int = 2, strides: int = 2, activation: Activation | str = "relu", weight_initialization: str = "he", regulizer: Regularizer = None, name: str = "Conv1D") -> None:
+    def __init__(self, filters: int = 1, kernel_size: int = 2, strides: int = 2, activation: Activation | str = "relu", weight_initialization: str = "he", regulizer: Regularizer = None, trainable: bool = True, name: str = "Conv1D") -> None:
         """Initalizer for the Conv1D layer
 
         Args:
@@ -28,6 +28,7 @@ class Conv1D(LayerWithParams):
         self.biases: np.ndarray = np.random.randn(filters)
         self.weight_initialization = weight_initialization
         self.regulizer: Regularizer = regulizer
+        self.trainable: bool = trainable
         self.name: str = name
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
@@ -92,14 +93,15 @@ class Conv1D(LayerWithParams):
                 weights_gradients[i //
                                   self.strides, j] = np.sum(self.inputs[i:i+self.kernel_size, j:j+self.kernel_size] * delta)
 
-        self.weights, self.biases = optimizer[0].apply_gradients(weights_gradients, np.array(
-            delta, dtype=float), self.weights, self.biases)
+        if self.trainable:
+            self.weights, self.biases = optimizer[0].apply_gradients(weights_gradients, np.array(
+                delta, dtype=float), self.weights, self.biases)
 
         return np.dot(delta, self.weights.T)
 
 
 class Conv2D(LayerWithParams):
-    def __init__(self, filters: int = 1, kernel_size: tuple = (2, 2), strides: tuple = (1, 1), activation: Activation | str = "relu", weight_initialization: Initializer | str = "he_normal", bias_initialization: Initializer | str = "zeros", regulizer: Regularizer = None, name: str = "Conv2D") -> None:
+    def __init__(self, filters: int = 1, kernel_size: tuple = (2, 2), strides: tuple = (1, 1), activation: Activation | str = "relu", weight_initialization: Initializer | str = "he_normal", bias_initialization: Initializer | str = "zeros", regulizer: Regularizer = None, trainable: bool = True, name: str = "Conv2D") -> None:
         """Intializer for the Conv2D layer
 
         Args:
@@ -122,6 +124,7 @@ class Conv2D(LayerWithParams):
             weight_initialization) == Initializer else INITIALIZERS[weight_initialization]
         self.bias_initialization: Initializer = bias_initialization if type(
             bias_initialization) == Initializer else INITIALIZERS[bias_initialization]
+        self.trainable: bool = trainable
 
         self.regulizer: Regularizer = regulizer
         self.name: str = name
@@ -267,8 +270,9 @@ class Conv2D(LayerWithParams):
         weights_gradients = (delta.reshape(
             self.number_of_filters, -1) @ x_col.T).reshape(self.weights.shape)
 
-        self.weights, self.biases = optimizer[1].apply_gradients(
-            weights_gradients, np.average(delta, (0, 1)), self.weights, self.biases)
+        if self.trainable:
+            self.weights, self.biases = optimizer[1].apply_gradients(
+                weights_gradients, np.average(delta, (0, 1)), self.weights, self.biases)
 
         self.current_batch = 0
 

@@ -32,10 +32,15 @@ class Dense(LayerWithParams):
 
         weights_gradients = np.outer(inputs, delta)
 
-        self.weights, self.biases = optimizer[0].apply_gradients(
-            weights_gradients, np.average(delta), self.weights, self.biases)
+        if self.trainable:
+            self.weights, self.biases = optimizer[0].apply_gradients(
+                weights_gradients, np.average(delta), self.weights, self.biases)
+        else:
+            # We have to still call the optimizer to update the moving averages
+            # As otherwise we'd get an error with shapes of the moving averages of biases
+            _, _ = optimizer[0].apply_gradients(
+                weights_gradients, np.average(delta), np.copy(self.weights), np.copy(self.biases))
 
         self.current_batch = 0
 
         return np.dot(delta, self.weights.T)
-

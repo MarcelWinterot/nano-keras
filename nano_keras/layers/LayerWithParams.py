@@ -6,9 +6,9 @@ from nano_keras.initializers import Initializer
 
 
 class LayerWithParams(Layer):
-    def __init__(self, units: int, activation: Activation | str, weight_initialization: Initializer | str = "random_normal", bias_initalization: Initializer | str = "random_normal", regulizer: Regularizer = None, name: str = "Dense") -> None:
+    def __init__(self, units: int, activation: Activation | str, weight_initialization: Initializer | str = "random_normal", bias_initalization: Initializer | str = "random_normal", regulizer: Regularizer = None, trainable: bool = True, name: str = "Dense") -> None:
         super().__init__(units, activation, weight_initialization,
-                         bias_initalization, regulizer, name)
+                         bias_initalization, regulizer, trainable, name)
         self.weights = np.array([])
         self.biases = np.array([])
 

@@ -7,7 +7,7 @@ from nano_keras.initializers import Initializer
 
 
 class Dropout(LayerWithParams):
-    def __init__(self, units: int, activation: Activation | str, dropout_rate: float = 0.2, weight_initialization: Initializer | str = "random_normal", bias_initialization: Initializer | str = "random_normal", regulizer: Regularizer | None = None, name: str = "Dropout") -> None:
+    def __init__(self, units: int, activation: Activation | str, dropout_rate: float = 0.2, weight_initialization: Initializer | str = "random_normal", bias_initialization: Initializer | str = "random_normal", regulizer: Regularizer | None = None, trainable: bool = True, name: str = "Dropout") -> None:
         """Intializer for the dropout layer. Note that dropout layer acts the same as Dense but also drops connections between neurons
 
         Args:
@@ -20,7 +20,7 @@ class Dropout(LayerWithParams):
             name (str, optional): Name of the layer. Defaults to "Layer".
         """
         super().__init__(units, activation, weight_initialization,
-                         bias_initialization, regulizer, name)
+                         bias_initialization, regulizer, trainable, name)
         self.dropout_rate: float = dropout_rate
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
@@ -85,8 +85,9 @@ class Dropout(LayerWithParams):
 
         weights_gradients = np.outer(inputs, delta)
 
-        self.weights, self.biases = optimizer[0].apply_gradients(
-            weights_gradients, np.average(delta), self.weights, self.biases)
+        if self.trainable:
+            self.weights, self.biases = optimizer[0].apply_gradients(
+                weights_gradients, np.average(delta), self.weights, self.biases)
 
         self.current_batch = 0
 
