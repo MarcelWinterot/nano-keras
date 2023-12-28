@@ -79,7 +79,17 @@ class MultiHeadAttention(LayerWithParams):
     def get_weights(self) -> list[np.ndarray]:
         return [self.query_weights, self.query_biases, self.key_weights, self.key_biases, self.value_weights, self.value_biases, self.output_weights, self.output_biases]
 
-    def attention(self, q: np.ndarray, k: np.ndarray, v: np.ndarray, *args, **kwargs) -> np.ndarray:
+    def set_weights(self, query_weights: np.ndarray, query_biases: np.ndarray, key_weights: np.ndarray, key_biases: np.ndarray, value_weights: np.ndarray, value_biases: np.ndarray, output_weights: np.ndarray, output_biases: np.ndarray) -> None:
+        self.query_weights = query_weights
+        self.query_biases = query_biases
+        self.key_weights = key_weights
+        self.key_biases = key_biases
+        self.value_weights = value_weights
+        self.value_biases = value_biases
+        self.output_weights = output_weights
+        self.output_biases = output_biases
+
+    def compute_attention(self, q: np.ndarray, k: np.ndarray, v: np.ndarray) -> np.ndarray:
         matmul_qk = np.matmul(q, k.transpose(0, 2, 1))
 
         dk = np.array(k.shape[-1])
@@ -93,6 +103,8 @@ class MultiHeadAttention(LayerWithParams):
         return attended_values
 
     def __call__(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
+        self.inputs = x
+
         Q = np.dot(x, self.query_weights.transpose(1, 0, 2)) + \
             self.query_biases
         K = np.dot(x, self.key_weights.transpose(1, 0, 2)) + self.key_biases
@@ -106,13 +118,16 @@ class MultiHeadAttention(LayerWithParams):
         V = np.array(np.split(V.transpose(0, 2, 1),
                      self.num_heads, axis=-1))[:, :, :, 0]
 
-        attention = self.attention(Q, K, V)
+        attention = self.compute_attention(Q, K, V)
 
-        attention = np.concatenate(attention, axis=-1)
+        self.attention_output = np.concatenate(attention, axis=-1)
 
         output_weights = self.output_weights.transpose(1, 0, 2)
 
-        output = np.dot(attention, output_weights.reshape(-1,
-                        output_weights.shape[-1])) + self.output_biases
+        self.output = np.dot(self.attention_output, output_weights.reshape(-1,
+                                                                           output_weights.shape[-1])) + self.output_biases
 
-        return output
+        return self.output
+
+    def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer]) -> np.ndarray:
+        return gradient

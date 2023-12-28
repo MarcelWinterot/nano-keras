@@ -3,7 +3,7 @@ For now this demo is used for testing what works, and showcasing progress on LST
 In the future it will have RNN implemented
 """
 from nano_keras.models import NN
-from nano_keras.layers import LSTM, Embedding, GRU
+from nano_keras.layers import LSTM, Embedding, GRU, MultiHeadAttention
 from nano_keras.optimizers import SGD
 from nano_keras.losses import MSE
 import numpy as np
@@ -14,31 +14,26 @@ model.add(Embedding(10, 20, input_length=14))
 model.add(LSTM(8, name="LSTM 1"))
 model.add(GRU(6, name="GRU 1"))
 model.add(GRU(20, name="GRU 2"))
+model.add(MultiHeadAttention(4, 8, name="MHA 1"))
 model.add(LSTM(4, return_sequences=False, name="LSTM 2"))
 
 model.compile(optimizer="sgd")
 model.summary()
 
 # Creating random data for training
-x = np.random.randint(0, 10, size=(2, 14,))
-y = np.random.randn(2, 4,)
+x = np.random.randint(0, 10, size=(14,))
+y = np.random.randn(4,)
 
-# Setting batch size for all layers
 for layer in model.layers:
-    layer.set_batch_size(2, model.layers, model.layers.index(layer))
+    layer.set_batch_size(1, model.layers, model.layers.index(layer))
 
 # Feed forward
-outputs = []
+outputs = model.feed_forward(x, is_training=True)
 
-for batch in range(2):
-    outputs.append(model.feed_forward(x[batch], is_training=True))
-
-print(f"Output shape: {outputs[0].shape}")
+print(f"Output shape: {outputs.shape}")
 
 # Backpropagation
 gradient = MSE().compute_derivative(y, outputs)
-
-gradient = np.average(gradient, axis=0)
 
 opt = SGD()
 

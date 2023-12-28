@@ -20,7 +20,13 @@ class Adagrad(Optimizer):
     def apply_gradients(self, weights_gradients: np.ndarray, bias_gradients: np.ndarray, weights: np.ndarray, biases: np.ndarray, update_biases: bool = True) -> tuple[np.ndarray, np.ndarray]:
         """Function that updates models weights and biases using the Adagrad algorithm. 
 
-        Args:
+        Args:        self.z += weights_gradients - self.learning_rate * weights
+        self.n += weights_gradients ** 2
+
+        # FTRL update rule for weights
+        g = -1 * (self.z / (self.n ** self.learning_rate_power + self.beta))
+        weights -= np.where(np.abs(self.z) <= self.l1_regularization_strength, weights, g / self.learning_rate)
+
             weights_gradients (np.ndarray): Weight gradients you've calculated
             bias_gradients (np.ndarray): Bias gradients you've calculated
             weights (np.ndarray): Model or layers weights you want to update
