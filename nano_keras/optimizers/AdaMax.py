@@ -3,6 +3,9 @@ from nano_keras.optimizers import Optimizer
 
 
 class AdaMax(Optimizer):
+    """AdaMax(Infinite Norm Adaptive Moment Estimation) optimizer implementation of Optimizer class. You can read more about it at https://paperswithcode.com/method/adamax 
+    """
+
     def __init__(self, learning_rate: float = 0.001, beta1: float = 0.9, beta2: float = 0.999, epsilon: float = 1e-7, adjust_biases_shape: bool = False) -> None:
         """Intializer to the AdaMax(Infinite Norm Adaptive Moment Estimation) optimizer.
 

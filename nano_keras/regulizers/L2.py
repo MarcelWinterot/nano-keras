@@ -1,7 +1,11 @@
 import numpy as np
 from nano_keras.regulizers import Regularizer
 
+
 class L2(Regularizer):
+    """L2 Regularizer implementation of Regularizer.
+    """
+
     def update_gradient(self, gradient: np.ndarray, weights: np.ndarray, biases: np.ndarray) -> np.ndarray:
         """L2 regulizer implementation of the gradient update function
 

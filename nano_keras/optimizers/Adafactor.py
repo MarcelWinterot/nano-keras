@@ -4,14 +4,18 @@ from nano_keras.optimizers import Optimizer
 
 
 class Adafactor(Optimizer):
+    """Adafactor (Adaptive factor) optimizer implementation.
+    """
+
     def __init__(self, e_1: float = 10**-30, e_2: float = 0.001, d: float = 1, p: float = 0.01, beta_2: float = 0.999, adjust_biases_shape: bool = False) -> None:
-        """Intializer to the Adam(Adaptive Moment Estimator) optimizer.
+        """Intializer to the Adafactor(Adaptive factor) optimizer. You can read more about it at https://arxiv.org/pdf/1804.04235.pdf
 
         Args:
-            learning_rate (float, optional): Paramter that specifies how fast the model will learn. Defaults to 0.001.
-            beta1 (float, optional): Paramter that controls the exponential moving average of the first moment of the gradient. Defaults to 0.9.
-            beta2 (float, optional): Paramter that contorls the exponential moving average of the second moment of the gradient. Defaults to 0.999.
-            epsilon (float, optional): Paramter that ensures we don't divide by 0 and adds numerical stability to learning rate. Defaults to 1e-7.
+            e_1 (float, optional): Epsilon. Defaults to 10**-30.
+            e_2 (float, optional): Minimum value for learning rate. Defaults to 0.001.
+            d (float, optional): Value we divide the RMS result by. Defaults to 1.
+            p (float, optional): Value we multiply the learning rate by. Defaults to 0.01.
+            beta_2 (float, optional): Parameter that controls how much of the previous gradient we use. Defaults to 0.999.
             adjust_biases_shape (bool, optional): Paramter that controles wheter we adjuts the bias gradients and moving averages for biases shapes. Default to False.
         """
         self.e_1 = e_1
@@ -31,6 +35,15 @@ class Adafactor(Optimizer):
         self.t: int = 0
 
     def RMS(self, x: np.ndarray, gradient: np.ndarray) -> float:
+        """Root mean square function used to calculate the learning rate
+
+        Args:
+            x (np.ndarray): Input array
+            gradient (np.ndarray): Gradient array
+
+        Returns:
+            float: Root mean square of the input array
+        """
         output = np.mean(((gradient**2) / (x + self.e_1)))
 
         return np.sqrt(np.abs(output))

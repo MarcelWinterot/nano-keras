@@ -2,6 +2,9 @@ import numpy as np
 
 
 class Optimizer:
+    """Optimizer base class.
+    """
+
     def __init__(self) -> None:
         pass
 

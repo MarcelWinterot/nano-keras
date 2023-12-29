@@ -3,7 +3,19 @@ from nano_keras.optimizers import Optimizer
 
 
 class Ftrl(Optimizer):
+    """Ftrl(Follow The Regularized Leader) implementation of Optimizer class. You can read more about it at https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf 
+    """
+
     def __init__(self, learning_rate: float = 0.001, learning_rate_power: float = 0.5, beta: float = 0.0, l1_regularization_strength: float = 0.0, adjust_biases_shape: bool = False) -> None:
+        """Intializer to the Ftrl(Follow The Regularized Leader) optimizer.
+
+        Args:
+            learning_rate (float, optional): Paramter that specifies how fast the model will learn. Defaults to 0.001.
+            learning_rate_power (float, optional): Controls how the learning rate decreases during training.. Defaults to 0.5.
+            beta (float, optional): Beta value representing the beta value from the paper. Defaults to 0.0.
+            l1_regularization_strength (float, optional): Strength of the l1 regularization. Defaults to 0.0.
+            adjust_biases_shape (bool, optional): Paramter that controles wheter we adjuts the bias gradients and moving averages for biases shapes. Default to False.
+        """
         self.learning_rate = learning_rate
         self.learning_rate_power = learning_rate_power
         self.beta = beta

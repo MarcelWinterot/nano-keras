@@ -1,10 +1,14 @@
 import numpy as np
 
+
 class Loss:
+    """Base class for all Loss classes.
+    """
+
     def __init__(self) -> None:
         """Initalizer for all Loss classes that don't have any paramters to set
         """
-        pass
+        self.e = 1e-7
 
     def compute_loss(self, yTrue: np.ndarray, yPred: np.ndarray) -> np.ndarray:
         """Base implementation of compute_loss function

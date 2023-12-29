@@ -3,6 +3,9 @@ from nano_keras.losses import Loss
 
 
 class Huber(Loss):
+    """Huber implementation of Loss class
+    """
+
     def __init__(self, delta: float = 0.5) -> None:
         """Initalizer for huber loss class
 

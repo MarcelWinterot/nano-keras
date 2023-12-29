@@ -3,6 +3,9 @@ from nano_keras.optimizers import Optimizer
 
 
 class AdamW(Optimizer):
+    """AdamW(Adaptive Moment Estimator with Weights Decay) optimizer implementation of Optimizer class. You can read more about it at https://arxiv.org/pdf/1711.05101v3.pdf
+    """
+
     def __init__(self, learning_rate: float = 0.001, beta1: float = 0.9, beta2: float = 0.999, epsilon: float = 1e-7, weight_decay: float = 1e-2, adjust_biases_shape: bool = False) -> None:
         """Intializer to the AdamW(Adaptive Moment Estimator with Weights Decay) optimizer.
 

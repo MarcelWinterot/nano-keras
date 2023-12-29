@@ -3,6 +3,9 @@ from nano_keras.optimizers import Optimizer
 
 
 class Adagrad(Optimizer):
+    """Adagrad(Adaptive Gradient Descent) optimizer implementation of Optimizer class. You can read more about it at https://paperswithcode.com/method/adagrad
+    """
+
     def __init__(self, learning_rate: float = 0.001, epsilon: float = 1e-7, adjust_biases_shape: bool = False) -> None:
         """Intializer for the Adagrad(Adaptive Gradient Descent) optimizer.
 

@@ -2,6 +2,9 @@ import numpy as np
 
 
 class Regularizer:
+    """Regularizer base class.
+    """
+
     def __init__(self, strength: float = 1e-3):
         """Intializer for the base Regulzer implementation
 

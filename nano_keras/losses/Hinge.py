@@ -3,6 +3,9 @@ from nano_keras.losses import Loss
 
 
 class Hinge(Loss):
+    """Hinge implementation of Loss class
+    """
+
     def compute_loss(self, yTrue: np.ndarray, yPred: np.ndarray) -> np.ndarray:
         """Hinge implementation of compute_loss function
 

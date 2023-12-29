@@ -3,6 +3,9 @@ from nano_keras.optimizers import Optimizer
 
 
 class Adadelta(Optimizer):
+    """Adadelta (Adaptive delta) optimizer implementation of Optimizer class. You can read more about it at https://arxiv.org/pdf/1212.5701.pdf
+    """
+
     def __init__(self, rho: float = 0.9, epsilon: float = 1e-7, adjust_biases_shape: bool = False) -> None:
         """Initalizer for the Adadelta(Adaptive delta) algorithm.
 

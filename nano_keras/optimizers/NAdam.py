@@ -3,6 +3,9 @@ from nano_keras.optimizers import Optimizer
 
 
 class NAdam(Optimizer):
+    """NAdam(Nesterov-accelerated Adaptive Moment Estimator) optimizer implementation of Optimizer class. You can read more about it at https://arxiv.org/pdf/1609.04747.pdf
+    """
+
     def __init__(self, learning_rate: float = 0.001, beta1: float = 0.9, beta2: float = 0.999, epsilon: float = 1e-7, adjust_biases_shape: bool = False) -> None:
         """Initializer for the NAdam(Nesterov-accelerated Adaptive Moment Estimator) algorithm
 

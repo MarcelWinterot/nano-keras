@@ -3,6 +3,8 @@ from nano_keras.regulizers import Regularizer
 
 
 class L1L2(Regularizer):
+    """L1L2 Regularizer implementation of Regularizer.
+    """
     def __init__(self, l1_strength: float = 1e-3, l2_strength: float = 1e-3):
         """Intailizer for the L1L2 regulizer
 

@@ -3,8 +3,8 @@ from nano_keras.losses import Loss
 
 
 class CCE(Loss):
-    def __init__(self) -> None:
-        self.e: float = 1e-7
+    """Categorical cross entropy implementation of Loss class
+    """
 
     def compute_loss(self, yTrue: np.ndarray, yPred: np.ndarray) -> np.ndarray:
         """Categorical cross entropy implementation of compute_loss function

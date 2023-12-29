@@ -3,6 +3,9 @@ from nano_keras.optimizers import Optimizer
 
 
 class RMSProp(Optimizer):
+    """RMSProp(Root Mean Square Propagation) optimizer implementation of Optimizer class. You can read more about it at https://paperswithcode.com/method/rmsprop
+    """
+
     def __init__(self, learning_rate: float = 0.001, rho: float = 0.9, epsilon: float = 1e-7, adjust_biases_shape: bool = False) -> None:
         """Initalizer for the RMSProp(Root Mean Square Propagation) algorithm.
 

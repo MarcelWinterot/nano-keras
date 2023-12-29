@@ -3,6 +3,9 @@ from nano_keras.losses import Loss
 
 
 class MAE(Loss):
+    """Mean absolute error implementation of Loss class
+    """
+
     def compute_loss(self, yTrue: np.ndarray, yPred: np.ndarray) -> np.ndarray:
         """Mean absolute error implementation of compute_loss function
 

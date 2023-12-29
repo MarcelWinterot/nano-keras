@@ -3,6 +3,9 @@ from nano_keras.optimizers import Optimizer
 
 
 class SGD(Optimizer):
+    """SGD(Sotchastic Gradient Descent) optimizer implementation of Optimizer class
+    """
+
     def __init__(self, learning_rate: float = 0.001):
         """Initializer for the SGD(Stochastic Gradient Descent) optimizer
 

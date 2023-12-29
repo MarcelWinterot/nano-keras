@@ -3,6 +3,9 @@ from nano_keras.losses import Loss
 
 
 class MSE(Loss):
+    """Mean squared error implementation of Loss class
+    """
+
     def compute_loss(self, yTrue: np.ndarray, yPred: np.ndarray) -> float:
         """Mean squared error implementation of compute_loss function
 
