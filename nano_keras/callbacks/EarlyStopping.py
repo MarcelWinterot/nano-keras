@@ -4,13 +4,16 @@ from nano_keras.layers import Layer, LayerWithParams
 
 
 class EarlyStopping(Callback):
+    """Early stopping callback used to stop the training if the model doesn't improve or it's improvement is too small
+    It is called after the epoch is finished
+    """
+
     def __init__(self, patience: int, value_to_monitor: str = "loss", min_delta: float = 0.0001, restore_best_weights: bool = False) -> None:
-        """Initalizer for the early stopping callback. It's used to stop the training if the model
-        doesn't improve or it's improvement is too small
+        """Initalizer for the early stopping callback. Note that you need to pass the metrics and layers kwargs in order for this to work
 
         Args:
             patience (int): For how many epochs can the moniotred value degrade before stopping training\n
-            value_to_monitor (int, optional): what should the model watch during training.
+            value_to_monitor (int, optional): What value should be monitored.
             Possible value_to_monitor options are: metric, accuracy, val_metric, val_accuracy. Default to loss.\n
             min_delta (float, optional): By how much must the value_to_monitored improve
             in order for it to be classiffied as an improvement. Default to 0.0001\n

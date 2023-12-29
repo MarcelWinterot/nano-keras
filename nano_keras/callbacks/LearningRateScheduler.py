@@ -2,9 +2,12 @@ from nano_keras.callbacks import Callback
 
 
 class LearningRateScheduler(Callback):
+    """LearningRateScheduler callback used to change the learning rate of the model during training\n
+    New learning rate of the model is calculated by the given function, called schedule.
+    """
+
     def __init__(self, schedule: callable) -> None:
-        """Initalizer for the LearningRateScheduler callback. It's used to change the\n
-        learning rate of the model depending on the given function, called schedule.
+        """Initalizer for the LearningRateScheduler callback. 
 
         Args:
             schedule (callable): Functon used to change models learning rate during the training\n

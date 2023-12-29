@@ -3,6 +3,9 @@ from nano_keras.initializers import RandomInitializer
 
 
 class RandomNormal(RandomInitializer):
+    """RandomNormal initializer class. Generates the parameters using the normal distribution.
+    """
+
     def __call__(self, shape: tuple, datatype: np.float_) -> np.ndarray:
         """Generates the parameters in the shape of 'shape' using the normal distribution.
 
@@ -17,6 +20,9 @@ class RandomNormal(RandomInitializer):
 
 
 class RandomUniform(RandomInitializer):
+    """RandomUniform initializer class. Generates the parameters using the uniform distribution.
+    """
+
     def __call__(self, shape: tuple, datatype: np.float_) -> np.ndarray:
         """Generates the parameters in the shape of 'shape' using the uniform distribution.
 
@@ -31,6 +37,10 @@ class RandomUniform(RandomInitializer):
 
 
 class HeNormal(RandomInitializer):
+    """HeNormal initializer class. Generates the parameters using the he initalization strategy and normal distribution.
+    [He et al., 2015](https://arxiv.org/abs/1502.01852)
+    """
+
     def __call__(self, shape: tuple, datatype: np.float_) -> np.ndarray:
         """Generates the parameters in the shape of 'shape' using the he initalization strategy and normal distribution.
 
@@ -50,6 +60,10 @@ class HeNormal(RandomInitializer):
 
 
 class HeUniform(RandomInitializer):
+    """HeUniform initializer class. Generates the parameters using the he initalization strategy and uniform distribution.
+    [He et al., 2015](https://arxiv.org/abs/1502.01852)
+    """
+
     def __call__(self, shape: tuple, datatype: np.float_) -> np.ndarray:
         """Generates the parameters in the shape of 'shape' using the he initalization strategy and uniform distribution.
 
@@ -69,6 +83,10 @@ class HeUniform(RandomInitializer):
 
 
 class XavierNormal(RandomInitializer):
+    """XavierNormal initializer class. Generates the parameters using the Xavier/Gloriot initalization strategy and normal distribution.
+    [Glorot et al., 2010](http://proceedings.mlr.press/v9/glorot10a.html)
+    """
+
     def __call__(self, shape: tuple, fan_in: int, datatype: np.float_) -> np.ndarray:
         """Generates the parameters in the shape of 'shape' using the Xavier/Gloriot initalization strategy and normal distribution.
 
@@ -89,6 +107,10 @@ class XavierNormal(RandomInitializer):
 
 
 class XavierUniform(RandomInitializer):
+    """XavierUniform initializer class. Generates the parameters using the Xavier/Gloriot initalization strategy and uniform distribution.
+    [Glorot et al., 2010](http://proceedings.mlr.press/v9/glorot10a.html)
+    """
+
     def __call__(self, shape: tuple, datatype: np.float_) -> np.ndarray:
         """Generates the parameters in the shape of 'shape' using the Xavier/Gloriot initalization strategy and uniform distribution.
 

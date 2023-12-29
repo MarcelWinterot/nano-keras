@@ -3,10 +3,14 @@ import csv
 
 
 class CSVLogger(Callback):
+    """CSVLogger callback class. It's used to log information about training\n
+    into a .csv file, so you can check it later. It is called after the batch is finished\n
+    Note that if you don't set metrics="accuracy" in the model.compile(), accuracy columns will be empty.
+    """
+
     def __init__(self, filename: str, append: bool = False) -> None:
-        """Initalizr for the CSVLogger callback. It's used to log information about training\n
-        into a .csv file, so you can check it later. It logs the information after the batch is finished\n
-        Note that if you don't set metrics="accuracy" in the model.compile(), accuracy columns will be empty.
+        """Initalizr for the CSVLogger callback. It will create a .csv file with the given filename\n
+        and save the information about training in it.
 
         Args:
             filename (str): Filename where you want to set the logs. You can but don't need to add the .csv extension

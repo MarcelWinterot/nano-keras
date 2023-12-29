@@ -2,6 +2,9 @@ import numpy as np
 
 
 class Initializer:
+    """Base class used to build new Initializers.
+    """
+
     def __init__(self) -> None:
         """Initializer for base class Initializer class
         """
@@ -21,6 +24,9 @@ class Initializer:
 
 
 class RandomInitializer(Initializer):
+    """Base class for all the initializers which use some randomness in them like Random Normal, He Uniform, Xavier Normal, etc.
+    """
+
     def __init__(self, mu: float = 0, sigma: float = 0.1) -> None:
         """Initalizer for all the initializers which use some randomness in them like Random Normal, He Uniform, Xavier Normal, etc.
 
@@ -42,6 +48,7 @@ class RandomInitializer(Initializer):
         Returns:
             A tuple of integer scalars: `(fan_in, fan_out)`.
         """
+        # Borrowed from Keras <3
         shape = tuple(shape)
         if len(shape) < 1:
             fan_in = fan_out = 1
@@ -60,6 +67,9 @@ class RandomInitializer(Initializer):
 
 
 class ConstantInitializer(Initializer):
+    """Base class for all the initializers which use some constant value for parameter initalization.
+    """
+
     def __init__(self, constant: float) -> None:
         """Initializer for all Initializers which use a constant variable as the parameter.
 

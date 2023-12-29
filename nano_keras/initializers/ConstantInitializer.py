@@ -3,6 +3,9 @@ from nano_keras.initializers import ConstantInitializer
 
 
 class Zeros(ConstantInitializer):
+    """Zeros initializer. Initializes the parmeters with zeros.
+    """
+
     def __init__(self) -> None:
         pass
 
@@ -20,6 +23,9 @@ class Zeros(ConstantInitializer):
 
 
 class Ones(ConstantInitializer):
+    """Ones initializer. Initializes the parmeters with ones.
+    """
+
     def __init__(self) -> None:
         pass
 
@@ -37,6 +43,9 @@ class Ones(ConstantInitializer):
 
 
 class Constant(ConstantInitializer):
+    """Constant initializer. Initializes the parmeters with a constant value provided in the __init__.
+    """
+
     def __call__(self, shape: tuple, datatype: np.float_) -> np.ndarray:
         """Computes an output in the shape of 'shape' filled with 'constant' specified in the __init__.
 
