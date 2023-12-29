@@ -7,6 +7,9 @@ from nano_keras.initializers import Initializer, INITIALIZERS
 
 
 class Conv1D(LayerWithParams):
+    """Conv1D layer class. The input shape is (None, steps, channels) and the output shape is (None, new_steps, filters)
+    """
+
     def __init__(self, filters: int = 1, kernel_size: int = 2, strides: int = 2, activation: Activation | str = "relu", weight_initialization: str = "he", regulizer: Regularizer = None, trainable: bool = True, name: str = "Conv1D") -> None:
         """Initalizer for the Conv1D layer
 
@@ -17,6 +20,7 @@ class Conv1D(LayerWithParams):
             activation (Activation | str, optional): Activation function the layer should use. Defaults to "relu".
             weight_initaliziton (str, optional): Weights intialization strategy you want to use to generate weights of the layer. Your options are: random, xavier, he. Defalut to "he"
             regulizer (Regularizer, optional): Regulizer of the layer. Defaults to None.
+            trainable (bool, optional): Parameter that decides whether the parameters should be updated or no. Defaults to True.
             name (str, optional): Name of the layer. Defaults to "Conv1D".
         """
         self.number_of_filters: int = filters
@@ -101,6 +105,9 @@ class Conv1D(LayerWithParams):
 
 
 class Conv2D(LayerWithParams):
+    """Conv2D layer class. The input shape is (None, height, width, channels) and the output shape is (None, new_height, new_width, filters)
+    """
+
     def __init__(self, filters: int = 1, kernel_size: tuple = (2, 2), strides: tuple = (1, 1), activation: Activation | str = "relu", weight_initialization: Initializer | str = "he_normal", bias_initialization: Initializer | str = "zeros", regulizer: Regularizer = None, trainable: bool = True, name: str = "Conv2D") -> None:
         """Intializer for the Conv2D layer
 
@@ -112,6 +119,7 @@ class Conv2D(LayerWithParams):
             weight_initialization (str, optional): Weights intialization strategy you want to use to generate weights of the layer. Your options are: random_normal, xavier_normal, he_normal. Defalut to "he_normal"
             bias_initialization (str, optional): Bias intialization strategy you want to use to generate biases of the layer. Your options are: random_normal, xavier_normal, he_normal. Defalut to "random_normal"
             regulizer (Regularizer, optional): Regulizer for the layer. Defaults to None.
+            trainable (bool, optional): Parameter that decides whether the parameters should be updated or no. Defaults to True.
             name (str, optional): Name of the layer. Defaults to "Conv2D".
         """
         self.number_of_filters: int = filters
@@ -149,6 +157,14 @@ class Conv2D(LayerWithParams):
         self.x_col = np.ndarray((self.batch_size, *x_col_indices[0].shape))
 
     def generate_weights(self, layers: list[Layer], current_layer_index: int, weight_data_type: np.float_, bias_data_type: np.float_) -> None:
+        """Function used for weights generation for Conv2D layer with 4d weights. The shape of the weights is (kernel_size[0], kernel_size[1], input_shape[-1], number_of_filters)
+
+        Args:
+            layers (list): All layers in the model
+            current_layer_index (int): For what layer do we want to generate the weights
+            weight_data_type (np.float_): In what data type do you want to store the weights. Only use datatypes like np.float32 and np.float64
+            bias_data_type (np.float_): In what data type do you want to store the biases. Only use datatypes like np.float32 and np.float64
+        """
         input_shape = layers[current_layer_index -
                              1].output_shape(layers, current_layer_index-1)
 
@@ -210,14 +226,6 @@ class Conv2D(LayerWithParams):
         return x[i, j, k]
 
     def __call__(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
-        """Call function also known as feed forward function for the Conv2D layer
-
-        Args:
-            x (np.ndarray): X dataset
-
-        Returns:
-            np.ndarray: Layers output
-        """
         input_shape = x.shape
 
         if is_training:
@@ -247,7 +255,7 @@ class Conv2D(LayerWithParams):
         return output
 
     def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer]) -> np.ndarray:
-        """Backpropagate algorithm used for Conv2D layer. It's kinda slow right now so it's not recommended to use it but it will be faster in the future
+        """Backpropagate algorithm used for Conv2D layer.
 
         Args:
             gradient (np.ndarray): Gradient calculated by loss.compute_derivative() or previous layers output gradient

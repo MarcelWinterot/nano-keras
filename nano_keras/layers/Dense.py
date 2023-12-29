@@ -1,9 +1,30 @@
+from nano_keras.activations import Activation
+from nano_keras.initializers import Initializer
 from nano_keras.layers import Layer, LayerWithParams
 import numpy as np
 from nano_keras.optimizers import Optimizer
+from nano_keras.regulizers import Regularizer
 
 
 class Dense(LayerWithParams):
+    """Dense/Linear/Fully connected layer. The input shape is (None, input_shape) and the output shape is (None, units)
+    """
+
+    def __init__(self, units: int, activation: Activation | str, weight_initialization: Initializer | str = "random_normal", bias_initalization: Initializer | str = "random_normal", regulizer: Regularizer = None, trainable: bool = True, name: str = "Dense") -> None:
+        """Initalizer for the Dense class
+
+        Args:
+            units (int): Number of neurons the layer should have
+            activation (Activation | str): Activation function the model should use. You can find them all in the activations.py.
+            weight_initaliziton (str, optional): Weights intialization strategy you want to use to generate weights of the layer. You can find all of them in the Initalizers folder. Defalut to "random_normal"
+            bias_initialization (Initalizer | str, optional): Weights intialization strategy you want to use to generate biases of the layer. You can find all of them in the Initalizers folder. Defalut to "random_normal"
+            regulizer (Regularizer, optional): Regulizer the model should use. You can find them all in the regulizers.py file. You must pass the already intialized class. Defaults to None.
+            trainable (bool, optional): Parameter that decides whether the parameters should be updated or no. Defaults to True.
+            name (str, optional): Name of the layer. Helpful for debugging. Defaults to "Dense".
+        """
+        super().__init__(units, activation, weight_initialization,
+                         bias_initalization, regulizer, trainable, name)
+
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         return self.units
 

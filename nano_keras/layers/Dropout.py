@@ -7,6 +7,10 @@ from nano_keras.initializers import Initializer
 
 
 class Dropout(LayerWithParams):
+    """Dropout layer class. It is simillar to Dense layer, but it also drops connections between neurons. It's used to prevent overfitting
+    It's input shape is (None, input_shape) and it's output shape is (None, units)
+    """
+
     def __init__(self, units: int, activation: Activation | str, dropout_rate: float = 0.2, weight_initialization: Initializer | str = "random_normal", bias_initialization: Initializer | str = "random_normal", regulizer: Regularizer | None = None, trainable: bool = True, name: str = "Dropout") -> None:
         """Intializer for the dropout layer. Note that dropout layer acts the same as Dense but also drops connections between neurons
 
@@ -17,6 +21,7 @@ class Dropout(LayerWithParams):
             weight_initaliziton (Initializer | str, optional): Weights intialization strategy you want to use to generate weights of the layer. Defalut to "random_normal"
             bias_initaliziton (Initializer | str, optional): Bias intialization strategy you want to use to generate biases of the layer. Defalut to "random_normal"
             regulizer (Regularizer | None, optional): Regulizer the model should use. Defaults to None.
+            trainable (bool, optional): Parameter that decides whether the parameters should be updated or no. Defaults to True.
             name (str, optional): Name of the layer. Defaults to "Layer".
         """
         super().__init__(units, activation, weight_initialization,

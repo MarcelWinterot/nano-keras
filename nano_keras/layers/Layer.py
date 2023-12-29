@@ -6,16 +6,21 @@ from nano_keras.initializers import Initializer, INITIALIZERS
 
 
 class Layer:
-    def __init__(self, units: int, activation: Activation | str, weight_initialization: Initializer | str = "random_normal", bias_initialization: Initializer | str = "random_normal", regulizer: Regularizer = None, trainable: bool = True, name: str = "Dense") -> None:
-        """Intializer for the layer class. 
+    """Base class used to build new layers.
+    It's used with all the layers that don't have any parameters to update
+    """
+
+    def __init__(self, units: int, activation: Activation | str, weight_initialization: Initializer | str = "random_normal", bias_initialization: Initializer | str = "random_normal", regulizer: Regularizer = None, trainable: bool = True, name: str = "Layer") -> None:
+        """Initalizer for the Layer class
 
         Args:
             units (int): Number of neurons the layer should have
             activation (Activation | str): Activation function the model should use. You can find them all in the activations.py.
-            weight_initaliziton (str, optional): Weights intialization strategy you want to use to generate weights of the layer. Your options are: random_normal, xavier_normal, he_normal. Defalut to "random_normal"
-            bias_initialization (Initalizer | str, optional): Weights intialization strategy you want to use to generate biases of the layer. Your options are: random_normal, xavier_normal, he_normal. Defalut to "random_normal"
+            weight_initaliziton (str, optional): Weights intialization strategy you want to use to generate weights of the layer. You can find all of them in the Initalizers folder. Defalut to "random_normal"
+            bias_initialization (Initalizer | str, optional): Weights intialization strategy you want to use to generate biases of the layer. You can find all of them in the Initalizers folder. Defalut to "random_normal"
             regulizer (Regularizer, optional): Regulizer the model should use. You can find them all in the regulizers.py file. You must pass the already intialized class. Defaults to None.
-            name (str, optional): Name of the layer. Helpful for debugging. Defaults to "Dense".
+            trainable (bool, optional): Parameter that decides whether the parameters should be updated or no. Defaults to True.
+            name (str, optional): Name of the layer. Helpful for debugging. Defaults to "Layer".
         """
         self.units: int = units
         self.name: str = name
@@ -34,6 +39,13 @@ class Layer:
         self.current_batch: int = 0
 
     def set_batch_size(self, batch_size: int, layers: list, index: int) -> None:
+        """Function used to set the batch size of the layer
+
+        Args:
+            batch_size (int): Batch size of the model
+            layers (list): All layers in the model
+            index (int): Index of the current layer
+        """
         self.batch_size = batch_size
 
         input_shape = layers[index-1].output_shape(layers, index-1)
@@ -64,12 +76,27 @@ class Layer:
         self.biases = self.bias_initialization(self.units, bias_data_type)
 
     def get_weights(self) -> list[np.ndarray]:
+        """Function used to get the weights of the layer
+
+        Returns:
+            list[np.ndarray]: [Weights, biases] of the layer
+        """
         return [np.array([]), np.array([])]
 
     def get_number_of_params(self) -> tuple:
+        """Function used to get the number of trainable and non-trainable parameters of the layer
+
+        Returns:
+            tuple: (trainable, non-trainable) parameters of the layer
+        """
         return (0, 0)  # Trainable, non-trainable
 
     def get_params_size(self) -> tuple:
+        """Function used to get the size of trainable and non-trainable parameters of the layer
+
+        Returns:
+            tuple: Size of (trainable, non-trainable) parameters of the layer
+        """
         return (0, 0)  # Trainable, non-trainable
 
     def output_shape(self, layers: list, current_layer_index: int) -> tuple:
@@ -93,16 +120,15 @@ class Layer:
         return "Base layer class"
 
     def __call__(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
-        """Call function for the layer, also know as feed forward\n
-        Note that we also store all the variables the models calculated in self as it's layer used in backpropagate
+        """Feed forward function for the layer\n
+        Note that we also store all the variables the models calculated in self as it's layer used in backpropagate, so the memory usage might be higher than expected.
 
         Args:
             x (np.ndarray): X dataset
-            is_training (bool): Determines whether the layer should behave like in the training loop or no. Turning it off\n
-            might give better results
+            is_training (bool): Determines whether the layer should behave like in the training loop or no. Defaults to False.
 
         Returns:
-            np.ndarray: output of the model
+            np.ndarray: output after performing necessary calculations
         """
         weighted_sum = np.dot(x, self.weights) + self.biases
         output = self.activation.apply_activation(

@@ -6,7 +6,21 @@ from nano_keras.initializers import Initializer, INITIALIZERS
 
 
 class Embedding(LayerWithParams):
+    """Embedding layer. It's a lookup table that maps integers to vectors. It's input shape is (None, input_length) and it's output shape is (None, input_length, output_dim)
+    """
+
     def __init__(self, input_dim: int, output_dim: int, embedding_initalizer: Initializer | str = "random_normal", regulizer: Regularizer = None, input_length: int = None, trainable: bool = True, name: str = "Embedding") -> None:
+        """Initalizer for the Embedding layer
+
+        Args:
+            input_dim (int): Size of the vocabulary, i.e. maximum integer index + 1.
+            output_dim (int): Dimension of the dense embedding.
+            embedding_initalizer (Initializer | str, optional): Initalizer for the lookup table/weights. Defaults to "random_normal".
+            regulizer (Regularizer, optional): Regulizer the model should use. You can find them all in the regulizers.py file. You must pass the already intialized class. Defaults to None.
+            input_length (int, optional): Length of the input. Defaults to None.
+            trainable (bool, optional): Parameter that decides whether the parameters should be updated or no. Defaults to True.
+            name (str, optional): Name of the layer. Helpful for debugging. Defaults to "Embedding".
+        """
         self.input_dim: int = input_dim
         self.output_dim: int = output_dim
         self.input_length: int = input_length
@@ -72,6 +86,15 @@ class Embedding(LayerWithParams):
         return self.weights[x]
 
     def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer]) -> np.ndarray:
+        """Backpropagation algorithm for the Embedding layer
+
+        Args:
+            gradient (np.ndarray): gradient calculated by losses.compute_derivative()
+            optimizer (Optimizer): Optimizer to use when updating layers parameters
+
+        Returns:
+            np.ndarray: New gradient
+        """
         if self.regulizer:
             self.regulizer.regulize(self.weights)
 

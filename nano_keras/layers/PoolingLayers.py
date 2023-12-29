@@ -6,13 +6,16 @@ from nano_keras.optimizers import Optimizer
 
 
 class PoolingLayey1D(Layer):
-    def __init__(self, pool_size: int = 2, strides: int = 2, name: str = "MaxPool1D") -> None:
-        """Intializer for the MaxPool1D layer
+    """Pooling layer 1d base class. It's used to reduce the size of 2d arrays
+    """
+
+    def __init__(self, pool_size: int = 2, strides: int = 2, name: str = "Pool1D") -> None:
+        """Intializer for the PoolingLayer1D layers
 
         Args:
             pool_size (int, optional): Size of the pooling window. Defaults to 2.
             strides (int, optional): Step the pool should take. Defaults to 2.
-            name (str, optional): Name of the layer. Defaults to MaxPool1D.
+            name (str, optional): Name of the layer. Defaults to Pool1D.
         """
         self.pool_size: int = pool_size
         self.strides: int = strides
@@ -34,18 +37,15 @@ class PoolingLayey1D(Layer):
         return self.output_shape_value
 
     def __repr__(self) -> str:
-        return f"{self.name} (MaxPool1D){' ' * (28 - len(self.name) - 11)}{(None, self.output_shape_value)}{' ' * (26-len(f'(None, {self.output_shape_value})'))}0\n"
+        return f"{self.name} (Pool1D){' ' * (28 - len(self.name) - 11)}{(None, self.output_shape_value)}{' ' * (26-len(f'(None, {self.output_shape_value})'))}0\n"
 
     def __call__(self, x: np.ndarray, option: str, is_training: bool = False) -> np.ndarray:
-        """Call function for the MaxPool1D layer. It reduces the size of an array by how much the kernel_size and strides is set to.
-        For example let's say we have those parameters:\n
-        array X = [[1., 5., 3., 6., 7., 4.]]\n
-        both kernel_size and strides set to 2\n
-        The result we'd get is [[5., 6., 7.]]\n
-        As we take a smaller sub arrays of size kernel_size and return the max value out of them, then onto a next sub-array, with index of: current index + strides
+        """Call function for the Pool1D layers. It reduces the size of an array by how much the kernel_size and strides is set to.
 
         Args:
             x (np.ndarray): Array to reduce the size of
+            option (str): Should we use max or min pooling. Options are: "max" and "min"
+            is_training (bool): Determines whether the layer should behave like in the training loop or no. Defaults to False.
 
         Returns:
             np.ndarray: Array with reduced size
@@ -81,6 +81,16 @@ class PoolingLayey1D(Layer):
         return output
 
     def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer]) -> np.ndarray:
+        """Backpropagate algorithm used for Pooling1D layers.
+
+        Args:
+            gradient (np.ndarray): Gradient calculated by loss.compute_derivative() or previous layers output gradient
+            optimizer (List[Optimizer]): Optimizer to use for updating the model's parameters. Note that we use 2 different optimizers as then we don't have to check a bunch of times 
+            wheter we use 1 or 2 optimizers, and we need 2 optimizers for CNNs
+
+        Returns:
+            np.ndarray: Output gradient
+        """
         # Note that I haven't tested this code so I don't know if it works
         gradient_shape: tuple = gradient.shape
         gradient_expended: bool = False
@@ -104,8 +114,11 @@ class PoolingLayey1D(Layer):
 
 
 class PoolingLayey2D(Layer):
-    def __init__(self, pool_size: tuple[int, int] = (2, 2), strides: tuple[int, int] = (2, 2), name: str = "MaxPool2D"):
-        """Intializer for the MaxPool2D layer
+    """Pooling layer 2d base class. It's used to reduce the size of 2d arrays 
+    """
+
+    def __init__(self, pool_size: tuple[int, int] = (2, 2), strides: tuple[int, int] = (2, 2), name: str = "Pool2D"):
+        """Intializer for the Pool2D layers
 
         Args:
             pool_size (tuple[int, int], optional): Size of the pool. Defaults to (2, 2).
@@ -137,62 +150,19 @@ class PoolingLayey2D(Layer):
 
     def __repr__(self) -> str:
         formatted_output = f'(None, {", ".join(map(str, self.output_shape_value))})'
-        return f"{self.name} (MaxPool2D){' ' * (28 - len(self.name) - 11)}{formatted_output}{' ' * (26-len(formatted_output))}0\n"
+        return f"{self.name} (Pool2D){' ' * (28 - len(self.name) - 11)}{formatted_output}{' ' * (26-len(formatted_output))}0\n"
 
-    def old_call(self, x: np.ndarray, option: str, is_training: bool = False) -> np.ndarray:
-        """Call function for the MaxPool2D layer. It reduces the size of an array by how much the kernel_size and strides is set to.
-        For example let's say we have those parameters:\n
-        array X:\n
-        [[2, 3, 5, 9],\n
-        [4, 5, 2, 6],\n
-        [7, 4, 6, 5],\n
-        [8, 3, 4, 1]]\n
-        both kernel_size and strides set to (2, 2)\n
-        The result we'd get is:\n
-        [[5, 9],\n
-        [8, 6]]\n
+    def __call__(self, x: np.ndarray, option: str, is_training: bool = False) -> np.ndarray:
+        """Call function for the Pool2D layers. It reduces the size of an array by how much the kernel_size and strides is set to.
 
         Args:
             x (np.ndarray): Array to reduce the size of
+            option (str): Should we use max or min pooling. Options are: "max" and "min"
+            is_training (bool): Determines whether the layer should behave like in the training loop or no. Defaults to False.
 
         Returns:
             np.ndarray: Array with reduced size
         """
-        self.inputs: np.ndarray = x
-
-        x_shape: tuple = x.shape
-        height: int = (x_shape[0] - self.pool_size[0]) // self.strides[0] + 1
-        width: int = (x_shape[1] - self.pool_size[1]) // self.strides[1] + 1
-        channels: int = x_shape[2]
-
-        mask: np.ndarray = np.zeros_like(self.inputs)
-        output: np.ndarray = np.zeros((height, width, channels))
-
-        for c in range(channels):
-            for i in range(height):
-                for j in range(width):
-                    i_start, j_start = i * self.strides[0], j * self.strides[1]
-                    i_end, j_end = i_start + \
-                        self.pool_size[0], j_start + self.pool_size[1]
-
-                    subarray: np.ndarray = x[i_start:i_end, j_start:j_end, c]
-
-                    index: np.int_ = np.argmax(
-                        subarray) if option == "max" else np.argmin(subarray)
-
-                    index: tuple = np.unravel_index(index, subarray.shape)
-
-                    mask[index[0], index[1], c] = 1
-
-                    output[i, j, c] = x[index[0], index[1], c]
-
-        if is_training:
-            self.mask[self.current_batch] = mask
-            self.current_batch += 1
-
-        return output
-
-    def __call__(self, x: np.ndarray, option: str, is_training: bool = False) -> np.ndarray:
         shape = x.shape
         height = (shape[0] - self.pool_size[0]) // self.strides[0] + 1
         width = (shape[1] - self.pool_size[1]) // self.strides[1] + 1
@@ -242,6 +212,16 @@ class PoolingLayey2D(Layer):
         return output
 
     def backpropagate(self, gradient: np.ndarray, optimizer: list[Optimizer]) -> np.ndarray:
+        """Backpropagate algorithm used for Pooling2D layers.
+
+        Args:
+            gradient (np.ndarray): Gradient calculated by loss.compute_derivative() or previous layers output gradient
+            optimizer (List[Optimizer]): Optimizer to use for updating the model's parameters. Note that we use 2 different optimizers as then we don't have to check a bunch of times 
+            wheter we use 1 or 2 optimizers, and we need 2 optimizers for CNNs
+
+        Returns:
+            np.ndarray: Output gradient
+        """
         gradient_shape: tuple = gradient.shape
         channels: int = gradient_shape[2]
         gradient_expended: bool = False
@@ -271,26 +251,58 @@ class PoolingLayey2D(Layer):
 
 
 class MaxPool1D(PoolingLayey1D):
+    """MaxPooling layer 1d class. It's used to reduce the size of 1d arrays, by taking the max value of a kernel sized window
+    """
+
+    def __repr__(self) -> str:
+        return f"{self.name} (MaxPool1D){' ' * (28 - len(self.name) - 11)}{(None, self.output_shape_value)}{' ' * (26-len(f'(None, {self.output_shape_value})'))}0\n"
+
     def __call__(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
         return super().__call__(x, "max", is_training)
 
 
 class MaxPool2D(PoolingLayey2D):
+    """MaxPooling layer 2d class. It's used to reduce the size of 2d arrays, by taking the max value of a kernel sized window
+    """
+
+    def __repr__(self) -> str:
+        formatted_output = f'(None, {", ".join(map(str, self.output_shape_value))})'
+        return f"{self.name} (MaxPool2D){' ' * (28 - len(self.name) - 11)}{formatted_output}{' ' * (26-len(formatted_output))}0\n"
+
     def __call__(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
         return super().__call__(x, "max", is_training)
 
 
 class MinPool1D(PoolingLayey1D):
+    """MinPooling layer 1d class. It's used to reduce the size of 1d arrays, by taking the min value of a kernel sized window
+    """
+
+    def __repr__(self) -> str:
+        return f"{self.name} (MinPool1D){' ' * (28 - len(self.name) - 11)}{(None, self.output_shape_value)}{' ' * (26-len(f'(None, {self.output_shape_value})'))}0\n"
+
     def __call__(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
         return super().__call__(x, "min", is_training)
 
 
 class MinPool2D(PoolingLayey2D):
+    """MinPooling layer 2d class. It's used to reduce the size of 2d arrays, by taking the min value of a kernel sized window
+    """
+
+    def __repr__(self) -> str:
+        formatted_output = f'(None, {", ".join(map(str, self.output_shape_value))})'
+        return f"{self.name} (MinPool2D){' ' * (28 - len(self.name) - 11)}{formatted_output}{' ' * (26-len(formatted_output))}0\n"
+
     def __call__(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
         return super().__call__(x, "min", is_training)
 
 
 class AvgPool1D(PoolingLayey1D):
+    """AvgPooling layer 1d class. It's used to reduce the size of 1d arrays, by taking the avg value of a kernel sized window
+    """
+
+    def __repr__(self) -> str:
+        return f"{self.name} (AvgPool1D){' ' * (28 - len(self.name) - 11)}{(None, self.output_shape_value)}{' ' * (26-len(f'(None, {self.output_shape_value})'))}0\n"
+
     def __call__(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
         self.inputs: np.ndarray = x
 
@@ -323,6 +335,13 @@ class AvgPool1D(PoolingLayey1D):
 
 
 class AvgPool2D(PoolingLayey2D):
+    """AvgPooling layer 2d class. It's used to reduce the size of 2d arrays, by taking the avg value of a kernel sized window
+    """
+
+    def __repr__(self) -> str:
+        formatted_output = f'(None, {", ".join(map(str, self.output_shape_value))})'
+        return f"{self.name} (AvgPool2D){' ' * (28 - len(self.name) - 11)}{formatted_output}{' ' * (26-len(formatted_output))}0\n"
+
     def __call__(self, x: np.ndarray, is_training: bool = False) -> np.ndarray:
         self.inputs: np.ndarray = x
 

@@ -1,12 +1,28 @@
 import numpy as np
-from nano_keras.layers import Layer, LayerWithParams, Dense
+from nano_keras.layers import Layer, LayerWithParams
 from nano_keras.activations import ACTIVATIONS
 from nano_keras.optimizers import Optimizer
 from nano_keras.initializers import INITIALIZERS, Initializer
+from nano_keras.regulizers import Regularizer
 
 
 class MultiHeadAttention(LayerWithParams):
-    def __init__(self, num_heads: int, key_dim: int, value_dim: int = None, weight_initialization: Initializer | str = "random_normal", bias_initialization: Initializer | str = "zeros", trainable: bool = True, name: str = "MultiHeadAttention") -> None:
+    """Mutli Head Attention layer class. It's used to apply attention mechanism on the input. It's working but the weights are not updated.
+    """
+
+    def __init__(self, num_heads: int, key_dim: int, value_dim: int = None, weight_initialization: Initializer | str = "random_normal", bias_initialization: Initializer | str = "zeros", regulizer: Regularizer = None, trainable: bool = True, name: str = "MultiHeadAttention") -> None:
+        """Multi Head Attention layer initializer
+
+        Args:
+            num_heads (int): Number of heads the layer should have
+            key_dim (int): Key dimension of the layer
+            value_dim (int, optional): Value dimensions of the layer. Defaults to None.
+            weight_initialization (str, optional): Weights intialization strategy you want to use to generate weights of the layer. Your options are: random_normal, xavier_normal, he_normal. Defalut to "he_normal"
+            bias_initialization (str, optional): Bias intialization strategy you want to use to generate biases of the layer. Your options are: random_normal, xavier_normal, he_normal. Defalut to "random_normal"
+            regulizer (Regularizer, optional): Regulizer for the layer. Defaults to None.
+            trainable (bool, optional): Parameter that decides whether the parameters should be updated or no. Defaults to True.
+            name (str, optional): Name of the layer. Defaults to "Conv2D".
+        """
         self.num_heads: int = num_heads
         self.key_dim: int = key_dim
         self.value_dim: int = value_dim if value_dim else key_dim
@@ -16,6 +32,7 @@ class MultiHeadAttention(LayerWithParams):
         self.bias_initialization: Initializer = INITIALIZERS[bias_initialization] if type(
             bias_initialization) == str else bias_initialization
 
+        self.regulizer = regulizer
         self.trainable = trainable
         self.name: str = name
 
@@ -95,6 +112,16 @@ class MultiHeadAttention(LayerWithParams):
         self.output_biases = output_biases
 
     def compute_attention(self, q: np.ndarray, k: np.ndarray, v: np.ndarray) -> np.ndarray:
+        """Support function used to compute the attention mechanism
+
+        Args:
+            q (np.ndarray): Query
+            k (np.ndarray): Key
+            v (np.ndarray): Value
+
+        Returns:
+            np.ndarray: Computed attention
+        """
         matmul_qk = np.matmul(q, k.transpose(0, 2, 1))
 
         dk = np.array(k.shape[-1])
@@ -135,4 +162,14 @@ class MultiHeadAttention(LayerWithParams):
         return self.output
 
     def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer]) -> np.ndarray:
+        """Backpropagate algorithm used for MultiHeadAttention layer. It's working but the weights are not updated.
+
+        Args:
+            gradient (np.ndarray): Gradient calculated by loss.compute_derivative() or previous layers output gradient
+            optimizer (List[Optimizer]): Optimizer to use for updating the model's parameters. Note that we use 2 different optimizers as then we don't have to check a bunch of times
+            wheter we use 1 or 2 optimizers, and we need 2 optimizers for CNNs
+
+        Returns:
+            np.ndarray: Output gradient
+        """
         return gradient

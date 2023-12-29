@@ -8,7 +8,25 @@ from nano_keras.initializers import Initializer, INITIALIZERS
 
 
 class LSTM(LayerWithParams):
+    """LSTM layer class. It's a Long Short Term Memory class, one of the only 2 RNN layers. 
+    It's input shape is (None, input_shape) and it's output shape is (None, units) if return_sequences is False else (None, input_shape, units).
+    """
+
     def __init__(self, units: int, activation: Activation | str = "sigmoid", recurrent_activation: Activation | str = "tanh", weight_initalization: Initializer | str = "random_normal", recurrent_weight_initalization: Initializer | str = "random_normal", bias_initalization: Initializer | str = "zeros", return_sequences: bool = True, regulizer: Regularizer = None, trainable: bool = True, name: str = "LSTM") -> None:
+        """LSTM layer initializer
+
+        Args:
+            units (int): Number of gates/neurons the layer should have
+            activation (Activation | str, optional): Activation function the current_memory_content should use. Defaults to "sigmoid".
+            recurrent_actvation (Activation | str, optional): Activation function the rest of the gates should use. Defaults to "tanh".
+            weight_initaliziton (str, optional): Intialization strategy you want to use to generate input weights of the layer. You can find all of them in the Initalizers folder. Defalut to "random_normal"
+            recurrent_weight_initaliziton (str, optional): Intialization strategy you want to use to generate recurrent weights of the layer. You can find all of them in the Initalizers folder. Defalut to "random_normal"
+            bias_initialization (Initalizer | str, optional): Intialization strategy you want to use to generate biases of the layer. You can find all of them in the Initalizers folder. Defalut to "random_normal"
+            return_sequences (bool, optional): Should the layer return all timestamps or only the last one. True - all, False - last timestamp. Defaults to True.
+            regulizer (Regularizer, optional): Regulizer the model should use. You can find them all in the regulizers.py file. You must pass the already intialized class. Defaults to None.
+            trainable (bool, optional): Parameter that decides whether the parameters should be updated or no. Defaults to True.
+            name (str, optional): Name of the layer. Helpful for debugging. Defaults to "Layer".
+        """
         self.units: int = units
         self.activation: Activation = activation if type(
             activation) == Activation else ACTIVATIONS[activation]
@@ -144,6 +162,16 @@ class LSTM(LayerWithParams):
         return self.hidden_state[index, -1]
 
     def backpropagate(self, gradient: np.ndarray, optimizer: Optimizer | list[Optimizer]) -> np.ndarray:
+        """Backpropagate algorithm used for LSTM layer.
+
+        Args:
+            gradient (np.ndarray): Gradient calculated by loss.compute_derivative() or previous layers output gradient
+            optimizer (List[Optimizer]): Optimizer to use for updating the model's parameters. Note that we use 2 different optimizers as then we don't have to check a bunch of times 
+            wheter we use 1 or 2 optimizers, and we need 2 optimizers for CNNs
+
+        Returns:
+            np.ndarray: Output gradient
+        """
         if self.regulizer:
             gradient = self.regulizer.update_gradient(
                 gradient, self.weights, self.biases)

@@ -3,6 +3,9 @@ import numpy as np
 
 
 class Input(Layer):
+    """Input layer class. It's used to define the input shape of the model and pass the input to the model.
+    """
+
     def __init__(self, input_shape: tuple | int, name: str = "Input") -> None:
         """Intializer for input layer.
 

@@ -4,6 +4,9 @@ from nano_keras.optimizers import Optimizer
 
 
 class Flatten(Layer):
+    """Flatten layer class. It's used to flatten the input of the model. It's input shape is (None, *input_shape) and it's output shape is (None, np.prod(input_shape))
+    """
+
     def __init__(self, name: str = "Flatten") -> None:
         """Initalizer for the flatten layer
 

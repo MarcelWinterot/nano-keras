@@ -4,6 +4,9 @@ from nano_keras.optimizers import Optimizer
 
 
 class Reshape(Layer):
+    """Reshape layer. Reshapes the input to the target shape. Note that the target shape must be compatible with the input shape.
+    """
+
     def __init__(self, target_shape: tuple, name: str = "Reshape") -> None:
         """Initalizer for the Reshape layer
 

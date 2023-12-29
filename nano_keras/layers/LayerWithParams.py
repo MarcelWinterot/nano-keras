@@ -6,7 +6,11 @@ from nano_keras.initializers import Initializer
 
 
 class LayerWithParams(Layer):
-    def __init__(self, units: int, activation: Activation | str, weight_initialization: Initializer | str = "random_normal", bias_initalization: Initializer | str = "random_normal", regulizer: Regularizer = None, trainable: bool = True, name: str = "Dense") -> None:
+    """Base class used to build new layers with parameters.
+    It's used with all the layers that have parameters to update
+    """
+
+    def __init__(self, units: int, activation: Activation | str, weight_initialization: Initializer | str = "random_normal", bias_initalization: Initializer | str = "random_normal", regulizer: Regularizer = None, trainable: bool = True, name: str = "Layer") -> None:
         super().__init__(units, activation, weight_initialization,
                          bias_initalization, regulizer, trainable, name)
         self.weights = np.array([])
@@ -26,5 +30,11 @@ class LayerWithParams(Layer):
         return [self.weights, self.biases]
 
     def set_weights(self, weights: np.ndarray, biases: np.ndarray) -> None:
+        """Function used to set the weights and biases of the layer
+
+        Args:
+            weights (np.ndarray): Weights of the layer. If their shape is different than the current weights shape, the feedforward will fail
+            biases (np.ndarray): Biases of the layer. If their shape is different than the current biases shape, the feedforward will fail
+        """
         self.weights = weights
         self.biases = biases
