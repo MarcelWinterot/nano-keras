@@ -8,6 +8,23 @@ from time import time
 
 
 class NN:
+    """NN is the equivilent of Sequential available in Keras and PyTorch. It's used for creating and training
+    neural networks in the nano-keras library. You just initalize it and then add layers by using:
+    ```py
+    NN.add(Layer())
+    ```
+    The layers are stacked onto each other and the flow of information is in 1 way.
+    You need to compile the model before training to initalize the weights using:
+    ```py
+    NN.compile(loss+function, optimizer, metrics)
+    ```
+    Finally to train the model you need to use:
+    ```py
+    NN.train(X dataset, y dataset, batch_size, epochs, callbacks)
+    ```
+    If you want more information feel free to check the documentation on the github page
+    """
+
     def __init__(self, layers: list[Layer] = [], name: str = "NN"):
         """NN init function. Simmilar to the keras.models.Sequential class. Simply add layers using NN.add(Layer)\n
         Note that the first layer is treated as the input layer so it's recommended to use layers.Input for it as you
@@ -106,22 +123,29 @@ class NN:
 
         print(f"\r{progress_info}", end='')
 
-    def get_weights(self) -> list[np.ndarray]:
+    def get_weights(self) -> list[list[np.ndarray]]:
+        """Function that returns a list of all weights and biases in the model
+
+        Returns:
+            list[list[np.ndarray]]: Weights and biases of the model
+        """
         output = []
-        empty_array = np.array([])
         for layer in self.layers:
-            if isinstance(layer, LayerWithParams):
-                output.append(np.copy(layer.weights))
-            else:
-                output.append(empty_array)
+            output.append(layer.get_weights())
 
         return output
 
     def set_weights(self, weights: list[np.ndarray]) -> None:
+        """Function used to set the weights of the model. Note that there is no shape checking so there
+        might be unexpected behaviour
+
+        Args:
+            weights (list[np.ndarray]): Weights and biases of the model
+        """
         for i, layer in enumerate(self.layers):
             try:
                 if isinstance(layer, LayerWithParams):
-                    layer.weights = weights[i]
+                    layer.set_weights(*weights[i])
             except Exception as e:
                 print(f"Exception occured when setting weights: {e}")
                 exit(1)
