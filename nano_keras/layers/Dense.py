@@ -10,7 +10,7 @@ class Dense(LayerWithParams):
     """Dense/Linear/Fully connected layer. The input shape is (None, input_shape) and the output shape is (None, units)
     """
 
-    def __init__(self, units: int, activation: Activation | str, weight_initialization: Initializer | str = "random_normal", bias_initalization: Initializer | str = "random_normal", regulizer: Regularizer = None, trainable: bool = True, name: str = "Dense") -> None:
+    def __init__(self, units: int, activation: Activation | str, weight_initialization: Initializer | str = "random_normal", bias_initalization: Initializer | str = "random_normal", regulizer: Regularizer = None, trainable: bool = True, input_shape: tuple = None, name: str = "Dense") -> None:
         """Initalizer for the Dense class
 
         Args:
@@ -20,10 +20,11 @@ class Dense(LayerWithParams):
             bias_initialization (Initalizer | str, optional): Weights intialization strategy you want to use to generate biases of the layer. You can find all of them in the Initalizers folder. Defalut to "random_normal"
             regulizer (Regularizer, optional): Regulizer the model should use. You can find them all in the regulizers.py file. You must pass the already intialized class. Defaults to None.
             trainable (bool, optional): Parameter that decides whether the parameters should be updated or no. Defaults to True.
+            input_shape (tuple, optional): Input shape to the layer. Used if you dont't want to use Input layer. If it's None it won't be used. Defaults to None.
             name (str, optional): Name of the layer. Helpful for debugging. Defaults to "Dense".
         """
         super().__init__(units, activation, weight_initialization,
-                         bias_initalization, regulizer, trainable, name)
+                         bias_initalization, regulizer, trainable, input_shape, name)
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         return self.units

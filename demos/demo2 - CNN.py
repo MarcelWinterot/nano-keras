@@ -33,7 +33,7 @@ print("\033c", end='')
 model = NN(name="NN for MNIST")
 model.add(Input((28, 28, 1)))
 model.add(Conv2D(32, (3, 3), (2, 2), name="Conv 1"))
-model.add(Conv2D(64, (3, 3), (2, 2), name='Conv 2', trainable=False))
+model.add(Conv2D(64, (3, 3), (2, 2), name='Conv 2'))
 model.add(Flatten())
 model.add(Dense(10, "relu", "he_normal", name='Dropout'))
 

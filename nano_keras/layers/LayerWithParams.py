@@ -10,9 +10,9 @@ class LayerWithParams(Layer):
     It's used with all the layers that have parameters to update
     """
 
-    def __init__(self, units: int, activation: Activation | str, weight_initialization: Initializer | str = "random_normal", bias_initalization: Initializer | str = "random_normal", regulizer: Regularizer = None, trainable: bool = True, name: str = "Layer") -> None:
+    def __init__(self, units: int, activation: Activation | str, weight_initialization: Initializer | str = "random_normal", bias_initalization: Initializer | str = "random_normal", regulizer: Regularizer = None, trainable: bool = True, input_shape: tuple = None, name: str = "Layer") -> None:
         super().__init__(units, activation, weight_initialization,
-                         bias_initalization, regulizer, trainable, name)
+                         bias_initalization, regulizer, trainable, input_shape, name)
         self.weights = np.array([])
         self.biases = np.array([])
 

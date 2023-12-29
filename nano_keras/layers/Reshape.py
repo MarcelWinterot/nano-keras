@@ -7,7 +7,7 @@ class Reshape(Layer):
     """Reshape layer. Reshapes the input to the target shape. Note that the target shape must be compatible with the input shape.
     """
 
-    def __init__(self, target_shape: tuple, name: str = "Reshape") -> None:
+    def __init__(self, target_shape: tuple, input_shape: tuple = None, name: str = "Reshape") -> None:
         """Initalizer for the Reshape layer
 
         Args:
@@ -15,6 +15,7 @@ class Reshape(Layer):
             name (str, optional): Name of the layer. Defaults to "Reshape".
         """
         self.target_shape: tuple = target_shape
+        self.input_shape: tuple = input_shape
         self.name: str = name
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:

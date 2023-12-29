@@ -12,7 +12,7 @@ class LSTM(LayerWithParams):
     It's input shape is (None, input_shape) and it's output shape is (None, units) if return_sequences is False else (None, input_shape, units).
     """
 
-    def __init__(self, units: int, activation: Activation | str = "sigmoid", recurrent_activation: Activation | str = "tanh", weight_initalization: Initializer | str = "random_normal", recurrent_weight_initalization: Initializer | str = "random_normal", bias_initalization: Initializer | str = "zeros", return_sequences: bool = True, regulizer: Regularizer = None, trainable: bool = True, name: str = "LSTM") -> None:
+    def __init__(self, units: int, activation: Activation | str = "sigmoid", recurrent_activation: Activation | str = "tanh", weight_initalization: Initializer | str = "random_normal", recurrent_weight_initalization: Initializer | str = "random_normal", bias_initalization: Initializer | str = "zeros", return_sequences: bool = True, regulizer: Regularizer = None, trainable: bool = True, input_shape: tuple = None, name: str = "LSTM") -> None:
         """LSTM layer initializer
 
         Args:
@@ -25,6 +25,7 @@ class LSTM(LayerWithParams):
             return_sequences (bool, optional): Should the layer return all timestamps or only the last one. True - all, False - last timestamp. Defaults to True.
             regulizer (Regularizer, optional): Regulizer the model should use. You can find them all in the regulizers.py file. You must pass the already intialized class. Defaults to None.
             trainable (bool, optional): Parameter that decides whether the parameters should be updated or no. Defaults to True.
+            input_shape (tuple, optional): Input shape to the layer. Used if you dont't want to use Input layer. If it's None it won't be used. Defaults to None.
             name (str, optional): Name of the layer. Helpful for debugging. Defaults to "Layer".
         """
         self.units: int = units
@@ -43,6 +44,7 @@ class LSTM(LayerWithParams):
         self.return_sequences: bool = return_sequences
         self.regulizer: Regularizer = regulizer
         self.trainable = trainable
+        self.input_shape: tuple = input_shape
         self.name: str = name
 
         self.current_batch = 0

@@ -11,7 +11,7 @@ class Dropout(LayerWithParams):
     It's input shape is (None, input_shape) and it's output shape is (None, units)
     """
 
-    def __init__(self, units: int, activation: Activation | str, dropout_rate: float = 0.2, weight_initialization: Initializer | str = "random_normal", bias_initialization: Initializer | str = "random_normal", regulizer: Regularizer | None = None, trainable: bool = True, name: str = "Dropout") -> None:
+    def __init__(self, units: int, activation: Activation | str, dropout_rate: float = 0.2, weight_initialization: Initializer | str = "random_normal", bias_initialization: Initializer | str = "random_normal", regulizer: Regularizer | None = None, trainable: bool = True, input_shape: tuple = None, name: str = "Dropout") -> None:
         """Intializer for the dropout layer. Note that dropout layer acts the same as Dense but also drops connections between neurons
 
         Args:
@@ -22,10 +22,11 @@ class Dropout(LayerWithParams):
             bias_initaliziton (Initializer | str, optional): Bias intialization strategy you want to use to generate biases of the layer. Defalut to "random_normal"
             regulizer (Regularizer | None, optional): Regulizer the model should use. Defaults to None.
             trainable (bool, optional): Parameter that decides whether the parameters should be updated or no. Defaults to True.
+            input_shape (tuple, optional): Input shape to the layer. Used if you dont't want to use Input layer. If it's None it won't be used. Defaults to None.
             name (str, optional): Name of the layer. Defaults to "Layer".
         """
         super().__init__(units, activation, weight_initialization,
-                         bias_initialization, regulizer, trainable, name)
+                         bias_initialization, regulizer, trainable, input_shape, name)
         self.dropout_rate: float = dropout_rate
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:

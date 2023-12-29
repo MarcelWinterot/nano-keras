@@ -9,16 +9,18 @@ class PoolingLayey1D(Layer):
     """Pooling layer 1d base class. It's used to reduce the size of 2d arrays
     """
 
-    def __init__(self, pool_size: int = 2, strides: int = 2, name: str = "Pool1D") -> None:
+    def __init__(self, pool_size: int = 2, strides: int = 2, input_shape: tuple = None, name: str = "Pool1D") -> None:
         """Intializer for the PoolingLayer1D layers
 
         Args:
             pool_size (int, optional): Size of the pooling window. Defaults to 2.
             strides (int, optional): Step the pool should take. Defaults to 2.
+            input_shape (tuple, optional): Input shape to the layer. Used if you dont't want to use Input layer. If it's None it won't be used. Defaults to None.
             name (str, optional): Name of the layer. Defaults to Pool1D.
         """
         self.pool_size: int = pool_size
         self.strides: int = strides
+        self.input_shape: tuple = input_shape
         self.name: str = name
         self.current_batch: int = 0
 
@@ -31,7 +33,7 @@ class PoolingLayey1D(Layer):
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         input_shape: tuple = layers[current_layer_index -
-                                    1].output_shape(layers, current_layer_index-1)
+                                    1].output_shape(layers, current_layer_index-1) if self.input_shape is None else self.input_shape
         self.output_shape_value: tuple = math.ceil(
             (input_shape - self.kernel_size + 1) / self.strides)
         return self.output_shape_value
@@ -117,29 +119,33 @@ class PoolingLayey2D(Layer):
     """Pooling layer 2d base class. It's used to reduce the size of 2d arrays 
     """
 
-    def __init__(self, pool_size: tuple[int, int] = (2, 2), strides: tuple[int, int] = (2, 2), name: str = "Pool2D"):
+    def __init__(self, pool_size: tuple[int, int] = (2, 2), strides: tuple[int, int] = (2, 2), input_shape: tuple = None, name: str = "Pool2D"):
         """Intializer for the Pool2D layers
 
         Args:
             pool_size (tuple[int, int], optional): Size of the pool. Defaults to (2, 2).
             strides (tuple[int, int], optional): Step the kernel should take. Defaults to (2, 2).
+            input_shape (tuple, optional): Input shape to the layer. Used if you dont't want to use Input layer. If it's None it won't be used. Defaults to None.
             name (str, optional): Name of the layer. Default to NaxPool2D
         """
         self.pool_size: tuple = pool_size
         self.strides: tuple = strides
+        self.input_shape: tuple = input_shape
         self.name: tuple = name
         self.current_batch: int = 0
 
     def set_batch_size(self, batch_size: int, layers: list, index: int) -> None:
         self.batch_size: int = batch_size
 
-        input_shape: tuple = layers[index-1].output_shape(layers, index-1)
+        input_shape: tuple = layers[index-1].output_shape(
+            layers, index-1) if self.input_shape is None else self.input_shape
 
         self.mask: np.ndarray = np.ndarray((batch_size, *input_shape))
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         input_shape = layers[current_layer_index -
-                             1].output_shape(layers, current_layer_index-1)
+                             1].output_shape(layers, current_layer_index-1) if self.input_shape is None else self.input_shape
+
         self.output_shape_value: tuple = tuple([math.floor(
             (input_shape[i] - self.pool_size[i]) / self.strides[i]) + 1 for i in range(2)])
 

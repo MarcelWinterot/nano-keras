@@ -53,8 +53,8 @@ X_train, X_test, y_train, y_test = load_data()
 np.random.seed(1337)
 
 model = NN([
-    Input(5),
-    Dense(25, "relu"),
+    # Input(5),
+    Dense(25, "relu", input_shape=(5)),
     Dense(10, "relu"),
     Dense(5, "relu"),
     Dense(1, "sigmoid")

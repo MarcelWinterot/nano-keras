@@ -10,7 +10,7 @@ class GRU(LayerWithParams):
     """GRU layer. It's a gated recurrent unit layer. It's input shape is (None, input_length, input_dim) and it's output shape is (None, input_length, output_dim)
     """
 
-    def __init__(self, units: int, activation: Activation | str = "tanh", recurrent_actvation: Activation | str = "sigmoid", weight_initialization: Initializer | str = "random_normal", recurrent_weight_initialization: Initializer | str = "random_normal", bias_initalization: Initializer | str = "zeros", return_sequences: bool = True, regulizer: Regularizer = None, trainable: bool = True, name: str = "GRU") -> None:
+    def __init__(self, units: int, activation: Activation | str = "tanh", recurrent_actvation: Activation | str = "sigmoid", weight_initialization: Initializer | str = "random_normal", recurrent_weight_initialization: Initializer | str = "random_normal", bias_initalization: Initializer | str = "zeros", return_sequences: bool = True, regulizer: Regularizer = None, trainable: bool = True, input_shape: tuple = None, name: str = "GRU") -> None:
         """GRU layer initializer
 
         Args:
@@ -23,6 +23,7 @@ class GRU(LayerWithParams):
             return_sequences (bool, optional): Should the layer return all timestamps or only the last one. True - all, False - last timestamp. Defaults to True.
             regulizer (Regularizer, optional): Regulizer the model should use. You can find them all in the regulizers.py file. You must pass the already intialized class. Defaults to None.
             trainable (bool, optional): Parameter that decides whether the parameters should be updated or no. Defaults to True.
+            input_shape (tuple, optional): Input shape to the layer. Used if you dont't want to use Input layer. If it's None it won't be used. Defaults to None.
             name (str, optional): Name of the layer. Helpful for debugging. Defaults to "Layer".
         """
         self.units: int = units
@@ -41,13 +42,14 @@ class GRU(LayerWithParams):
         self.return_sequences: bool = return_sequences
         self.regulizer: Regularizer = regulizer
         self.trainable: bool = trainable
+        self.input_shape: tuple = input_shape
         self.name: str = name
 
         self.current_batch: int = 0
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         input_shape = layers[current_layer_index -
-                             1].output_shape(layers, current_layer_index-1)
+                             1].output_shape(layers, current_layer_index-1) if self.input_shape is None else self.input_shape
 
         self.output_shape_value = (
             input_shape[0], self.units) if self.return_sequences else self.units
@@ -57,7 +59,8 @@ class GRU(LayerWithParams):
     def set_batch_size(self, batch_size: int, layers: list, index: int) -> None:
         self.batch_size = batch_size
 
-        input_shape = layers[index-1].output_shape(layers, index-1)
+        input_shape = layers[index-1].output_shape(
+            layers, index-1) if self.input_shape is None else self.input_shape
         input_shape = tuple(input_shape)
 
         self.inputs = np.zeros((batch_size, *input_shape))
@@ -78,7 +81,7 @@ class GRU(LayerWithParams):
 
     def generate_weights(self, layers: list[Layer], current_layer_index: int, weight_data_type: np.float_, bias_data_type: np.float_) -> None:
         input_shape = layers[current_layer_index -
-                             1].output_shape(layers, current_layer_index-1)
+                             1].output_shape(layers, current_layer_index-1) if self.input_shape is None else self.input_shape
 
         input_weights_shape = (3, input_shape[1], self.units)
         recurrent_weights_shape = (3, self.units, self.units)

@@ -10,7 +10,7 @@ class Conv1D(LayerWithParams):
     """Conv1D layer class. The input shape is (None, steps, channels) and the output shape is (None, new_steps, filters)
     """
 
-    def __init__(self, filters: int = 1, kernel_size: int = 2, strides: int = 2, activation: Activation | str = "relu", weight_initialization: str = "he", regulizer: Regularizer = None, trainable: bool = True, name: str = "Conv1D") -> None:
+    def __init__(self, filters: int = 1, kernel_size: int = 2, strides: int = 2, activation: Activation | str = "relu", weight_initialization: str = "he", regulizer: Regularizer = None, trainable: bool = True, input_shape: tuple = None, name: str = "Conv1D") -> None:
         """Initalizer for the Conv1D layer
 
         Args:
@@ -21,6 +21,7 @@ class Conv1D(LayerWithParams):
             weight_initaliziton (str, optional): Weights intialization strategy you want to use to generate weights of the layer. Your options are: random, xavier, he. Defalut to "he"
             regulizer (Regularizer, optional): Regulizer of the layer. Defaults to None.
             trainable (bool, optional): Parameter that decides whether the parameters should be updated or no. Defaults to True.
+            input_shape (tuple, optional): Input shape to the layer. Used if you dont't want to use Input layer. If it's None it won't be used. Defaults to None.
             name (str, optional): Name of the layer. Defaults to "Conv1D".
         """
         self.number_of_filters: int = filters
@@ -33,11 +34,12 @@ class Conv1D(LayerWithParams):
         self.weight_initialization = weight_initialization
         self.regulizer: Regularizer = regulizer
         self.trainable: bool = trainable
+        self.input_shape = input_shape
         self.name: str = name
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         input_shape = layers[current_layer_index -
-                             1].output_shape(layers, current_layer_index-1)
+                             1].output_shape(layers, current_layer_index-1) if self.input_shape is None else self.input_shape
         self.output_shape_value: tuple = tuple(
             input_shape).size // self.strides, self.number_of_filters
         return self.output_shape_value
@@ -108,7 +110,7 @@ class Conv2D(LayerWithParams):
     """Conv2D layer class. The input shape is (None, height, width, channels) and the output shape is (None, new_height, new_width, filters)
     """
 
-    def __init__(self, filters: int = 1, kernel_size: tuple = (2, 2), strides: tuple = (1, 1), activation: Activation | str = "relu", weight_initialization: Initializer | str = "he_normal", bias_initialization: Initializer | str = "zeros", regulizer: Regularizer = None, trainable: bool = True, name: str = "Conv2D") -> None:
+    def __init__(self, filters: int = 1, kernel_size: tuple = (2, 2), strides: tuple = (1, 1), activation: Activation | str = "relu", weight_initialization: Initializer | str = "he_normal", bias_initialization: Initializer | str = "zeros", regulizer: Regularizer = None, trainable: bool = True, input_shape: tuple = None, name: str = "Conv2D") -> None:
         """Intializer for the Conv2D layer
 
         Args:
@@ -120,6 +122,7 @@ class Conv2D(LayerWithParams):
             bias_initialization (str, optional): Bias intialization strategy you want to use to generate biases of the layer. Your options are: random_normal, xavier_normal, he_normal. Defalut to "random_normal"
             regulizer (Regularizer, optional): Regulizer for the layer. Defaults to None.
             trainable (bool, optional): Parameter that decides whether the parameters should be updated or no. Defaults to True.
+            input_shape (tuple, optional): Input shape to the layer. Used if you dont't want to use Input layer. If it's None it won't be used. Defaults to None.
             name (str, optional): Name of the layer. Defaults to "Conv2D".
         """
         self.number_of_filters: int = filters
@@ -135,6 +138,7 @@ class Conv2D(LayerWithParams):
         self.trainable: bool = trainable
 
         self.regulizer: Regularizer = regulizer
+        self.input_shape: tuple = input_shape
         self.name: str = name
         self.weights: np.ndarray = np.array([])
         self.biases: np.ndarray = np.array([])
@@ -144,7 +148,8 @@ class Conv2D(LayerWithParams):
     def set_batch_size(self, batch_size: int, layers: list, index: int) -> None:
         self.batch_size = batch_size
 
-        input_shape = layers[index-1].output_shape(layers, index-1)
+        input_shape = layers[index-1].output_shape(
+            layers, index-1) if self.input_shape is None else self.input_shape
         output_shape = self.output_shape(layers, index)
 
         self.inputs = np.ndarray((self.batch_size, *input_shape)) if type(
@@ -166,7 +171,7 @@ class Conv2D(LayerWithParams):
             bias_data_type (np.float_): In what data type do you want to store the biases. Only use datatypes like np.float32 and np.float64
         """
         input_shape = layers[current_layer_index -
-                             1].output_shape(layers, current_layer_index-1)
+                             1].output_shape(layers, current_layer_index-1) if self.input_shape is None else self.input_shape
 
         weights_shape = (self.kernel_size[0], self.kernel_size[1],
                          input_shape[-1], self.number_of_filters)
@@ -179,7 +184,7 @@ class Conv2D(LayerWithParams):
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         self.input_shape: tuple = layers[current_layer_index -
-                                         1].output_shape(layers, current_layer_index-1)
+                                         1].output_shape(layers, current_layer_index-1) if self.input_shape is None else self.input_shape
         height = (self.input_shape[0] -
                   self.kernel_size[0]) // self.strides[0] + 1
         width = (self.input_shape[1] -

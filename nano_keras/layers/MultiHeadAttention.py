@@ -10,7 +10,7 @@ class MultiHeadAttention(LayerWithParams):
     """Mutli Head Attention layer class. It's used to apply attention mechanism on the input. It's working but the weights are not updated.
     """
 
-    def __init__(self, num_heads: int, key_dim: int, value_dim: int = None, weight_initialization: Initializer | str = "random_normal", bias_initialization: Initializer | str = "zeros", regulizer: Regularizer = None, trainable: bool = True, name: str = "MultiHeadAttention") -> None:
+    def __init__(self, num_heads: int, key_dim: int, value_dim: int = None, weight_initialization: Initializer | str = "random_normal", bias_initialization: Initializer | str = "zeros", regulizer: Regularizer = None, trainable: bool = True, input_shape: tuple = None, name: str = "MultiHeadAttention") -> None:
         """Multi Head Attention layer initializer
 
         Args:
@@ -21,6 +21,7 @@ class MultiHeadAttention(LayerWithParams):
             bias_initialization (str, optional): Bias intialization strategy you want to use to generate biases of the layer. Your options are: random_normal, xavier_normal, he_normal. Defalut to "random_normal"
             regulizer (Regularizer, optional): Regulizer for the layer. Defaults to None.
             trainable (bool, optional): Parameter that decides whether the parameters should be updated or no. Defaults to True.
+            input_shape (tuple, optional): Input shape to the layer. Used if you dont't want to use Input layer. If it's None it won't be used. Defaults to None.
             name (str, optional): Name of the layer. Defaults to "Conv2D".
         """
         self.num_heads: int = num_heads
@@ -32,8 +33,9 @@ class MultiHeadAttention(LayerWithParams):
         self.bias_initialization: Initializer = INITIALIZERS[bias_initialization] if type(
             bias_initialization) == str else bias_initialization
 
-        self.regulizer = regulizer
-        self.trainable = trainable
+        self.regulizer: Regularizer = regulizer
+        self.trainable: bool = trainable
+        self.input_shape: tuple = input_shape
         self.name: str = name
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
@@ -53,7 +55,7 @@ class MultiHeadAttention(LayerWithParams):
 
     def generate_weights(self, layers: list[Layer], current_layer_index: int, weight_data_type: np.float_, bias_data_type: np.float_) -> None:
         input_shape = tuple(layers[current_layer_index -
-                                   1].output_shape(layers, current_layer_index-1))
+                                   1].output_shape(layers, current_layer_index-1)) if self.input_shape is None else self.input_shape
 
         self.query_weights = np.random.randn(
             input_shape[-1], self.num_heads, self.key_dim).astype(weight_data_type)

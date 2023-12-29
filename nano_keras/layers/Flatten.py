@@ -7,17 +7,19 @@ class Flatten(Layer):
     """Flatten layer class. It's used to flatten the input of the model. It's input shape is (None, *input_shape) and it's output shape is (None, np.prod(input_shape))
     """
 
-    def __init__(self, name: str = "Flatten") -> None:
+    def __init__(self, input_shape: tuple = None, name: str = "Flatten") -> None:
         """Initalizer for the flatten layer
 
         Args:
+            input_shape (tuple, optional): Input shape to the layer. Used if you dont't want to use Input layer. If it's None it won't be used. Defaults to None.
             name (str, optional): Name of the layer. Defaults to "Flatten".
         """
+        self.input_shape = input_shape
         self.name: str = name
 
     def output_shape(self, layers: list[Layer], current_layer_index: int) -> tuple:
         input_shape = layers[current_layer_index -
-                             1].output_shape(layers, current_layer_index-1)
+                             1].output_shape(layers, current_layer_index-1) if self.input_shape is None else self.input_shape
         self.output_shape_value: int = np.prod(np.array(input_shape))
         self.next_layer_shape: tuple = layers[current_layer_index +
                                               1].output_shape(layers, current_layer_index+1)
