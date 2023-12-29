@@ -3,12 +3,16 @@ from nano_keras.activations import Activation
 
 
 class ELU(Activation):
+    """ELU activation function
+    """
+
     def __init__(self, alpha: float = 0.2):
         """Initalizer for ELU activation function
 
         Args:
             alpha (float, optional): By how much do we multiply np.exp(X) if X is smaller than 0. Defaults to 0.2.
         """
+        super(ELU, self).__init__()
         self.alpha: float = alpha
 
     def apply_activation(self, X: np.ndarray) -> np.ndarray:

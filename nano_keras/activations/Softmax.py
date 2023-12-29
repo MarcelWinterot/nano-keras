@@ -3,6 +3,9 @@ from nano_keras.activations import Activation
 
 
 class Softmax(Activation):
+    """Softmax activation function
+    """
+
     def apply_activation(self, X: np.ndarray) -> np.ndarray:
         """Function to apply softmax activation on given data
 
@@ -12,7 +15,7 @@ class Softmax(Activation):
         Returns:
             np.ndarray: Data with activation function applied to them
         """
-        ex = np.exp(X - np.max(X))
+        ex = np.exp(X - np.max(X) + self.e)
         return ex / ex.sum(axis=0)
 
     def compute_derivative(self, X: np.ndarray) -> np.ndarray:

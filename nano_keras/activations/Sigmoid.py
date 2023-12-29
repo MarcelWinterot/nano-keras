@@ -3,6 +3,9 @@ from nano_keras.activations import Activation
 
 
 class Sigmoid(Activation):
+    """Sigmoid activation function
+    """
+
     def apply_activation(self, X: np.ndarray) -> np.ndarray:
         """Function to apply sigmoid activation on given data
 
@@ -12,7 +15,7 @@ class Sigmoid(Activation):
         Returns:
             np.ndarray: Data with activation function applied to them
         """
-        return 1 / (1 + np.exp(-X + 1e-7))
+        return 1 / (1 + np.exp(-X + self.e))
 
     def compute_derivative(self, X: np.ndarray) -> np.ndarray:
         """Function to apply derivative of sigmoid activation on given data

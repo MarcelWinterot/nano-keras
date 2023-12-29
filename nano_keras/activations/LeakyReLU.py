@@ -3,12 +3,16 @@ from nano_keras.activations import Activation
 
 
 class LeakyReLU(Activation):
+    """LeakyReLU activation function
+    """
+
     def __init__(self, alpha: float = 0.2):
         """Initalizer for LeakyRELU activation function
 
         Args:
             alpha (float, optional): By how much do we multiply X if it's is smaller than 0. Defaults to 0.2.
         """
+        super().__init__()
         self.alpha: float = alpha
 
     def apply_activation(self, X: np.ndarray) -> np.ndarray:

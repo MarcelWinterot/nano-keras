@@ -2,10 +2,13 @@ import numpy as np
 
 
 class Activation:
+    """Base class for all activation functions
+    """
+
     def __init__(self) -> None:
         """Initalizer for most activation function that don't have any special params like LeakyReLU or ELU
         """
-        pass
+        self.e = 1e-7
 
     def apply_activation(self, X: np.ndarray) -> np.ndarray:
         """Base activation class implementation of compute loss function
